@@ -3,10 +3,8 @@ import express, { type Express } from "express";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createInMemorySessionRepository } from "../sessions/session.repository.in-memory.js";
-import { createSessionService } from "../sessions/session.service.js";
+import { createTestContainer } from "../../container-test.js";
 import type { SessionService } from "../sessions/session.service.types.js";
-import { createInMemoryUserRepository } from "../users/user.repository.in-memory.js";
 import type { UserRepository } from "../users/user.repository.js";
 import {
   OAUTH_STATE_COOKIE,
@@ -14,8 +12,6 @@ import {
 } from "./auth.controller.constants.js";
 import { createAuthController } from "./auth.controller.js";
 import { createAuthRoutes } from "./auth.routes.js";
-import { createAuthService } from "./auth.service.js";
-import { createFakeGitHubOAuthClient } from "./github-oauth.client.fake.js";
 
 const githubUser = {
   id: "gh-1",
@@ -32,19 +28,12 @@ interface Harness {
 }
 
 function setup(): Harness {
-  const sessionService = createSessionService({
-    sessionRepository: createInMemorySessionRepository(),
-  });
-  const userRepository = createInMemoryUserRepository();
-  const githubClient = createFakeGitHubOAuthClient({
-    authorizationUrl: "https://github.test/login/oauth/authorize",
-    tokensByCode: { "good-code": "access-1" },
-    usersByToken: { "access-1": githubUser },
-  });
-  const authService = createAuthService({
-    githubClient,
-    userRepository,
-    sessionService,
+  const { authService, sessionService, userRepository } = createTestContainer({
+    github: {
+      authorizationUrl: "https://github.test/login/oauth/authorize",
+      tokensByCode: { "good-code": "access-1" },
+      usersByToken: { "access-1": githubUser },
+    },
     generateState: () => "state-xyz",
   });
   const controller = createAuthController({

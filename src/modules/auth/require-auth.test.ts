@@ -2,14 +2,10 @@ import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
-import { createInMemorySessionRepository } from "../sessions/session.repository.in-memory.js";
-import { createSessionService } from "../sessions/session.service.js";
+import { createTestContainer } from "../../container-test.js";
 import type { SessionService } from "../sessions/session.service.types.js";
-import { createInMemoryUserRepository } from "../users/user.repository.in-memory.js";
 import type { UserRepository } from "../users/user.repository.js";
 import { SESSION_COOKIE } from "./auth.controller.constants.js";
-import { createAuthService } from "./auth.service.js";
-import { createFakeGitHubOAuthClient } from "./github-oauth.client.fake.js";
 import { createRequireAuth, getAuthenticatedUser } from "./require-auth.js";
 
 interface Harness {
@@ -19,24 +15,12 @@ interface Harness {
 }
 
 /**
- * Wires a real {@link AuthService} (in-memory repos) behind `requireAuth`, then
- * mounts a trivial protected route that echoes the authenticated user's email —
- * proving both the guard and the {@link getAuthenticatedUser} accessor.
+ * Wires the fake service graph ({@link createTestContainer}) behind `requireAuth`,
+ * then mounts a trivial protected route that echoes the authenticated user's
+ * email — proving both the guard and the {@link getAuthenticatedUser} accessor.
  */
 function setup(options: { redirectTo?: string } = {}): Harness {
-  const sessionService = createSessionService({
-    sessionRepository: createInMemorySessionRepository(),
-  });
-  const userRepository = createInMemoryUserRepository();
-  const authService = createAuthService({
-    githubClient: createFakeGitHubOAuthClient({
-      authorizationUrl: "https://github.test/authorize",
-      tokensByCode: {},
-      usersByToken: {},
-    }),
-    userRepository,
-    sessionService,
-  });
+  const { authService, sessionService, userRepository } = createTestContainer();
 
   const requireAuth = createRequireAuth({
     authService,

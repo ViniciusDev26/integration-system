@@ -248,8 +248,8 @@ Auth controller decisions (consequences of accepted ADRs, no new ADR):
   GitHub OAuth is implemented manually (ADR 0020), not via Arctic.
 - **Testcontainers hung on this machine (WSL2)** resolving the Docker host to the
   bridge gateway `172.17.0.1` (Reaper/container connections unreachable). Fix:
-  `TESTCONTAINERS_HOST_OVERRIDE=localhost`, set (with `??=`) in
-  `src/test-support/postgres.ts`. With it, containers start in ~1.5s and Ryuk
+  `TESTCONTAINERS_HOST_OVERRIDE=localhost`, set (with `??=`) in `startTestDatabase`
+  (`src/container-test.ts`). With it, containers start in ~1.5s and Ryuk
   works. Docker must be running to run repository tests.
 - **`docker-compose.yml` was broken for postgres:18.** The volume mounted at
   `/var/lib/postgresql/data`; PG18 images now store data in a subdirectory of the

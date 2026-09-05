@@ -1,11 +1,8 @@
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { startTestDatabase, type TestDatabase } from "../../container-test.js";
 import type { Database } from "../../shared/db/database.js";
 import { users } from "../../shared/db/schema/users.js";
-import {
-  startTestDatabase,
-  type TestDatabase,
-} from "../../test-support/postgres.js";
 import type { UserRepository } from "./user.repository.js";
 import { createPostgresUserRepository } from "./user.repository.postgres.js";
 
