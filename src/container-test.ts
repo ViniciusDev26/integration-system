@@ -7,6 +7,9 @@ import { createAuthService } from "./modules/auth/auth.service.js";
 import type { FakeGitHubOAuthClientOptions } from "./modules/auth/github-oauth.client.fake.js";
 import { createFakeGitHubOAuthClient } from "./modules/auth/github-oauth.client.fake.js";
 import type { GitHubOAuthClient } from "./modules/auth/github-oauth.client.js";
+import { createInMemoryMusicRepository } from "./modules/music/music.repository.in-memory.js";
+import type { MusicRepository } from "./modules/music/music.repository.js";
+import { createMusicService } from "./modules/music/music.service.js";
 import { createInMemorySessionRepository } from "./modules/sessions/session.repository.in-memory.js";
 import { createSessionService } from "./modules/sessions/session.service.js";
 import { createInMemoryUserRepository } from "./modules/users/user.repository.in-memory.js";
@@ -38,6 +41,7 @@ export interface TestContainerOptions {
 export interface TestContainer extends Container {
   objectStorage: InMemoryObjectStorage;
   userRepository: UserRepository;
+  musicRepository: MusicRepository;
   githubClient: GitHubOAuthClient;
 }
 
@@ -57,12 +61,16 @@ export function createTestContainer(
     generateState: options.generateState,
   });
   const objectStorage = createInMemoryObjectStorage();
+  const musicRepository = createInMemoryMusicRepository();
+  const musicService = createMusicService({ musicRepository, objectStorage });
 
   return {
     authService,
     sessionService,
     objectStorage,
+    musicService,
     userRepository,
+    musicRepository,
     githubClient,
   };
 }

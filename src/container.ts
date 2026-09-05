@@ -1,6 +1,9 @@
 import { createAuthService } from "./modules/auth/auth.service.js";
 import type { AuthService } from "./modules/auth/auth.service.types.js";
 import { createGitHubOAuthClient } from "./modules/auth/github-oauth.client.http.js";
+import { createPostgresMusicRepository } from "./modules/music/music.repository.postgres.js";
+import { createMusicService } from "./modules/music/music.service.js";
+import type { MusicService } from "./modules/music/music.service.types.js";
 import { createPostgresSessionRepository } from "./modules/sessions/session.repository.postgres.js";
 import { createSessionService } from "./modules/sessions/session.service.js";
 import type { SessionService } from "./modules/sessions/session.service.types.js";
@@ -19,6 +22,7 @@ export interface Container {
   authService: AuthService;
   sessionService: SessionService;
   objectStorage: ObjectStorage;
+  musicService: MusicService;
 }
 
 /**
@@ -53,5 +57,8 @@ export function createContainer(): Container {
     bucket: env.STORAGE_BUCKET,
   });
 
-  return { authService, sessionService, objectStorage };
+  const musicRepository = createPostgresMusicRepository(db);
+  const musicService = createMusicService({ musicRepository, objectStorage });
+
+  return { authService, sessionService, objectStorage, musicService };
 }

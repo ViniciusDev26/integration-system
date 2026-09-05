@@ -132,12 +132,18 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       `users.id` (cascade) + index, timestamps. `genre` is **free-text** (no enum,
       no ADR — open-ended). Migration `drizzle/0001_good_albert_cleary.sql`;
       applies cleanly (verified via Testcontainers integration run).
-- [ ] **`MusicRepository`** (port + postgres adapter) — `create`, `findById`,
-      `list`. Integration-tested via Testcontainers (ADR 0015).
-- [ ] **`MusicService`** — `register({ name, genre, file, uploadedBy })`: put the
-      audio to R2 via `ObjectStorage`, persist metadata. Unit-tested with fakes.
-- [ ] **Controller + routes** — `POST /musics` (multipart: `name`, `genre`,
-      `file`), `requireAuth` + `multer` + `express-zod-safe` for the text fields.
+- [x] **`MusicRepository`** (port + postgres adapter + in-memory fake) — `create`,
+      `findById`, `list` (newest-first). Integration-tested via Testcontainers
+      (ADR 0015), incl. the uploader-cascade delete.
+- [x] **`MusicService`** — `register({ name, genre, file, uploadedBy })`: puts the
+      audio to storage via `ObjectStorage` (key `musics/<uuid><ext>`, injectable),
+      then persists the row (bytes-first so a failed insert only leaks an orphan
+      object). Unit-tested with fakes.
+- [x] **Controller + routes** — `POST /musics` (multipart: `name`, `genre`,
+      `file`): `requireAuth` → `multer` (ADR 0032) → `express-zod-safe` for the
+      text fields → controller. Wired via `container.ts` → `server.ts` →
+      `app.ts` (`/musics`). Supertest tests: 201 (+ stored object + row), 401
+      anon, 400 no-file / missing-field / non-audio.
 - [ ] **UI** — an upload form page (Handlebars, ADR 0030) posting to `POST /musics`.
 
 ### 2. Music listing — all musics

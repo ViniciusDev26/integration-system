@@ -1,15 +1,25 @@
 import path from "node:path";
 import cookieParser from "cookie-parser";
-import express, { type Express, type Request, type Response } from "express";
+import express, {
+  type Express,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from "express";
 import { engine } from "express-handlebars";
 import type { AuthController } from "./modules/auth/auth.controller.types.js";
 import { createAuthRoutes } from "./modules/auth/auth.routes.js";
+import type { MusicController } from "./modules/music/music.controller.types.js";
+import { createMusicRoutes } from "./modules/music/music.routes.js";
 import type { WebController } from "./modules/web/web.controller.types.js";
 import { createWebRoutes } from "./modules/web/web.routes.js";
 
 export interface AppOptions {
   authController: AuthController;
   webController: WebController;
+  musicController: MusicController;
+  /** Route guard for authenticated endpoints (built from the container's authService). */
+  requireAuth: RequestHandler;
 }
 
 /**
@@ -42,6 +52,10 @@ export function createApp(options: AppOptions): Express {
 
   app.use("/", createWebRoutes(options.webController));
   app.use("/auth", createAuthRoutes(options.authController));
+  app.use(
+    "/musics",
+    createMusicRoutes(options.musicController, options.requireAuth),
+  );
 
   return app;
 }
