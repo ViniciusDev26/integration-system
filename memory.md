@@ -16,6 +16,8 @@ See `AGENTS.md` for the rules on how to use this file.
 
 ---
 
+Pending work is tracked as a checklist in [`tasks.md`](tasks.md).
+
 ## Current project state
 
 - The project is in its initial setup phase.
