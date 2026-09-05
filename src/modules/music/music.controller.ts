@@ -31,6 +31,11 @@ export function createMusicController(
       });
     },
 
+    async showList(_req, res) {
+      const musics = await musicService.listAll();
+      res.render("music-list", { title: "Musics — Spotifake", musics });
+    },
+
     async create(req, res) {
       // `requireAuth` and the upload middleware guarantee both of these exist by
       // the time we get here (else they'd have redirected / 400'd upstream).

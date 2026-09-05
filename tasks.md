@@ -155,10 +155,13 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
 
 ### 2. Music listing — all musics
 
-- [ ] **`GET /musics`** — lists **ALL** registered musics (not user-scoped).
-      Service `listAll()` → repo `list`. Include a playback URL (presigned R2 URL
-      via `ObjectStorage.getSignedUrl`).
-- [ ] **UI** — a page listing every music with a play link.
+- [x] **`GET /musics`** — lists **ALL** musics (not user-scoped). `MusicService.listAll()`
+      → repo `list()` (newest-first), mapping each to a `MusicListItem` with a
+      presigned `playbackUrl` (`ObjectStorage.getSignedUrl`); the storage key is
+      not leaked. `requireAuth` (redirect). Unit-tested (service + controller).
+- [x] **UI** — `src/views/music-list.handlebars`: each track with genre + an
+      `<audio controls>` playing the presigned URL; empty state; links to upload
+      + home. Home links to "Browse tracks". Boot smoke: `GET /musics` anon → 302.
 
 ### 3. Playlist module (`src/modules/playlist/`)
 

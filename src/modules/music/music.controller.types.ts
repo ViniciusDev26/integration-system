@@ -18,5 +18,7 @@ export type CreateMusicRequest = ValidatedRequest<typeof createMusicSchema>;
 export interface MusicController {
   /** Renders the upload form page (ADR 0030). */
   showUploadForm(req: Request, res: Response): void;
+  /** Renders the listing of all musics with playback URLs (ADR 0030). */
+  showList(req: Request, res: Response): Promise<void>;
   create(req: CreateMusicRequest, res: Response): Promise<void>;
 }

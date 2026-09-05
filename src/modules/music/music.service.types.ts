@@ -17,6 +17,15 @@ export interface RegisterMusicInput {
   uploadedBy: string;
 }
 
+/** A music track plus a ready-to-play URL, shaped for listing (no storage key). */
+export interface MusicListItem {
+  id: string;
+  name: string;
+  genre: string;
+  /** Short-lived presigned URL to stream the audio (ADR 0031). */
+  playbackUrl: string;
+}
+
 export interface MusicServiceOptions {
   musicRepository: MusicRepository;
   objectStorage: ObjectStorage;
@@ -33,4 +42,9 @@ export interface MusicServiceOptions {
  */
 export interface MusicService {
   register(input: RegisterMusicInput): Promise<Music>;
+  /**
+   * All tracks (newest first, not user-scoped), each with a fresh presigned
+   * playback URL for streaming from object storage.
+   */
+  listAll(): Promise<MusicListItem[]>;
 }

@@ -61,3 +61,40 @@ describe("MusicService.register", () => {
     expect(music.objectKey.endsWith(".mp3")).toBe(true);
   });
 });
+
+describe("MusicService.listAll", () => {
+  it("returns every track (newest first) with a presigned playback URL", async () => {
+    let n = 0;
+    const { service } = setup(() => {
+      n += 1;
+      return `musics/key-${n}.mp3`;
+    });
+
+    await service.register({
+      name: "First",
+      genre: "rock",
+      file,
+      uploadedBy: "user-1",
+    });
+    await service.register({
+      name: "Second",
+      genre: "jazz",
+      file,
+      uploadedBy: "user-2",
+    });
+
+    const all = await service.listAll();
+
+    expect(all.map((m) => m.name)).toEqual(["Second", "First"]);
+    // The in-memory storage fake mints URLs that embed the object key.
+    expect(all[0]?.playbackUrl).toContain("musics/key-2.mp3");
+    expect(all[1]?.playbackUrl).toContain("musics/key-1.mp3");
+    // The storage key itself is not leaked in the list item.
+    expect(all[0]).not.toHaveProperty("objectKey");
+  });
+
+  it("returns an empty array when there are no tracks", async () => {
+    const { service } = setup();
+    expect(await service.listAll()).toEqual([]);
+  });
+});

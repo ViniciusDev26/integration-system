@@ -92,6 +92,52 @@ describe("GET /musics/new", () => {
   });
 });
 
+describe("GET /musics", () => {
+  it("lists all tracks with an audio player for a signed-in user", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+    await container.musicRepository.create({
+      name: "Nocturne",
+      genre: "classical",
+      objectKey: "musics/nocturne.mp3",
+      uploadedBy: "user-1",
+    });
+
+    const res = await request(app)
+      .get("/musics")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/html/);
+    expect(res.text).toContain("Nocturne");
+    expect(res.text).toContain("classical");
+    // The in-memory storage fake embeds the object key in the presigned URL.
+    expect(res.text).toContain("musics/nocturne.mp3");
+    expect(res.text).toContain("<audio");
+  });
+
+  it("shows an empty state when there are no tracks", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+
+    const res = await request(app)
+      .get("/musics")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("No tracks yet");
+  });
+
+  it("redirects anonymous visitors to login", async () => {
+    const { app } = setup();
+
+    const res = await request(app).get("/musics");
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe("/auth/github");
+  });
+});
+
 describe("POST /musics", () => {
   it("uploads the audio, stores it, creates a row, and redirects (303)", async () => {
     const { app, container } = setup();

@@ -32,5 +32,17 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
 
       return musicRepository.create({ name, genre, objectKey, uploadedBy });
     },
+
+    async listAll() {
+      const tracks = await musicRepository.list();
+      return Promise.all(
+        tracks.map(async (track) => ({
+          id: track.id,
+          name: track.name,
+          genre: track.genre,
+          playbackUrl: await objectStorage.getSignedUrl(track.objectKey),
+        })),
+      );
+    },
   };
 }

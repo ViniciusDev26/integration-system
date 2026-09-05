@@ -1,0 +1,21 @@
+<h1>🎧 All tracks</h1>
+<p class="subtitle">Every song on Spotifake</p>
+
+{{#if musics.length}}
+  <ul class="tracks">
+    {{#each musics}}
+      <li class="track">
+        <div class="track-meta">
+          <span class="track-name">{{this.name}}</span>
+          <span class="track-genre">{{this.genre}}</span>
+        </div>
+        <audio class="track-audio" controls preload="none" src="{{this.playbackUrl}}"></audio>
+      </li>
+    {{/each}}
+  </ul>
+{{else}}
+  <p class="banner">No tracks yet.</p>
+{{/if}}
+
+<a class="btn" href="/musics/new">Upload a track</a>
+<a class="link" href="/">← Back home</a>
