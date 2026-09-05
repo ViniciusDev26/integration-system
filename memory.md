@@ -44,6 +44,10 @@ See `AGENTS.md` for the rules on how to use this file.
   - Feature-modular (vertical slice) layered architecture: `src/modules/<feature>/`
     (routes/controller/service/repository/schema) + `src/shared/` for infra;
     deps point inward — [ADR 0018](docs/adrs/0018-feature-modular-architecture.md)
+  - Sessions persisted in PostgreSQL (`sessions` table via session repository) —
+    [ADR 0019](docs/adrs/0019-sessions-persisted-in-postgresql.md)
+  - GitHub OAuth implemented manually (fetch + Zod, no auth lib), own state/CSRF —
+    [ADR 0020](docs/adrs/0020-manual-github-oauth.md)
 - **Domain decided:** a sample music API, Spotify-like. Serves music metadata
   and playback URLs, with authenticated users.
 - **Storage split:** primary database = **PostgreSQL** (relational) for metadata
@@ -73,14 +77,36 @@ See `AGENTS.md` for the rules on how to use this file.
 
 ## Implementation roadmap
 
+Build under the current feature-modular architecture (ADR 0018):
+
 1. **Auth: GitHub social login (OAuth).** First feature. Authenticated state =
    server-side session via httpOnly cookie, not JWT ([ADR 0016](docs/adrs/0016-session-httponly-cookie-auth.md)).
-2. **`GET /playlist`** — list available playlists.
-3. **`GET /musics/:id`** — music information + URL to listen (URL served from R2,
-   likely a presigned URL).
+2. **Music registration** ("cadastrar músicas") — create music metadata + upload
+   the audio file to R2 (ADR 0007). First write feature.
+3. **`GET /musics/:id`** — music information + URL to listen (presigned R2 URL).
+4. **`GET /playlist`** — list available playlists.
+
+Then, when playlists start getting complex (e.g. **shared/collaborative
+playlists** with real invariants), **reassess the architecture and plan the
+migration toward hexagonal/DDD** per module — see "Architecture plan" below.
 
 Base server + health check are in place; feature work starts at step 1.
-Expected core entities: users, playlists, musics, playlist↔music (many-to-many).
+Core entities: users, playlists, musics, playlist↔music (many-to-many).
+
+## Architecture plan (DDD migration)
+
+- **User's goal:** train DDD on this project — this is an explicit intent, not
+  just a possible future.
+- **Agreed plan:** keep the pragmatic feature-modular/layered architecture
+  (ADR 0018) for auth + music registration + music retrieval, where the domain
+  is CRUD-ish (would be anemic under DDD now).
+- **Migration trigger:** when the **playlist** feature gains real complexity
+  (shared/collaborative playlists with invariants), revisit and migrate toward
+  **hexagonal + DDD**, incrementally and per module (extract repository
+  interfaces as ports, ORM/HTTP become adapters). ADR 0014/0018 kept this seam
+  cheap. At that point supersede/extend ADR 0018 with a new architecture ADR.
+- This is a deliberate "adopt DDD when a rich domain appears" plan — see
+  ADR 0018 alternatives/triggers.
 
 ## Important discoveries
 
@@ -88,6 +114,9 @@ Expected core entities: users, playlists, musics, playlist↔music (many-to-many
   0001) and `engine-strict` blocks installs on older Node. Node 24.18.0 was
   already installed via mise; pinned it in `.tool-versions`. Run tooling with
   Node 24 active (`mise use node@24` / mise auto-activation in this dir).
+- **Arctic (OAuth lib) was deprecated July 2026**, along with the Lucia/Oslo
+  ecosystem (same author now recommends copy-paste over the lib). This is why
+  GitHub OAuth is implemented manually (ADR 0020), not via Arctic.
 
 ## Open questions
 
@@ -96,11 +125,10 @@ Expected core entities: users, playlists, musics, playlist↔music (many-to-many
 - Testing strategy for **service and handler layers** (unit with fake repos, or
   broader integration/e2e — possibly Testcontainers too). Only the repository
   layer is decided (ADR 0015); the rest is open.
-- **Session store** (ADR 0016): where server-side sessions are persisted —
-  PostgreSQL (already in stack) vs Redis vs in-memory? Not yet decided.
-- GitHub OAuth implementation details: app registration, callback URL, CSRF
-  mitigation for cookie auth, and the OAuth/session middleware to use
-  (follow-up once auth work starts).
+- GitHub OAuth setup details (for when auth is implemented): register the GitHub
+  OAuth app, callback URL, and add `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` /
+  callback + session cookie settings to `shared/env.ts` (Zod-validated).
+- Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - What architecture and boundaries are appropriate as features are added?
 
 ## Temporary context

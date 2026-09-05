@@ -29,10 +29,12 @@ been made; the internal structure and patterns are still to emerge.
 A **sample music API**, similar to a Spotify-style service. It exposes music
 metadata and playback URLs, with authenticated users. Planned surface:
 
-- **Authentication** — social login via **GitHub** (OAuth), with authenticated
-  state kept as a **server-side session referenced by an httpOnly cookie**
-  ([ADR 0016](./adrs/0016-session-httponly-cookie-auth.md)). _First feature to
-  implement._
+- **Authentication** — social login via **GitHub** (OAuth), implemented
+  manually with `fetch` + Zod ([ADR 0020](./adrs/0020-manual-github-oauth.md));
+  authenticated state kept as a **server-side session referenced by an httpOnly
+  cookie** ([ADR 0016](./adrs/0016-session-httponly-cookie-auth.md)), with
+  sessions stored in **PostgreSQL** ([ADR 0019](./adrs/0019-sessions-persisted-in-postgresql.md)).
+  _First feature to implement._
 - **`GET /playlist`** — list available playlists.
 - **`GET /musics/:id`** — get a music's information plus a URL to listen.
 
@@ -62,8 +64,9 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 | Object storage | Cloudflare R2 (S3-compatible) | [ADR 0007](./adrs/0007-r2-object-storage-for-audio-files.md) |
 | Primary database | PostgreSQL (relational) | [ADR 0008](./adrs/0008-postgresql-relational-database.md) |
 | Data access / ORM | Drizzle ORM + Drizzle Kit (migrations) | [ADR 0013](./adrs/0013-drizzle-orm-data-access.md) |
-| Auth | GitHub social login (OAuth) — _planned_ | — |
+| Auth | GitHub OAuth, implemented manually (fetch + Zod) | [ADR 0020](./adrs/0020-manual-github-oauth.md) |
 | Session | Server-side session, httpOnly cookie (not JWT) | [ADR 0016](./adrs/0016-session-httponly-cookie-auth.md) |
+| Session store | PostgreSQL (`sessions` table) | [ADR 0019](./adrs/0019-sessions-persisted-in-postgresql.md) |
 | Type safety | 100% type-safe, no escape hatches | [ADR 0009](./adrs/0009-strict-type-safety.md) |
 | Lint / format | Biome | [ADR 0010](./adrs/0010-biome-linter-formatter.md) |
 | Runtime validation | Zod (at boundaries) | [ADR 0011](./adrs/0011-zod-runtime-validation.md) |

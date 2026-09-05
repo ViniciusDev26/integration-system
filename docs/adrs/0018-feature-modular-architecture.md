@@ -38,6 +38,20 @@ Adopt a **layered architecture organized by feature (vertical slices)**.
 - `shared/` is for genuinely cross-cutting concerns only — it must not become a
   dumping ground; feature-specific code stays in its module.
 
+## Planned revisit (DDD)
+
+Training DDD is an explicit project goal. Rather than adopt it prematurely on a
+CRUD-ish domain (which would yield an anemic model), the agreed plan is:
+
+- Build **auth**, **music registration**, and **music retrieval** under this
+  architecture.
+- When the **playlist** feature grows real invariants (e.g. **shared /
+  collaborative playlists**), **reassess and migrate toward hexagonal + DDD**
+  incrementally, per module — extracting repository interfaces as ports and
+  turning the ORM/HTTP into adapters. A new architecture ADR will then
+  supersede or extend this one. The inward-pointing dependencies and repository
+  seam here are specifically what keep that migration cheap.
+
 ## Consequences
 
 - **Cohesion:** everything for a feature is in one place; easy to navigate and
