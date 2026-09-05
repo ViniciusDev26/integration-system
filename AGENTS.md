@@ -187,6 +187,9 @@ do full type-aware linting, so review remains the backstop for unsafe casts.
   factories (e.g. `createPostgresUserRepository(db)`, and in-memory fakes for
   tests). Wire the graph **manually in a composition root** — no DI container
   (ADR 0027).
+- Keep an implementation file to its factory: put its **types** in
+  `x.service.types.ts` and its **constants** in `x.service.constants.ts`
+  (dedicated files), not inline in the implementation.
 
 ### Test-Driven Development (ADR 0022) — mandatory for feature code
 
