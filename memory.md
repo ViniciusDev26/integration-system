@@ -122,10 +122,17 @@ returns null when expired), `revoke`. Injectable `now`/`generateToken`/`ttlMs`
 for deterministic tests; 7 tests green using `createInMemorySessionRepository`
 (fake colocated as `*.in-memory.ts`, excluded from build). Style: closures +
 ports/adapters + manual composition root (ADR 0026/0027). Full suite: 18 green.
-Next: `authService` (TDD, unit with fakes) — OAuth flow (state, code→token,
-`/user` via Zod, upsert user, create session via SessionService); then prod db
-client (`shared/db`, adds DATABASE_URL to `shared/env.ts`) + composition root
-(`src/container.ts`) + auth controller/routes + httpOnly cookie in `app.ts`.
+**`GitHubOAuthClient`** done (`src/modules/auth/`): port (`github-oauth.client.ts`,
+`GitHubUser`) + http adapter `createGitHubOAuthClient` (`github-oauth.client.http.ts`)
+with injectable `fetch` + Zod-validated responses — `getAuthorizationUrl`,
+`exchangeCodeForToken`, `getAuthenticatedUser` (resolves primary verified email
+via `/user` then `/user/emails`; email guaranteed non-null). 6 unit tests (fake
+fetch, no network). Full suite: 24 green.
+Next: `authService` (TDD, unit with fakes: GitHubOAuthClient fake + in-memory
+user repo + session service) — state gen/validation, code→token, upsert user,
+create session. Then prod db client (`shared/db`, adds DATABASE_URL to
+`shared/env.ts`) + composition root (`src/container.ts`) + auth controller/routes
++ httpOnly cookie in `app.ts`.
 Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Architecture plan (DDD migration)
