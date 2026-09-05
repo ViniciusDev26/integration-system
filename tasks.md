@@ -64,8 +64,7 @@ to `/var/lib/postgresql` (PG18 stores data in a subdirectory).
 ### Follow-ups (auth)
 
 - [ ] Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
-- [ ] `requireAuth` middleware using `SessionService.validate` (needed once
-      protected routes exist).
+- [x] `requireAuth` middleware (done — see "Foundations for uploads" below).
 - [ ] CSRF hardening review for cookie auth (SameSite, etc.).
 - [ ] Validate the GitHub callback `iss` param (RFC 9207) instead of just
       accepting it (currently stripped by the query schema).
@@ -89,8 +88,8 @@ to `/var/lib/postgresql` (PG18 stores data in a subdirectory).
 
 ### Follow-ups (UI)
 
-- [ ] `requireAuth` middleware for protected pages/routes (still pending from
-      auth follow-ups; needed once there are pages beyond home).
+- [x] `requireAuth` middleware for protected pages/routes (done — see
+      "Foundations for uploads"). Still needs mounting once such a page exists.
 - [ ] Music/playlist pages once those features exist.
 
 ## Next up: music + playlists
@@ -101,10 +100,14 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
 
 ### 0. Foundations for uploads (do first)
 
-- [ ] **`requireAuth` middleware** — reads the `session` cookie →
-      `authService.getCurrentUser` (or `sessionService.validate`); 401/redirect
-      when absent. Exposes the current user to handlers. Needed by every write
-      below. (Promotes the pending auth/UI follow-up.)
+- [x] **`requireAuth` middleware** (`src/modules/auth/require-auth.ts`, TDD) —
+      `createRequireAuth({ authService, redirectTo? })`: reads the `session`
+      cookie → `authService.getCurrentUser`; unauthenticated → 302 redirect when
+      `redirectTo` is set (pages) else 401 JSON (API). Stashes the user on
+      `res.locals`; handlers read it via the typed `getAuthenticatedUser(res)`
+      accessor. Express 5 forwards store failures to the error handler (no silent
+      bypass). Not yet wired into any route — mounted when the first protected
+      route lands (music). 5 supertest tests.
 - [ ] **R2 storage adapter** (ADR 0007) — new ADR for the client choice
       (`@aws-sdk/client-s3`, S3-compatible) + env (`R2_ACCOUNT_ID`,
       `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`). Define an
