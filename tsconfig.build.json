@@ -13,6 +13,7 @@
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.in-memory.ts",
+    "src/**/*.fake.ts",
     "src/test-support/**"
   ]
 }

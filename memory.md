@@ -134,11 +134,18 @@ types clashed with axios 1.20). Full suite: 24 green.
   needs a human browser login for the `code`). If more confidence is wanted:
   local mock-server integration test (real axios over localhost; would need
   injectable base URLs) or a PAT-gated smoke test for `getAuthenticatedUser`.
-Next: `authService` (TDD, unit with fakes: GitHubOAuthClient fake + in-memory
-user repo + session service) — state gen/validation, code→token, upsert user,
-create session. Then prod db client (`shared/db`, adds DATABASE_URL to
-`shared/env.ts`) + composition root (`src/container.ts`) + auth controller/routes
-+ httpOnly cookie in `app.ts`.
+**`authService`** done (`src/modules/auth/auth.service.ts`, TDD unit): `getLoginUrl()`
+→ `{ url, state }` (random CSRF state via node crypto, injectable); `handleCallback({
+code, state, expectedState })` → verify state (throws on mismatch/empty),
+exchange code, fetch GitHub user, upsert via UserRepository, create session via
+SessionService. 5 unit tests with fakes (`createFakeGitHubOAuthClient`,
+`createInMemoryUserRepository`, real SessionService over in-memory session repo).
+Fakes colocated as `*.fake.ts` / `*.in-memory.ts`, excluded from build. Full
+suite: 29 green.
+Next (wiring to make it runnable): prod db client (`src/shared/db`, postgres.js)
++ add DATABASE_URL/PUBLIC_BASE_URL/GITHUB_* to `shared/env.ts` (Zod) + composition
+root (`src/container.ts`) + auth controller/routes (`GET /auth/github`,
+`/auth/github/callback`) with httpOnly state + session cookies, mounted in `app.ts`.
 Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Architecture plan (DDD migration)
