@@ -28,7 +28,7 @@ function setup() {
     sessionService,
     generateState: () => "state-xyz",
   });
-  return { service, userRepository };
+  return { service, userRepository, sessionService };
 }
 
 describe("AuthService", () => {
@@ -101,5 +101,38 @@ describe("AuthService", () => {
     expect(first.userId).toBe(user?.id);
     expect(second.userId).toBe(user?.id);
     expect(first.id).not.toBe(second.id);
+  });
+
+  it("getCurrentUser resolves the user behind a valid session id", async () => {
+    const { service } = setup();
+    const session = await service.handleCallback({
+      code: "good-code",
+      state: "s",
+      expectedState: "s",
+    });
+
+    const user = await service.getCurrentUser(session.id);
+
+    expect(user?.githubId).toBe("gh-1");
+    expect(user?.email).toBe("ada@x.com");
+  });
+
+  it("getCurrentUser returns null for an unknown session id", async () => {
+    const { service } = setup();
+
+    expect(await service.getCurrentUser("nope")).toBeNull();
+  });
+
+  it("getCurrentUser returns null once the session is revoked", async () => {
+    const { service, sessionService } = setup();
+    const session = await service.handleCallback({
+      code: "good-code",
+      state: "s",
+      expectedState: "s",
+    });
+
+    await sessionService.revoke(session.id);
+
+    expect(await service.getCurrentUser(session.id)).toBeNull();
   });
 });

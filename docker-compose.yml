@@ -1,6 +1,35 @@
-# Local development database (ADR 0021). Not a production deployment mechanism.
-# Start with: docker compose up -d
-# The app connects via DATABASE_URL (see .env.example).
+# Local development environment (ADR 0021, ADR 0029). NOT a production deployment
+# mechanism. One command brings up everything:
+#
+#   docker compose up            # postgres + migrations + running API
+#
+# Requires a `.env` at the repo root (copy `.env.example`) — it carries the
+# GitHub OAuth secrets (ADR 0020). DATABASE_URL is provided here, pointing at the
+# `postgres` service, so it need not be in your `.env`.
+#
+# tsc-watch auto-reloads on source changes where the container gets file events
+# for the bind mount. On Docker Desktop + WSL2 with the native TS7 compiler it
+# won't see host edits (ADR 0029) — use `docker compose restart app`, or run
+# `npm run dev` on the host with only Postgres in Compose.
+#
+# After changing dependencies (package.json), rebuild the image AND refresh the
+# container-built node_modules:
+#
+#   docker compose up --build -V   # -V renews the anon node_modules; keeps pgdata
+
+# Shared config for the app-image services (app + migrate): both build the
+# Dockerfile `dev` stage and bind-mount the repo. `/app/node_modules` is an
+# ANONYMOUS volume so the container uses its own (musl-built) dependencies rather
+# than the host's, and `-V` on `up` re-seeds it from a freshly built image.
+x-app-dev: &app-dev
+  build:
+    context: .
+    target: dev
+  image: integration-system-app-dev
+  env_file: .env
+  volumes:
+    - .:/app
+    - /app/node_modules
 
 services:
   postgres:
@@ -14,12 +43,43 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PG18 images store data in a subdirectory of this mount (not the mount
+      # root); mounting at /var/lib/postgresql/data fails to initialize.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d integration_system"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # One-shot: apply Drizzle migrations once Postgres is healthy, then exit.
+  migrate:
+    <<: *app-dev
+    container_name: integration-system-migrate
+    command: ["npm", "run", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/integration_system
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # The API, with hot reload (tsc-watch). Waits for migrations to finish.
+  app:
+    <<: *app-dev
+    container_name: integration-system-app
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgres://user:password@postgres:5432/integration_system
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   pgdata:

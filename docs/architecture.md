@@ -30,11 +30,13 @@ A **sample music API**, similar to a Spotify-style service. It exposes music
 metadata and playback URLs, with authenticated users. Planned surface:
 
 - **Authentication** — social login via **GitHub** (OAuth), implemented
-  manually with `fetch` + Zod ([ADR 0020](./adrs/0020-manual-github-oauth.md));
-  authenticated state kept as a **server-side session referenced by an httpOnly
-  cookie** ([ADR 0016](./adrs/0016-session-httponly-cookie-auth.md)), with
-  sessions stored in **PostgreSQL** ([ADR 0019](./adrs/0019-sessions-persisted-in-postgresql.md)).
-  _First feature to implement._
+  manually with axios + Zod ([ADR 0020](./adrs/0020-manual-github-oauth.md),
+  [ADR 0028](./adrs/0028-axios-http-client.md)); authenticated state kept as a
+  **server-side session referenced by an httpOnly cookie**
+  ([ADR 0016](./adrs/0016-session-httponly-cookie-auth.md)), with sessions stored
+  in **PostgreSQL** ([ADR 0019](./adrs/0019-sessions-persisted-in-postgresql.md)).
+  **Implemented and wired end to end** — routes `GET /auth/github`,
+  `GET /auth/github/callback`, `POST /auth/logout` (see below).
 - **`GET /playlist`** — list available playlists.
 - **`GET /musics/:id`** — get a music's information plus a URL to listen.
 
@@ -64,6 +66,7 @@ Planned (not yet modeled):
 | Runtime        | Node.js 24        | [ADR 0001](./adrs/0001-nodejs-24-and-typescript.md) |
 | Language       | TypeScript        | [ADR 0001](./adrs/0001-nodejs-24-and-typescript.md) |
 | HTTP framework | Express           | [ADR 0002](./adrs/0002-express-http-framework.md)   |
+| View layer (SSR) | Handlebars (`express-handlebars`) | [ADR 0030](./adrs/0030-server-side-rendered-ui-handlebars.md) |
 | Test framework | Vitest            | [ADR 0003](./adrs/0003-vitest-test-framework.md)    |
 | Build          | `tsc` + recommended tsconfig | [ADR 0004](./adrs/0004-build-with-tsc-and-recommended-tsconfig.md) |
 | Execution      | `node dist/server.js` (compiled) | [ADR 0005](./adrs/0005-execution-and-dev-workflow.md) |
@@ -83,6 +86,7 @@ Planned (not yet modeled):
 | Module system | ESM (`type: module`, NodeNext) | [ADR 0017](./adrs/0017-esm-module-system.md) |
 | Architecture | Feature-modular (vertical slice), layered | [ADR 0018](./adrs/0018-feature-modular-architecture.md) |
 | Local database | Docker Compose (PostgreSQL) | [ADR 0021](./adrs/0021-docker-compose-local-database.md) |
+| Local dev env | Docker Compose (db + migrate + app) | [ADR 0029](./adrs/0029-docker-compose-full-dev-environment.md) |
 | App image | Multi-stage Dockerfile (Node 24 alpine) | [ADR 0023](./adrs/0023-dockerfile-production-image.md) |
 | Methodology | TDD (red → green → refactor) | [ADR 0022](./adrs/0022-tdd-methodology.md) |
 
@@ -113,9 +117,16 @@ Planned (not yet modeled):
   the repository layer is driven by **integration tests against real PostgreSQL
   via Testcontainers**; services/controllers by **unit tests** with fakes over
   the repository seam.
-- **Local database** ([ADR 0021](./adrs/0021-docker-compose-local-database.md)):
-  `docker compose up -d` runs PostgreSQL locally; the app connects via
-  `DATABASE_URL`.
+- **Local dev environment** ([ADR 0021](./adrs/0021-docker-compose-local-database.md),
+  [ADR 0029](./adrs/0029-docker-compose-full-dev-environment.md)):
+  `docker compose up` brings up the whole stack — `postgres`, a one-shot
+  `migrate` (Drizzle migrations), and the `app` (Dockerfile `dev` stage, source
+  bind-mounted, `DATABASE_URL` pointing at the `postgres` service). Requires a
+  `.env` (GitHub OAuth secrets). `tsc-watch` auto-reloads where the platform
+  delivers bind-mount file events; on Docker Desktop + WSL2 with the native TS7
+  compiler it does not (restart the `app` service, or run `npm run dev` on the
+  host with only Postgres in Compose). Compose stays **local-dev only**, not a
+  deployment mechanism.
 - **App container** ([ADR 0023](./adrs/0023-dockerfile-production-image.md)):
   multi-stage `Dockerfile` builds with `tsc` and ships `dist/` + prod deps on
   `node:24.18.0-alpine`; runs non-root with a `/health` HEALTHCHECK. Config is
@@ -131,26 +142,62 @@ Source lives under `src/`; `tsc` compiles to `dist/`; the app runs as
 `tsc-watch` ([ADR 0005](./adrs/0005-execution-and-dev-workflow.md)).
 
 **App/server split** — the Express app is built separately from the process that
-listens, so tests (e.g. supertest) can import and exercise the app without
-binding a port:
+listens, so tests (supertest) can import and exercise the app without binding a
+port. Collaborators are **injected** (ADR 0027), so the composition root owns all
+wiring:
 
-- `src/app.ts` — exports `createApp(): Express`; builds and configures the app
-  (middleware, module routes). No `listen`.
-- `src/server.ts` — entry point; imports `createApp()` and `env`, then
-  `app.listen(env.PORT)`.
+- `src/app.ts` — exports `createApp({ authController, webController }): Express`;
+  registers the Handlebars view engine (ADR 0030), installs middleware
+  (`express.urlencoded`, `express.json`, `cookie-parser`), the `/health` route,
+  and mounts feature routers (`/` web pages, `/auth`). No `listen`.
+- `src/server.ts` — entry point; builds the graph via `createContainer()`,
+  constructs the `authController`, then `createApp(...)` and `app.listen(env.PORT)`.
+- `src/container.ts` — **composition root** (ADR 0027): `createContainer()` wires
+  `db → repositories → services → authService` with the production adapters.
+- `src/shared/db/index.ts` — production DB client: `getDb()` lazily builds the
+  postgres.js + Drizzle handle from `env.DATABASE_URL`; `closeDb()` tears it down.
+  Only the composition root resolves it; repositories take the injected handle.
 - `src/shared/env.ts` — validates `process.env` with Zod once and exports a
-  typed `env` object (ADR 0009/0011). **No other module reads `process.env`
-  directly.**
-- `src/modules/<feature>/` — feature slices (created as features are built;
-  ADR 0018). None yet beyond the health check.
+  typed `env` object (ADR 0009/0011): `NODE_ENV`, `PORT`, `DATABASE_URL`,
+  `PUBLIC_BASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. **No other module
+  reads `process.env` directly.**
+- `src/modules/auth/` — auth feature slice: `auth.controller.ts` (HTTP layer:
+  cookies, redirects, status), `auth.routes.ts` (router + `express-zod-safe`
+  validation), over the existing `auth.service` / `github-oauth.client`.
+- `src/modules/web/` — server-rendered pages (ADR 0030): `web.controller.ts`
+  (builds the view model, renders Handlebars), `web.routes.ts`.
+- `src/views/` — Handlebars templates (layout + pages); copied to `dist/views`.
+- `src/shared/http/cookies.ts` — `readCookie`, the shared Zod-validated cookie
+  reader used by the auth and web controllers.
 
-Current routes: `GET /health` → `{ "status": "ok" }`.
+Current routes:
+
+- `GET /` → **Spotifake** home page (server-rendered, ADR 0030): signed-in user
+  (GitHub avatar/name + logout form) or a "Sign in with GitHub" link.
+- `GET /health` → `{ "status": "ok" }`.
+- `GET /auth/github` → 302 to GitHub's authorize URL; issues the CSRF `state` in a
+  short-lived httpOnly cookie (`oauth_state`).
+- `GET /auth/github/callback` → validates `code`+`state` (middleware), checks the
+  `state` cookie, runs the login, sets the `session` httpOnly cookie, redirects to `/`.
+- `POST /auth/logout` → revokes the session, clears the cookie, redirects to `/`
+  (303) so a browser `<form>` lands back on the home page.
+
+Auth cookies are `HttpOnly` + `SameSite=Lax`; `Secure` is enabled when
+`NODE_ENV=production` (ADR 0016).
+
+**UI (server-side rendered, ADR 0030):** the `web` module (`src/modules/web/`)
+renders pages with Handlebars. Templates live in `src/views/`
+(`layouts/main.handlebars` + `home.handlebars`) and are copied to `dist/views` at
+build time. Controllers pass a ready view model; templates hold no logic. The
+web layer reads the session cookie and calls `authService.getCurrentUser` to
+render auth state.
 
 Node version is pinned to **24.18.0** via `.tool-versions` (mise); npm's
 `engine-strict` (ADR 0006) will refuse installs on an older Node.
 
 ### Not yet decided
 
-No feature components or domain boundaries exist yet beyond the health check.
-These sections will be filled in as the architecture emerges, each significant
-decision recorded as an ADR.
+Beyond the **auth** slice (GitHub login), the **web** slice (server-rendered
+home page), and the health check, no feature components or domain boundaries
+exist yet (music/playlist modules are planned). These sections will be filled in
+as the architecture emerges, each significant decision recorded as an ADR.

@@ -12,6 +12,21 @@ const envSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
+
+  /** PostgreSQL connection string used by the Drizzle client (ADR 0008/0024). */
+  DATABASE_URL: z.url(),
+
+  /**
+   * Public base URL of this API — scheme + host (+ port), no trailing slash. The
+   * GitHub OAuth callback is derived as `${PUBLIC_BASE_URL}/auth/github/callback`
+   * and must match the OAuth App's registered callback (ADR 0020). A trailing
+   * slash is stripped so the derivation stays correct.
+   */
+  PUBLIC_BASE_URL: z.url().transform((value) => value.replace(/\/+$/, "")),
+
+  /** GitHub OAuth App credentials (ADR 0020). */
+  GITHUB_CLIENT_ID: z.string().min(1),
+  GITHUB_CLIENT_SECRET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

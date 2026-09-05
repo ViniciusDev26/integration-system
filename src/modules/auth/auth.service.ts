@@ -31,5 +31,13 @@ export function createAuthService(options: AuthServiceOptions): AuthService {
 
       return sessionService.createForUser(user.id);
     },
+
+    async getCurrentUser(sessionId) {
+      const session = await sessionService.validate(sessionId);
+      if (session === null) {
+        return null;
+      }
+      return userRepository.findById(session.userId);
+    },
   };
 }

@@ -1,4 +1,5 @@
 import type { Session } from "../../shared/db/schema/sessions.js";
+import type { User } from "../../shared/db/schema/users.js";
 import type { SessionService } from "../sessions/session.service.types.js";
 import type { UserRepository } from "../users/user.repository.js";
 import type { GitHubOAuthClient } from "./github-oauth.client.js";
@@ -32,4 +33,10 @@ export interface HandleCallbackInput {
 export interface AuthService {
   getLoginUrl(): LoginUrl;
   handleCallback(input: HandleCallbackInput): Promise<Session>;
+  /**
+   * Resolves the authenticated user from a session id (e.g. the cookie value):
+   * validates the session and loads its user. Returns `null` when the session is
+   * missing, invalid, or expired. Used by the web layer to render auth state.
+   */
+  getCurrentUser(sessionId: string): Promise<User | null>;
 }

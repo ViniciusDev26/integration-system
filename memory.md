@@ -92,7 +92,11 @@ Pending work is tracked as a checklist in [`tasks.md`](tasks.md).
   @types/node, @types/express, @biomejs/biome, vitest, zod 4.5.4.
 - **Verified working:** `npm run typecheck`, `npm run build`, `npm run lint` all
   pass; server runs and `GET /health` → `200 {"status":"ok"}`, unknown route →
-  404. supertest not installed yet (planned).
+  404. supertest now installed and used for controller tests. Real server boots
+  against the compose Postgres and `GET /auth/github` → 302 to real GitHub with
+  correct `client_id`/`redirect_uri`/`scope`/`state` + httpOnly state cookie;
+  callback 400 (missing params) / 401 (bad state) confirmed. Full OAuth `code`
+  exchange requires a browser login (+ migration applied) — manual, not automated.
 - npm-only enforcement now complete: `engines` + `preinstall: only-allow npm` in
   package.json back the `.npmrc` `engine-strict` (ADR 0006 follow-up done).
 
@@ -144,11 +148,79 @@ SessionService. 5 unit tests with fakes (`createFakeGitHubOAuthClient`,
 `createInMemoryUserRepository`, real SessionService over in-memory session repo).
 Fakes colocated as `*.fake.ts` / `*.in-memory.ts`, excluded from build. Full
 suite: 29 green.
-Next (wiring to make it runnable): prod db client (`src/shared/db`, postgres.js)
-+ add DATABASE_URL/PUBLIC_BASE_URL/GITHUB_* to `shared/env.ts` (Zod) + composition
-root (`src/container.ts`) + auth controller/routes (`GET /auth/github`,
-`/auth/github/callback`) with httpOnly state + session cookies, mounted in `app.ts`.
-Core entities: users, playlists, musics, playlist↔music (many-to-many).
+**Login wired end to end (HTTP layer + composition).** Done:
+- `src/shared/env.ts` now also validates `DATABASE_URL` (z.url), `PUBLIC_BASE_URL`
+  (z.url, trailing slash stripped via transform), `GITHUB_CLIENT_ID`,
+  `GITHUB_CLIENT_SECRET`.
+- `src/shared/db/index.ts` — prod DB client: `getDb()` (lazy postgres.js + Drizzle
+  from `env.DATABASE_URL`) + `closeDb()`. Only the composition root resolves it.
+- `src/container.ts` — `createContainer()` wires `db → repos → services →
+  authService` with prod adapters (ADR 0027).
+- `src/modules/auth/auth.controller.ts` + `auth.routes.ts` + `.constants.ts` +
+  `.types.ts`. Routes: `GET /auth/github` (302 + `oauth_state` httpOnly cookie,
+  10 min), `GET /auth/github/callback` (`express-zod-safe` validates code+state,
+  ADR 0012; checks `oauth_state` cookie → 401 on mismatch/missing; sets `session`
+  httpOnly cookie, ADR 0016; redirects `/`), `POST /auth/logout` (revoke + clear).
+  Cookies: HttpOnly + SameSite=Lax; Secure when NODE_ENV=production.
+- `src/app.ts` — now `createApp({ authController })`; adds `cookie-parser`, mounts
+  `/auth`. `src/server.ts` builds the container + controller then listens.
+- Controller built TDD via **supertest** (`auth.controller.test.ts`, 7 tests).
+  Full suite: **36 green**. typecheck/lint/build clean.
+- New deps (exact, ADR 0006): `express-zod-safe` 3.2.1, `cookie-parser` 1.4.7;
+  dev: `supertest` 7.2.2, `@types/supertest`, `@types/cookie-parser`.
+Core entities still to model: playlists, musics, playlist↔music (many-to-many).
+
+**Server-rendered UI added (ADR 0030), branded "Spotifake".** Handlebars via
+`express-handlebars` 9.0.1:
+- View engine wired in `src/app.ts` (`engine({defaultLayout:"main"})`, views =
+  `path.join(import.meta.dirname,"views")` — resolves to `src/views` under Vitest
+  and `dist/views` when compiled). Templates: `src/views/layouts/main.handlebars`
+  (inline CSS, Spotify-green accent, light/dark) + `src/views/home.handlebars`.
+- Build copies templates: `copy:views` script (`cp -r src/views/. dist/views/`);
+  `build` and `dev` (onSuccess) run it. Prod image ships `dist/views`.
+- `src/modules/web/` slice: `web.controller.ts` (`home` reads session cookie →
+  `authService.getCurrentUser` → view model `{displayName,email,imageUrl}` or
+  null) + `web.routes.ts` (`GET /`). Wired in container/server (webController).
+- Added `authService.getCurrentUser(sessionId)` (TDD, 3 unit tests): validate
+  session → `userRepository.findById`. New `AuthService` method.
+- Extracted shared `readCookie` → `src/shared/http/cookies.ts` (Zod-validated),
+  now used by both auth + web controllers (removed the dup in auth.controller).
+- **Behavior change:** `POST /auth/logout` now redirects `303 → /` (was 204) so a
+  browser form lands on home; login callback already redirects `→ /`. Constant
+  `POST_LOGOUT_REDIRECT_PATH`. Updated auth.controller tests accordingly.
+- `web.controller.test.ts` (supertest over the REAL Handlebars engine, 3 tests):
+  signed-out (sign-in link, no "Log out"), signed-in (name/email/logout form),
+  invalid cookie → signed out. Full suite: **42 green**.
+- Removed `api.http` (user pivoted to the UI instead).
+- New deps (exact): `express-handlebars` 9.0.1.
+- Fixed latent prod bug: `Dockerfile` build stage copied only `tsconfig.json`,
+  but `npm run build` uses `tsconfig.build.json` (added to the COPY). Verified
+  the production image builds and ships `dist/views`.
+- **Compose node_modules: named → anonymous volume.** Adding express-handlebars
+  broke `docker compose up` (`Cannot find module 'express-handlebars'`): the
+  container used a NAMED node_modules volume seeded once from an older image, so
+  new deps were missing. Switched `/app/node_modules` to an anonymous volume →
+  after any dep change run `docker compose up --build -V` (`-V` renews anon
+  volumes, keeps `pgdata`). Removed the top-level `node_modules:` named volume.
+- **Fixed dev script.** `tsc-watch --onSuccess` runs its command via cross-spawn
+  WITHOUT a shell, so `&&` in onSuccess is passed as literal args (broke
+  `copy:views && node`). Now `copy:views` runs ONCE before tsc-watch in the `dev`
+  script (`npm run copy:views && tsc-watch ... --onSuccess "node dist/server.js"`);
+  `dist/views` persists across recompiles so once is enough. Verified: app builds
+  + serves `GET /` (Spotifake) in-container with a fresh `-V` volume.
+
+Auth controller decisions (consequences of accepted ADRs, no new ADR):
+- CSRF `state` kept in a short-lived httpOnly `oauth_state` cookie; verified at
+  the HTTP layer (401) AND re-checked in `authService.handleCallback` (defense in
+  depth). Cookie names: `oauth_state`, `session`.
+- `express-zod-safe` typed handler seam: share the query schema
+  (`githubCallbackSchema`, exported from `auth.controller.ts`) between `validate()`
+  and the handler typed via its `ValidatedRequest<typeof schema>` — no casts.
+- Untyped inbound cookies (`req.cookies` is `any`) are validated with a Zod
+  `z.record(z.string(), z.string()).catch({})` at the read boundary.
+- Follow-up: the callback maps only state-mismatch to 401; other failures (bad
+  `code`, GitHub/DB errors) bubble to Express's default 500. Introduce typed auth
+  errors → proper 4xx/5xx mapping when it matters.
 
 ## Architecture plan (DDD migration)
 
@@ -179,17 +251,44 @@ Core entities: users, playlists, musics, playlist↔music (many-to-many).
   `TESTCONTAINERS_HOST_OVERRIDE=localhost`, set (with `??=`) in
   `src/test-support/postgres.ts`. With it, containers start in ~1.5s and Ryuk
   works. Docker must be running to run repository tests.
+- **`docker-compose.yml` was broken for postgres:18.** The volume mounted at
+  `/var/lib/postgresql/data`; PG18 images now store data in a subdirectory of the
+  mount and reject a fresh init when mounted at `.../data` (container crash-loops,
+  "in 18+, these Docker images are configured to store database data in ..."). Fix:
+  mount `pgdata` at `/var/lib/postgresql`. `docker compose up -d` now goes healthy.
+- **Local run needs Node 24 active** (default shell node is v22 here); npm blocks
+  installs/scripts otherwise (`engine-strict`). Use `mise exec -- <cmd>` (or
+  `mise use node@24`) so npm/tsc/vitest run under 24.18.0.
+- **TypeScript is 7.0.2 — the native (Go) compiler**, not TS 5.x. Its `tsc
+  --watch` exposes no `watchFile`/`watchOptions`/`TSC_WATCHFILE` polling knobs
+  (help lists only `--watch`). Consequence: in-container `tsc-watch` hot reload
+  does NOT see host edits over the **Docker Desktop + WSL2** bind mount, even
+  though the file content + mtime DO propagate (verified via `stat` in the
+  container) — the watcher just never wakes. No tsconfig/env polling config fixes
+  it. Works on native Docker (Linux) where inotify crosses the mount. Fallback
+  for WSL2: `docker compose restart app`, or host `npm run dev` (native WSL2 ext4
+  fs events work) with only Postgres in Compose. Full dev env = ADR 0029.
+- **Server does not auto-load `.env`.** `npm start`/`dev` don't pass `--env-file`;
+  only `db:migrate` uses `--env-file-if-exists=.env`. To run the server against
+  the local DB, provide env (e.g. `node --env-file=.env dist/server.js` with
+  `DATABASE_URL` also set). User's `.env` currently lacks `DATABASE_URL` — it must
+  be added (see `.env.example`) for the server/migration to run.
 
 ## Open questions
 
 - Note (ADR 0010): Biome does not do full type-aware linting, so type-aware
   "unsafe-*" checks rely on strict `tsconfig` + code review, not the linter.
-- Env config: chosen `PUBLIC_BASE_URL` (host only); callback is derived in code
-  as `${PUBLIC_BASE_URL}/auth/github/callback`. Documented in `.env.example`
-  (PORT, NODE_ENV, PUBLIC_BASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,
-  DATABASE_URL). User has filled their local `.env`. Still TODO: add these vars
-  to the Zod schema in `shared/env.ts` when implementing auth/DB (currently
-  env.ts only validates PORT + NODE_ENV).
+- Env config: `PUBLIC_BASE_URL` (host only); callback derived in code as
+  `${PUBLIC_BASE_URL}/auth/github/callback` (in `container.ts`). All vars now in
+  the Zod schema (`shared/env.ts`): NODE_ENV, PORT, DATABASE_URL, PUBLIC_BASE_URL,
+  GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET. **Resolved.** Note: user's local `.env`
+  still needs `DATABASE_URL` added (see discoveries).
+- **GitHub OAuth callback includes an `iss` param** (RFC 9207, issuer
+  identification) beyond `code`/`state`. express-zod-safe wraps a raw-shape query
+  in `z.strictObject`, which 400-ed on the extra key. Fixed: `githubCallbackSchema.query`
+  is now a `z.object` (strips unknown keys). Hardening follow-up: actually
+  validate `iss === "https://github.com"` (RFC 9207 mix-up defense) instead of
+  discarding it.
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - What architecture and boundaries are appropriate as features are added?
 

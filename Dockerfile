@@ -1,6 +1,24 @@
 # Production image for the API. Multi-stage: build with full deps, ship only
 # the compiled output + production deps. See ADR 0023 and ADR 0005 (tsc ->
 # node dist/server.js), ADR 0001 (Node 24), ADR 0006 (npm).
+#
+# A separate `dev` stage powers the Docker Compose dev environment (ADR 0029).
+# The production `runner` stage is kept LAST so `docker build .` (no --target)
+# still produces the production image.
+
+# --- Dev stage: hot-reload for `docker compose up` (ADR 0029) ---
+# Not shipped to production. Full deps (incl. tsc-watch). Compose bind-mounts the
+# source at runtime, so no `src` is copied here; node_modules stays in the image
+# (Compose keeps them in a named volume). Runs as the unprivileged `node` user
+# (uid 1000) so files written to the bind mount stay owned by the host developer.
+FROM node:24.18.0-alpine AS dev
+WORKDIR /app
+ENV NODE_ENV=development
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci
+USER node
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
 
 # --- Stage 1: build (tsc -> dist) ---
 FROM node:24.18.0-alpine AS builder
@@ -9,7 +27,9 @@ WORKDIR /app
 # deterministic (save-exact) and engine-strict (ADR 0006).
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci
-COPY tsconfig.json ./
+# tsconfig.build.json (used by `npm run build`) extends tsconfig.json — both are
+# needed. The build also copies src/views into dist (ADR 0030), so they ship.
+COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
 

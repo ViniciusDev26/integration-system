@@ -25,23 +25,41 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 No new business logic — just composition and the HTTP layer.
 
-- [ ] **Prod DB client** — `src/shared/db/index.ts`: postgres.js + Drizzle
-      client from `env.DATABASE_URL` (lazy connect).
-- [ ] **Env schema** — add `DATABASE_URL`, `PUBLIC_BASE_URL`,
-      `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` to `src/shared/env.ts` (Zod).
-- [ ] **Composition root** — `src/container.ts`: build `db → repos → services →
-      authService`, injecting production adapters (ADR 0027).
-- [ ] **Auth routes/controller** — `src/modules/auth/`:
-  - [ ] `GET /auth/github` → redirect to `authService.getLoginUrl()`, set the
-        `state` in a short-lived httpOnly cookie.
-  - [ ] `GET /auth/github/callback` → read `code` + `state` (query, validated via
-        `express-zod-safe`, ADR 0012) and the expected `state` (cookie) →
-        `authService.handleCallback` → set the session id in an httpOnly cookie
-        (ADR 0016) → redirect.
-  - [ ] `POST /auth/logout` → revoke session + clear cookie (optional now).
-- [ ] **Mount** the auth routes in `src/app.ts` (+ cookie parsing).
-- [ ] **Verify** the flow runs for real against a live Postgres + a real GitHub
-      OAuth App (`/verify`); document the manual run.
+- [x] **Prod DB client** — `src/shared/db/index.ts`: postgres.js + Drizzle
+      client from `env.DATABASE_URL` (lazy: `getDb()`/`closeDb()`).
+- [x] **Env schema** — added `DATABASE_URL`, `PUBLIC_BASE_URL` (trailing slash
+      stripped), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` to `src/shared/env.ts`.
+- [x] **Composition root** — `src/container.ts` (`createContainer()`): builds
+      `db → repos → services → authService`, injecting production adapters (ADR 0027).
+- [x] **Auth routes/controller** — `src/modules/auth/` (`auth.controller.ts`,
+      `auth.routes.ts`), TDD via supertest (7 tests):
+  - [x] `GET /auth/github` → 302 to `authService.getLoginUrl()`, `state` in a
+        short-lived httpOnly cookie (`oauth_state`, 10 min).
+  - [x] `GET /auth/github/callback` → `code` + `state` validated via
+        `express-zod-safe` (ADR 0012); expected `state` from cookie →
+        `authService.handleCallback` → session id in httpOnly cookie (`session`,
+        ADR 0016) → redirect `/`. State mismatch → 401.
+  - [x] `POST /auth/logout` → revoke session + clear cookie.
+- [x] **Mount** the auth routes in `src/app.ts` (`createApp({ authController })`)
+      + `cookie-parser`.
+- [~] **Verify** — real server boots against live Postgres (compose) and
+      `GET /auth/github` 302-redirects to real GitHub with the right
+      params + state cookie; `/health` 200; callback 400 (missing) / 401 (bad
+      state) confirmed. **Remaining (user, manual):** run `npm run db:migrate`
+      (agent may not write to the DB) and complete a real browser login to
+      exercise the `code` exchange — not automatable (ADR 0020 note).
+
+Fixed along the way: `docker-compose.yml` mounted the volume at
+`/var/lib/postgresql/data`, which **postgres:18** rejects on fresh init; moved it
+to `/var/lib/postgresql` (PG18 stores data in a subdirectory).
+
+- [x] **One-command dev env** (ADR 0029) — `docker compose up` brings up
+      `postgres` + one-shot `migrate` + `app` (Dockerfile `dev` stage, source
+      bind-mounted). `DATABASE_URL` provided by Compose. Verified: app builds,
+      boots, serves `/health` + `/auth/github` in-container.
+  - Caveat: `tsc-watch` hot reload doesn't see host edits on Docker Desktop +
+    WSL2 with the native **TS7** compiler (no polling knob; fs events don't cross
+    the mount). Fallback: `docker compose restart app` or host `npm run dev`.
 
 ### Follow-ups (auth)
 
@@ -49,14 +67,94 @@ No new business logic — just composition and the HTTP layer.
 - [ ] `requireAuth` middleware using `SessionService.validate` (needed once
       protected routes exist).
 - [ ] CSRF hardening review for cookie auth (SameSite, etc.).
+- [ ] Validate the GitHub callback `iss` param (RFC 9207) instead of just
+      accepting it (currently stripped by the query schema).
 
 ---
 
-## Backlog (roadmap)
+## UI — server-side rendered (ADR 0030)
 
-- [ ] **Music registration** ("cadastrar músicas") — metadata + upload the audio
-      file to R2 (ADR 0007). First write feature.
-- [ ] **`GET /musics/:id`** — music info + presigned R2 URL to listen.
-- [ ] **`GET /playlist`** — list available playlists.
-- [ ] **Architecture reassessment** — when playlists gain real invariants (shared
-      playlists), plan the hexagonal/DDD migration (ADR 0018 planned revisit).
+- [x] **Handlebars view layer** (`express-handlebars`): view engine in `app.ts`,
+      templates in `src/views/` (`layouts/main.handlebars`, `home.handlebars`),
+      copied to `dist/views` on build (`copy:views`).
+- [x] **`web` module** (`src/modules/web/`): `GET /` renders the **Spotifake**
+      home — signed-in user (avatar/name + logout) or "Sign in with GitHub".
+- [x] `authService.getCurrentUser(sessionId)` (TDD) resolves the user from the
+      session cookie; shared `readCookie` in `src/shared/http/cookies.ts`.
+- [x] Auth actions made browser-friendly: `POST /auth/logout` now redirects to
+      `/` (303); the login callback already redirects to `/`.
+- [x] Removed `api.http` (superseded by the UI).
+- [x] Fixed a latent bug: the prod `Dockerfile` build stage didn't copy
+      `tsconfig.build.json` (used by `npm run build`) — now copied; image builds.
+
+### Follow-ups (UI)
+
+- [ ] `requireAuth` middleware for protected pages/routes (still pending from
+      auth follow-ups; needed once there are pages beyond home).
+- [ ] Music/playlist pages once those features exist.
+
+## Next up: music + playlists
+
+Build under the current feature-modular architecture (ADR 0018), TDD (ADR 0022),
+ports/adapters + composition root (ADR 0026/0027). Everything below is
+authenticated — needs the **`requireAuth` middleware** first (see auth follow-up).
+
+### 0. Foundations for uploads (do first)
+
+- [ ] **`requireAuth` middleware** — reads the `session` cookie →
+      `authService.getCurrentUser` (or `sessionService.validate`); 401/redirect
+      when absent. Exposes the current user to handlers. Needed by every write
+      below. (Promotes the pending auth/UI follow-up.)
+- [ ] **R2 storage adapter** (ADR 0007) — new ADR for the client choice
+      (`@aws-sdk/client-s3`, S3-compatible) + env (`R2_ACCOUNT_ID`,
+      `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`). Define an
+      `ObjectStorage` **port** (`put`, `getSignedUrl`) with an R2 adapter + an
+      in-memory fake for tests.
+- [ ] **`multer` upload middleware** — new ADR (multipart handling + limits +
+      allowed audio MIME types; memory storage → stream to R2). Validate the file
+      at the boundary; keep the handler thin.
+
+### 1. Music module — upload & create (`src/modules/music/`)
+
+- [ ] **Schema + migration** — `musics` table: `id` (uuidv7), `name`, `genre`,
+      `object_key` (R2), `uploaded_by` → `users.id`, timestamps. (Decide: `genre`
+      free-text vs enum — small ADR if enum.)
+- [ ] **`MusicRepository`** (port + postgres adapter) — `create`, `findById`,
+      `list`. Integration-tested via Testcontainers (ADR 0015).
+- [ ] **`MusicService`** — `register({ name, genre, file, uploadedBy })`: put the
+      audio to R2 via `ObjectStorage`, persist metadata. Unit-tested with fakes.
+- [ ] **Controller + routes** — `POST /musics` (multipart: `name`, `genre`,
+      `file`), `requireAuth` + `multer` + `express-zod-safe` for the text fields.
+- [ ] **UI** — an upload form page (Handlebars, ADR 0030) posting to `POST /musics`.
+
+### 2. Music listing — all musics
+
+- [ ] **`GET /musics`** — lists **ALL** registered musics (not user-scoped).
+      Service `listAll()` → repo `list`. Include a playback URL (presigned R2 URL
+      via `ObjectStorage.getSignedUrl`).
+- [ ] **UI** — a page listing every music with a play link.
+
+### 3. Playlist module (`src/modules/playlist/`)
+
+- [ ] **Schema + migration** — `playlists` (`id`, `name`, `owner_id` →
+      `users.id`, timestamps) + `playlist_musics` join (`playlist_id`,
+      `music_id`, unique pair; many-to-many).
+- [ ] **`PlaylistRepository`** (port + postgres adapter) — `create`, `findById`,
+      `listByOwner`, `addMusic`, `listMusics`. Integration-tested.
+- [ ] **`PlaylistService`** — `createForUser`, `addMusic` (enforce ownership),
+      `getWithMusics`. Unit-tested with fakes.
+- [ ] **Controller + routes** — `POST /playlists` (create), `POST
+      /playlists/:id/musics` (add a music), all `requireAuth` + ownership checks.
+- [ ] **UI** — create-playlist form + add-music-to-playlist flow.
+
+### 4. Playlist listing — only the current user's
+
+- [ ] **`GET /playlists`** — lists **only** playlists owned by the authenticated
+      user (`listByOwner(currentUser.id)`).
+- [ ] **UI** — a page listing the user's playlists (link into each playlist's
+      musics).
+
+### Later
+
+- [ ] **Architecture reassessment** — when playlists gain real invariants (shared/
+      collaborative playlists), plan the hexagonal/DDD migration (ADR 0018 revisit).
