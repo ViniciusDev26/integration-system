@@ -127,9 +127,11 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
 
 ### 1. Music module — upload & create (`src/modules/music/`)
 
-- [ ] **Schema + migration** — `musics` table: `id` (uuidv7), `name`, `genre`,
-      `object_key` (R2), `uploaded_by` → `users.id`, timestamps. (Decide: `genre`
-      free-text vs enum — small ADR if enum.)
+- [x] **Schema + migration** — `musics` table (`src/shared/db/schema/musics.ts`):
+      `id` (uuidv7), `name`, `genre`, `object_key` (R2), `uploaded_by` →
+      `users.id` (cascade) + index, timestamps. `genre` is **free-text** (no enum,
+      no ADR — open-ended). Migration `drizzle/0001_good_albert_cleary.sql`;
+      applies cleanly (verified via Testcontainers integration run).
 - [ ] **`MusicRepository`** (port + postgres adapter) — `create`, `findById`,
       `list`. Integration-tested via Testcontainers (ADR 0015).
 - [ ] **`MusicService`** — `register({ name, genre, file, uploadedBy })`: put the
