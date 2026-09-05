@@ -24,24 +24,30 @@ export function createMusicController(
   const { musicService } = options;
 
   return {
+    showUploadForm(req, res) {
+      res.render("music-upload", {
+        title: "Upload — Spotifake",
+        uploaded: req.query.uploaded === "1",
+      });
+    },
+
     async create(req, res) {
       // `requireAuth` and the upload middleware guarantee both of these exist by
-      // the time we get here (else they'd have 401'd / 400'd upstream).
+      // the time we get here (else they'd have redirected / 400'd upstream).
       const user = getAuthenticatedUser(res);
       const file = getUploadedFile(req);
 
-      const music = await musicService.register({
+      await musicService.register({
         name: req.body.name,
         genre: req.body.genre,
         file,
         uploadedBy: user.id,
       });
 
-      res.status(201).json({
-        id: music.id,
-        name: music.name,
-        genre: music.genre,
-      });
+      // Server-rendered flow (ADR 0030): redirect back to the form with a
+      // success flag rather than returning JSON. 303 so the browser follows
+      // this POST with a GET.
+      res.redirect(303, "/musics/new?uploaded=1");
     },
   };
 }

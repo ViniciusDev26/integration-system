@@ -5,9 +5,11 @@ import { createMusicSchema } from "./music.controller.js";
 import type { MusicController } from "./music.controller.types.js";
 
 /**
- * Music routes (ADR 0018). All writes are authenticated.
+ * Music routes (ADR 0018). All routes are authenticated; `requireAuth` redirects
+ * anonymous browsers to login (ADR 0030).
  *
- * - `POST /` → upload an audio file + create a music. Middleware chain:
+ * - `GET  /new` → render the upload form page.
+ * - `POST /`    → upload an audio file + create a music. Middleware chain:
  *   `requireAuth` (reject anonymous before buffering any bytes) → multer
  *   (parse/validate the file, ADR 0032) → `express-zod-safe` (validate the text
  *   fields, ADR 0012) → controller.
@@ -17,6 +19,8 @@ export function createMusicRoutes(
   requireAuth: RequestHandler,
 ): Router {
   const router = Router();
+
+  router.get("/new", requireAuth, controller.showUploadForm);
 
   router.post(
     "/",

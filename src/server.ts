@@ -16,7 +16,11 @@ const authController = createAuthController({
 
 const webController = createWebController({ authService });
 const musicController = createMusicController({ musicService });
-const requireAuth = createRequireAuth({ authService });
+// Browser-facing guard (ADR 0030): redirect anonymous visitors to login.
+const requireAuth = createRequireAuth({
+  authService,
+  redirectTo: "/auth/github",
+});
 
 const app = createApp({
   authController,

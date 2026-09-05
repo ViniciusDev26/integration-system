@@ -87,6 +87,7 @@ describe("web controller — GET /", () => {
     expect(res.text).toContain("Ada Lovelace");
     expect(res.text).toContain("ada@x.com");
     expect(res.text).toContain('action="/auth/logout"');
+    expect(res.text).toContain('href="/musics/new"');
     expect(res.text).not.toContain('href="/auth/github"');
   });
 

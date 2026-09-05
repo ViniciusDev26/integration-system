@@ -144,7 +144,14 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       text fields → controller. Wired via `container.ts` → `server.ts` →
       `app.ts` (`/musics`). Supertest tests: 201 (+ stored object + row), 401
       anon, 400 no-file / missing-field / non-audio.
-- [ ] **UI** — an upload form page (Handlebars, ADR 0030) posting to `POST /musics`.
+- [x] **UI** — upload form page (`src/views/music-upload.handlebars`) at
+      `GET /musics/new`, posting multipart to `POST /musics`. Home links to it
+      when signed in. To keep the app browser-first (ADR 0030, like the auth
+      redirects): `requireAuth` now **redirects** anon visitors to `/auth/github`
+      (via `redirectTo` in `server.ts`), and `POST /musics` **redirects 303** to
+      `/musics/new?uploaded=1` (success banner) instead of returning JSON.
+      Controller tests updated (render form, banner, redirects); boot smoke
+      confirmed `GET /` + `GET /musics/new` (anon → 302 login).
 
 ### 2. Music listing — all musics
 

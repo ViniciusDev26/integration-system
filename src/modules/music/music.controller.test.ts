@@ -1,5 +1,7 @@
+import path from "node:path";
 import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
+import { engine } from "express-handlebars";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import {
@@ -21,9 +23,17 @@ function setup(): Harness {
   const controller = createMusicController({
     musicService: container.musicService,
   });
-  const requireAuth = createRequireAuth({ authService: container.authService });
+  // Mirror server.ts: the browser guard redirects anonymous visitors to login.
+  const requireAuth = createRequireAuth({
+    authService: container.authService,
+    redirectTo: "/auth/github",
+  });
 
   const app = express();
+  // Mirror app.ts: templates live in ../../views relative to this module.
+  app.engine("handlebars", engine({ defaultLayout: "main" }));
+  app.set("view engine", "handlebars");
+  app.set("views", path.join(import.meta.dirname, "..", "..", "views"));
   app.use(cookieParser());
   app.use("/musics", createMusicRoutes(controller, requireAuth));
 
@@ -42,8 +52,48 @@ async function signIn(container: TestContainer): Promise<string> {
   return session.id;
 }
 
+describe("GET /musics/new", () => {
+  it("renders the upload form for a signed-in user", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+
+    const res = await request(app)
+      .get("/musics/new")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/html/);
+    expect(res.text).toContain('action="/musics"');
+    expect(res.text).toContain('enctype="multipart/form-data"');
+    expect(res.text).toContain('name="file"');
+    expect(res.text).toContain('name="genre"');
+    expect(res.text).not.toContain("Track uploaded");
+  });
+
+  it("shows a success banner when redirected back after an upload", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+
+    const res = await request(app)
+      .get("/musics/new?uploaded=1")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Track uploaded");
+  });
+
+  it("redirects anonymous visitors to login", async () => {
+    const { app } = setup();
+
+    const res = await request(app).get("/musics/new");
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe("/auth/github");
+  });
+});
+
 describe("POST /musics", () => {
-  it("uploads the audio, stores it, and creates a row (201)", async () => {
+  it("uploads the audio, stores it, creates a row, and redirects (303)", async () => {
     const { app, container } = setup();
     const sessionId = await signIn(container);
 
@@ -57,12 +107,12 @@ describe("POST /musics", () => {
         contentType: "audio/mpeg",
       });
 
-    expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ name: "Nocturne", genre: "classical" });
-    expect(res.body.id).toBeTruthy();
+    expect(res.status).toBe(303);
+    expect(res.headers.location).toBe("/musics/new?uploaded=1");
 
     const [row] = await container.musicRepository.list();
     expect(row?.name).toBe("Nocturne");
+    expect(row?.genre).toBe("classical");
     expect(row?.objectKey).toBeTruthy();
 
     const stored = container.objectStorage.get(row?.objectKey ?? "");
@@ -70,7 +120,7 @@ describe("POST /musics", () => {
     expect(stored?.contentType).toBe("audio/mpeg");
   });
 
-  it("rejects an anonymous upload with 401", async () => {
+  it("redirects an anonymous upload to login", async () => {
     const { app } = setup();
 
     const res = await request(app)
@@ -82,7 +132,8 @@ describe("POST /musics", () => {
         contentType: "audio/mpeg",
       });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe("/auth/github");
   });
 
   it("returns 400 when no file is attached", async () => {
