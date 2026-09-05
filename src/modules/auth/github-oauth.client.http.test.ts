@@ -1,5 +1,38 @@
+import axios, { type AxiosAdapter, type AxiosInstance } from "axios";
 import { describe, expect, it } from "vitest";
+import {
+  GITHUB_API_EMAILS_URL,
+  GITHUB_API_USER_URL,
+  GITHUB_TOKEN_URL,
+} from "./github-oauth.client.constants.js";
 import { createGitHubOAuthClient } from "./github-oauth.client.http.js";
+
+interface MockRoute {
+  method: "get" | "post";
+  url: string;
+  status: number;
+  data: unknown;
+}
+
+/** An axios instance whose native adapter answers from `routes` (no network). */
+function createMockHttp(routes: readonly MockRoute[]): AxiosInstance {
+  const adapter: AxiosAdapter = async (config) => {
+    const method = (config.method ?? "get").toLowerCase();
+    const url = config.url ?? "";
+    const route = routes.find((r) => r.method === method && r.url === url);
+    if (route === undefined) {
+      throw new Error(`no mock route for ${method} ${url}`);
+    }
+    return {
+      data: route.data,
+      status: route.status,
+      statusText: "OK",
+      headers: {},
+      config,
+    };
+  };
+  return axios.create({ adapter });
+}
 
 const baseOptions = {
   clientId: "client-123",
@@ -7,22 +40,16 @@ const baseOptions = {
   redirectUri: "http://localhost:3000/auth/github/callback",
 };
 
-function jsonResponse(body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "content-type": "application/json" },
+function makeClient(routes: readonly MockRoute[] = []) {
+  return createGitHubOAuthClient({
+    ...baseOptions,
+    httpClient: createMockHttp(routes),
   });
 }
 
-describe("GitHubOAuthClient (http)", () => {
+describe("GitHubOAuthClient (http, axios)", () => {
   it("builds an authorization URL with client_id, redirect_uri, scope, state", () => {
-    const client = createGitHubOAuthClient({
-      ...baseOptions,
-      scopes: ["read:user", "user:email"],
-      fetch: async () => new Response(),
-    });
-
-    const url = new URL(client.getAuthorizationUrl("state-abc"));
+    const url = new URL(makeClient().getAuthorizationUrl("state-abc"));
 
     expect(url.origin + url.pathname).toBe(
       "https://github.com/login/oauth/authorize",
@@ -34,26 +61,34 @@ describe("GitHubOAuthClient (http)", () => {
   });
 
   it("exchanges a code for an access token", async () => {
-    const fetch: typeof globalThis.fetch = async (input) => {
-      expect(String(input)).toBe("https://github.com/login/oauth/access_token");
-      return jsonResponse({
-        access_token: "gho_token",
-        token_type: "bearer",
-        scope: "read:user,user:email",
-      });
-    };
-    const client = createGitHubOAuthClient({ ...baseOptions, fetch });
+    const client = makeClient([
+      {
+        method: "post",
+        url: GITHUB_TOKEN_URL,
+        status: 200,
+        data: {
+          access_token: "gho_token",
+          token_type: "bearer",
+          scope: "read:user,user:email",
+        },
+      },
+    ]);
 
     expect(await client.exchangeCodeForToken("code-1")).toBe("gho_token");
   });
 
   it("throws when the token exchange returns an error", async () => {
-    const fetch: typeof globalThis.fetch = async () =>
-      jsonResponse({
-        error: "bad_verification_code",
-        error_description: "The code is incorrect or expired.",
-      });
-    const client = createGitHubOAuthClient({ ...baseOptions, fetch });
+    const client = makeClient([
+      {
+        method: "post",
+        url: GITHUB_TOKEN_URL,
+        status: 200,
+        data: {
+          error: "bad_verification_code",
+          error_description: "The code is incorrect or expired.",
+        },
+      },
+    ]);
 
     await expect(client.exchangeCodeForToken("bad")).rejects.toThrow(
       /bad_verification_code/,
@@ -61,19 +96,20 @@ describe("GitHubOAuthClient (http)", () => {
   });
 
   it("returns the user using the profile email when present", async () => {
-    const fetch: typeof globalThis.fetch = async (input) => {
-      if (String(input) === "https://api.github.com/user") {
-        return jsonResponse({
+    const client = makeClient([
+      {
+        method: "get",
+        url: GITHUB_API_USER_URL,
+        status: 200,
+        data: {
           id: 99,
           login: "ada",
           name: "Ada",
           email: "ada@public.com",
           avatar_url: "http://img/ada",
-        });
-      }
-      throw new Error(`unexpected url ${String(input)}`);
-    };
-    const client = createGitHubOAuthClient({ ...baseOptions, fetch });
+        },
+      },
+    ]);
 
     const user = await client.getAuthenticatedUser("tok");
 
@@ -87,26 +123,29 @@ describe("GitHubOAuthClient (http)", () => {
   });
 
   it("falls back to the primary verified email when the profile email is null", async () => {
-    const fetch: typeof globalThis.fetch = async (input) => {
-      const url = String(input);
-      if (url === "https://api.github.com/user") {
-        return jsonResponse({
+    const client = makeClient([
+      {
+        method: "get",
+        url: GITHUB_API_USER_URL,
+        status: 200,
+        data: {
           id: 7,
           login: "grace",
           name: null,
           email: null,
           avatar_url: null,
-        });
-      }
-      if (url === "https://api.github.com/user/emails") {
-        return jsonResponse([
+        },
+      },
+      {
+        method: "get",
+        url: GITHUB_API_EMAILS_URL,
+        status: 200,
+        data: [
           { email: "sec@x.com", primary: false, verified: true },
           { email: "grace@x.com", primary: true, verified: true },
-        ]);
-      }
-      throw new Error(`unexpected url ${url}`);
-    };
-    const client = createGitHubOAuthClient({ ...baseOptions, fetch });
+        ],
+      },
+    ]);
 
     const user = await client.getAuthenticatedUser("tok");
 
@@ -114,25 +153,26 @@ describe("GitHubOAuthClient (http)", () => {
   });
 
   it("throws when there is no verified primary email", async () => {
-    const fetch: typeof globalThis.fetch = async (input) => {
-      const url = String(input);
-      if (url === "https://api.github.com/user") {
-        return jsonResponse({
+    const client = makeClient([
+      {
+        method: "get",
+        url: GITHUB_API_USER_URL,
+        status: 200,
+        data: {
           id: 7,
           login: "grace",
           name: null,
           email: null,
           avatar_url: null,
-        });
-      }
-      if (url === "https://api.github.com/user/emails") {
-        return jsonResponse([
-          { email: "sec@x.com", primary: false, verified: true },
-        ]);
-      }
-      throw new Error(`unexpected url ${url}`);
-    };
-    const client = createGitHubOAuthClient({ ...baseOptions, fetch });
+        },
+      },
+      {
+        method: "get",
+        url: GITHUB_API_EMAILS_URL,
+        status: 200,
+        data: [{ email: "sec@x.com", primary: false, verified: true }],
+      },
+    ]);
 
     await expect(client.getAuthenticatedUser("tok")).rejects.toThrow(
       /verified primary email/,

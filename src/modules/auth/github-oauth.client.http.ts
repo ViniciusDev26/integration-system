@@ -1,3 +1,4 @@
+import axios, { type AxiosInstance } from "axios";
 import { z } from "zod";
 import {
   DEFAULT_GITHUB_SCOPES,
@@ -6,10 +7,7 @@ import {
   GITHUB_AUTHORIZE_URL,
   GITHUB_TOKEN_URL,
 } from "./github-oauth.client.constants.js";
-import type {
-  FetchFn,
-  GitHubOAuthClientOptions,
-} from "./github-oauth.client.http.types.js";
+import type { GitHubOAuthClientOptions } from "./github-oauth.client.http.types.js";
 import type { GitHubOAuthClient, GitHubUser } from "./github-oauth.client.js";
 
 const tokenResponseSchema = z.union([
@@ -37,42 +35,43 @@ const emailsResponseSchema = z.array(
   }),
 );
 
-async function fetchJson(
-  fetchFn: FetchFn,
+async function getJson(
+  http: AxiosInstance,
   url: string,
   accessToken: string,
 ): Promise<unknown> {
-  const response = await fetchFn(url, {
+  const response = await http.get<unknown>(url, {
     headers: {
       authorization: `Bearer ${accessToken}`,
       accept: "application/vnd.github+json",
     },
   });
-  const data: unknown = await response.json();
-  return data;
+  return response.data;
 }
 
 async function fetchPrimaryVerifiedEmail(
-  fetchFn: FetchFn,
+  http: AxiosInstance,
   accessToken: string,
 ): Promise<string | null> {
-  const data = await fetchJson(fetchFn, GITHUB_API_EMAILS_URL, accessToken);
-  const emails = emailsResponseSchema.parse(data);
+  const emails = emailsResponseSchema.parse(
+    await getJson(http, GITHUB_API_EMAILS_URL, accessToken),
+  );
   const primary = emails.find((entry) => entry.primary && entry.verified);
   return primary?.email ?? null;
 }
 
 /**
- * Real GitHub OAuth adapter for {@link GitHubOAuthClient} (ADR 0020). Talks to
- * GitHub with the injected `fetch` and validates every response with Zod
- * (ADR 0011). `fetch` is injectable so this is unit-tested without network.
+ * Real GitHub OAuth adapter for {@link GitHubOAuthClient} (ADR 0020). Uses an
+ * injected axios instance (ADR 0028) and validates every response with Zod
+ * (ADR 0011). The instance is injectable, so this is unit-tested with
+ * axios-mock-adapter and no network.
  */
 export function createGitHubOAuthClient(
   options: GitHubOAuthClientOptions,
 ): GitHubOAuthClient {
   const { clientId, clientSecret, redirectUri } = options;
   const scopes = options.scopes ?? DEFAULT_GITHUB_SCOPES;
-  const fetchFn = options.fetch ?? fetch;
+  const http = options.httpClient ?? axios.create();
 
   return {
     getAuthorizationUrl(state) {
@@ -85,18 +84,17 @@ export function createGitHubOAuthClient(
     },
 
     async exchangeCodeForToken(code) {
-      const response = await fetchFn(GITHUB_TOKEN_URL, {
-        method: "POST",
-        headers: { accept: "application/json" },
-        body: new URLSearchParams({
+      const response = await http.post<unknown>(
+        GITHUB_TOKEN_URL,
+        new URLSearchParams({
           client_id: clientId,
           client_secret: clientSecret,
           code,
           redirect_uri: redirectUri,
         }),
-      });
-      const data: unknown = await response.json();
-      const parsed = tokenResponseSchema.parse(data);
+        { headers: { accept: "application/json" } },
+      );
+      const parsed = tokenResponseSchema.parse(response.data);
 
       if ("error" in parsed) {
         throw new Error(`GitHub token exchange failed: ${parsed.error}`);
@@ -106,11 +104,10 @@ export function createGitHubOAuthClient(
 
     async getAuthenticatedUser(accessToken): Promise<GitHubUser> {
       const profile = userResponseSchema.parse(
-        await fetchJson(fetchFn, GITHUB_API_USER_URL, accessToken),
+        await getJson(http, GITHUB_API_USER_URL, accessToken),
       );
       const email =
-        profile.email ??
-        (await fetchPrimaryVerifiedEmail(fetchFn, accessToken));
+        profile.email ?? (await fetchPrimaryVerifiedEmail(http, accessToken));
 
       if (email === null) {
         throw new Error("GitHub user has no verified primary email");

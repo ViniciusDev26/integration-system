@@ -126,8 +126,14 @@ ports/adapters + manual composition root (ADR 0026/0027). Full suite: 18 green.
 `GitHubUser`) + http adapter `createGitHubOAuthClient` (`github-oauth.client.http.ts`)
 with injectable `fetch` + Zod-validated responses — `getAuthorizationUrl`,
 `exchangeCodeForToken`, `getAuthenticatedUser` (resolves primary verified email
-via `/user` then `/user/emails`; email guaranteed non-null). 6 unit tests (fake
-fetch, no network). Full suite: 24 green.
+via `/user` then `/user/emails`; email guaranteed non-null). Uses **axios**
+(ADR 0028) via an injected `AxiosInstance`; 6 unit tests inject an axios instance
+with a fake native `adapter` (no network, no axios-mock-adapter — that lib's
+types clashed with axios 1.20). Full suite: 24 green.
+- Note: a full real-GitHub OAuth E2E is NOT automatable (authorization-code grant
+  needs a human browser login for the `code`). If more confidence is wanted:
+  local mock-server integration test (real axios over localhost; would need
+  injectable base URLs) or a PAT-gated smoke test for `getAuthenticatedUser`.
 Next: `authService` (TDD, unit with fakes: GitHubOAuthClient fake + in-memory
 user repo + session service) — state gen/validation, code→token, upsert user,
 create session. Then prod db client (`shared/db`, adds DATABASE_URL to

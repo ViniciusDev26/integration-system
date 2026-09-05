@@ -1,4 +1,4 @@
-export type FetchFn = typeof fetch;
+import type { AxiosInstance } from "axios";
 
 export interface GitHubOAuthClientOptions {
   clientId: string;
@@ -6,6 +6,6 @@ export interface GitHubOAuthClientOptions {
   redirectUri: string;
   /** OAuth scopes. Defaults to `read:user user:email`. */
   scopes?: readonly string[];
-  /** Injectable fetch, for tests. Defaults to the global `fetch`. */
-  fetch?: FetchFn;
+  /** Injectable axios instance, for tests. Defaults to `axios.create()`. */
+  httpClient?: AxiosInstance;
 }
