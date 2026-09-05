@@ -117,9 +117,13 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       `.env`): `STORAGE_ACCOUNT_ID`, `STORAGE_ACCESS_KEY_ID`,
       `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_BUCKET`. Wired into `container.ts`;
       boot verified (`/health` 200). 6 tests.
-- [ ] **`multer` upload middleware** — new ADR (multipart handling + limits +
-      allowed audio MIME types; memory storage → stream to R2). Validate the file
-      at the boundary; keep the handler thin.
+- [x] **`multer` upload middleware** (ADR **0032**) — `createAudioUpload()` in
+      `src/shared/http/upload.ts`: multer v2, memory storage (→ `Buffer` for
+      `ObjectStorage.put`), single file, audio MIME allowlist + size limit
+      (`upload.constants.ts`). Maps failures to JSON at the boundary (bad
+      type/missing → 400, too large → 413) so handlers stay thin; `getUploadedFile(req)`
+      typed accessor mirrors `getAuthenticatedUser`. 6 supertest tests. Not yet
+      mounted (lands with `POST /musics`).
 
 ### 1. Music module — upload & create (`src/modules/music/`)
 
