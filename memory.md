@@ -116,11 +116,16 @@ Postgres adapter factory `createPostgresUserRepository` (`user.repository.postgr
 green via Testcontainers (PG18). **`SessionRepository`** likewise: port
 (`src/modules/sessions/session.repository.ts`) + `createPostgresSessionRepository`
 adapter — `create`/`findById`/`deleteById`, 5 integration tests green (incl. FK
-cascade on user delete). Style: closures + ports/adapters + manual composition
-root (ADR 0026/0027). Full suite: 11 tests green. Next: in-memory fakes for both
-repos + the auth/session service (unit-tested with fakes) + the OAuth flow + the
-composition root (`src/container.ts`) and prod db client (`shared/db`, adds
-DATABASE_URL to `shared/env.ts`).
+cascade on user delete). **`SessionService`** done (TDD, unit): `createForUser`
+(random 256-bit token via node crypto, TTL default 30d), `validate` (deletes +
+returns null when expired), `revoke`. Injectable `now`/`generateToken`/`ttlMs`
+for deterministic tests; 7 tests green using `createInMemorySessionRepository`
+(fake colocated as `*.in-memory.ts`, excluded from build). Style: closures +
+ports/adapters + manual composition root (ADR 0026/0027). Full suite: 18 green.
+Next: `authService` (TDD, unit with fakes) — OAuth flow (state, code→token,
+`/user` via Zod, upsert user, create session via SessionService); then prod db
+client (`shared/db`, adds DATABASE_URL to `shared/env.ts`) + composition root
+(`src/container.ts`) + auth controller/routes + httpOnly cookie in `app.ts`.
 Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Architecture plan (DDD migration)

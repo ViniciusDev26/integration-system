@@ -12,6 +12,7 @@
     "dist",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
+    "src/**/*.in-memory.ts",
     "src/test-support/**"
   ]
 }
