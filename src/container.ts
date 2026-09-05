@@ -7,6 +7,8 @@ import type { SessionService } from "./modules/sessions/session.service.types.js
 import { createPostgresUserRepository } from "./modules/users/user.repository.postgres.js";
 import { getDb } from "./shared/db/index.js";
 import { env } from "./shared/env.js";
+import type { ObjectStorage } from "./shared/storage/object-storage.js";
+import { createR2ObjectStorage } from "./shared/storage/object-storage.r2.js";
 
 /**
  * The wired application services exposed to the HTTP layer. Kept small — only
@@ -16,6 +18,7 @@ import { env } from "./shared/env.js";
 export interface Container {
   authService: AuthService;
   sessionService: SessionService;
+  objectStorage: ObjectStorage;
 }
 
 /**
@@ -43,5 +46,12 @@ export function createContainer(): Container {
     sessionService,
   });
 
-  return { authService, sessionService };
+  const objectStorage = createR2ObjectStorage({
+    accountId: env.STORAGE_ACCOUNT_ID,
+    accessKeyId: env.STORAGE_ACCESS_KEY_ID,
+    secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
+    bucket: env.STORAGE_BUCKET,
+  });
+
+  return { authService, sessionService, objectStorage };
 }

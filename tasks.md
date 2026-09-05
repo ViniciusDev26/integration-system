@@ -108,11 +108,15 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       accessor. Express 5 forwards store failures to the error handler (no silent
       bypass). Not yet wired into any route — mounted when the first protected
       route lands (music). 5 supertest tests.
-- [ ] **R2 storage adapter** (ADR 0007) — new ADR for the client choice
-      (`@aws-sdk/client-s3`, S3-compatible) + env (`R2_ACCOUNT_ID`,
-      `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`). Define an
-      `ObjectStorage` **port** (`put`, `getSignedUrl`) with an R2 adapter + an
-      in-memory fake for tests.
+- [x] **R2 storage adapter** (ADR 0007/**0031**) — `ObjectStorage` port
+      (`put`, `getSignedUrl`) in `src/shared/storage/`, with `createR2ObjectStorage`
+      (AWS S3 v3 SDK: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`, R2
+      endpoint, `region: auto`) and an in-memory fake. The R2 adapter injects the
+      `S3Client` + `presign` fn (axios-style DI, ADR 0028) → unit-tested with fakes,
+      no network. Env (vendor-neutral to match the port, matching the provisioned
+      `.env`): `STORAGE_ACCOUNT_ID`, `STORAGE_ACCESS_KEY_ID`,
+      `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_BUCKET`. Wired into `container.ts`;
+      boot verified (`/health` 200). 6 tests.
 - [ ] **`multer` upload middleware** — new ADR (multipart handling + limits +
       allowed audio MIME types; memory storage → stream to R2). Validate the file
       at the boundary; keep the handler thin.

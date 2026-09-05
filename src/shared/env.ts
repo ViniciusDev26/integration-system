@@ -27,6 +27,17 @@ const envSchema = z.object({
   /** GitHub OAuth App credentials (ADR 0020). */
   GITHUB_CLIENT_ID: z.string().min(1),
   GITHUB_CLIENT_SECRET: z.string().min(1),
+
+  /**
+   * Object storage for audio files (Cloudflare R2, S3-compatible — ADR 0007/0031).
+   * Named vendor-neutrally (`STORAGE_*`) to match the `ObjectStorage` port. The
+   * account id derives the S3 endpoint; the keys authenticate; the bucket holds
+   * the objects.
+   */
+  STORAGE_ACCOUNT_ID: z.string().min(1),
+  STORAGE_ACCESS_KEY_ID: z.string().min(1),
+  STORAGE_SECRET_ACCESS_KEY: z.string().min(1),
+  STORAGE_BUCKET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
