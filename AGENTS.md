@@ -1,0 +1,197 @@
+# AGENTS.md
+
+This document defines how AI agents should work on this project. It is the
+primary operating manual for any agent (or human) making changes here. Read it
+before doing anything else.
+
+At this stage the project is **technology-agnostic**. No stack, architecture,
+or domain has been chosen. These rules are intentionally general and contain
+no technology-specific guidance. Technology-specific rules will be added only
+once real decisions are made and recorded (see ADRs).
+
+---
+
+## 1. Core principles
+
+1. **Documentation is part of the work.** A change is not complete until the
+   relevant documentation is updated. Code and docs evolve together.
+2. **Decisions are explicit.** Significant choices are recorded as ADRs, not
+   left implicit in code.
+3. **No silent assumptions.** When something is unknown, make the uncertainty
+   visible (in `memory.md` or as an open question) rather than guessing.
+4. **Emergent, not speculative.** Document what is actually true and decided —
+   never invent requirements, architecture, or future features.
+5. **Small, verifiable steps.** Prefer changes that can be validated over large
+   unverifiable leaps.
+
+---
+
+## 2. How to reason about and modify the project
+
+- **Understand before changing.** Read `memory.md`, `docs/architecture.md`, and
+  the relevant ADRs in `docs/adrs/` before modifying anything.
+- **Stay within scope.** Do only what the current task requires. Do not
+  introduce a technology stack, framework, or architectural pattern unless the
+  task explicitly calls for it and the decision is recorded as an ADR.
+- **Prefer reversible changes.** When a choice is hard to reverse or has broad
+  impact, pause and record it as an ADR before implementing.
+- **Match what exists.** Once conventions emerge, follow them. Consistency with
+  the existing project beats personal preference.
+- **Surface conflicts.** If a task contradicts existing documentation or a
+  recorded decision, stop and raise it rather than quietly overriding it.
+
+---
+
+## 3. How documentation should be maintained
+
+The project has three documentation surfaces, each with a distinct role:
+
+| File / dir              | Role                                                        | Stability |
+| ----------------------- | ----------------------------------------------------------- | --------- |
+| `docs/architecture.md`  | How the system is structured, as it emerges                 | Stable    |
+| `docs/adrs/`            | Records of individual significant decisions                 | Immutable once accepted |
+| `memory.md`             | Evolving working memory: state, discoveries, open questions | Volatile  |
+
+Rules:
+
+- Keep each surface in its lane. Don't put decisions in `memory.md` that belong
+  in an ADR; don't put volatile working notes in `architecture.md`.
+- Update documentation **in the same change** as the code or decision it
+  describes.
+- Write for the next agent. Assume the reader has no memory of this session.
+- Remove or correct documentation that becomes wrong. Stale docs are worse than
+  no docs.
+
+---
+
+## 4. When to create or update an ADR
+
+Create a new ADR whenever an important **technical, architectural, or
+structural decision** is made, for example:
+
+- Choosing (or replacing) a technology, language, framework, or major library.
+- Defining or changing the system's architecture, boundaries, or key patterns.
+- Establishing a project-wide convention or constraint.
+- Making a trade-off that a future maintainer would need the reasoning behind.
+
+Guidelines:
+
+- **One decision per ADR.** Keep them focused.
+- **ADRs are append-only in spirit.** Do not rewrite the history of an accepted
+  ADR. If a decision changes, create a new ADR that supersedes the old one and
+  mark the old one as superseded (with a link).
+- **Number and title clearly**, e.g. `0001-title-in-kebab-case.md`.
+- Do **not** create ADRs speculatively. An ADR records a decision that has
+  actually been made.
+
+Suggested ADR structure (kept lightweight):
+
+```
+# <number>. <title>
+
+- Status: Proposed | Accepted | Superseded by <link> | Deprecated
+- Date: YYYY-MM-DD
+
+## Context
+What situation or problem forced a decision? What constraints applied?
+
+## Decision
+What was decided.
+
+## Consequences
+What becomes easier, harder, or constrained as a result. Trade-offs accepted.
+
+## Alternatives considered
+Options that were weighed and why they were not chosen.
+```
+
+---
+
+## 5. How to use `memory.md`
+
+`memory.md` is the project's **evolving working memory** — a scratchpad shared
+across sessions and agents. Use it to:
+
+- Record the **current state** of the work.
+- Capture **discoveries** made during development.
+- Track **open questions** and things still to decide.
+- Hold **temporary context** that helps the next agent continue.
+
+Do **not** use `memory.md` as a replacement for stable documentation:
+
+- Durable structural knowledge belongs in `docs/architecture.md`.
+- Decisions belong in an ADR under `docs/adrs/`.
+
+When a fact in `memory.md` becomes stable or decided, **promote it** to the
+proper place (architecture doc or ADR) and remove it from `memory.md`. Keep
+`memory.md` current — prune what is no longer true.
+
+---
+
+## 6. How to document architectural decisions
+
+- The **shape** of the system lives in `docs/architecture.md` — describe what
+  exists as it emerges, not what might exist.
+- The **reasoning** behind individual decisions lives in `docs/adrs/`.
+- When you make an architectural decision: record the decision as an ADR, then
+  reflect its outcome in `docs/architecture.md`. The ADR explains *why*; the
+  architecture doc explains *what*.
+
+---
+
+## 7. How to handle uncertainty and assumptions
+
+- **Do not guess silently.** If information is missing, prefer asking or
+  recording the open question in `memory.md`.
+- **Make assumptions explicit.** If you must proceed under an assumption, write
+  it down (in `memory.md`, or in the ADR if it affects a decision) so it can be
+  challenged later.
+- **Avoid inventing requirements.** Build only what is asked for and justified.
+- **Prefer the smallest choice that unblocks progress**, and flag it as
+  provisional if it may need revisiting.
+
+---
+
+## 8. Project rules (technology-specific)
+
+These rules apply now that the stack has been decided. They are backed by ADRs
+in `docs/adrs/` — consult the ADR for the full reasoning.
+
+### Type safety (ADR 0009) — mandatory
+
+Code must be **100% type-safe**. Do **not** use type-check escape hatches:
+
+- No `any` (explicit or implicit).
+- No escape-hatch casts (`as unknown as X`, unsafe `as X` that launders an
+  incompatible type).
+- No `@ts-ignore`; `@ts-expect-error` only in a genuinely unavoidable case, with
+  a justifying comment.
+- No non-null assertions (`!`) to hide possibly-undefined values.
+
+Instead: model types accurately, use `unknown` + narrowing, and validate
+external/untyped boundaries (HTTP input, DB rows, R2 responses, env vars) at
+runtime with a **Zod** schema (ADR 0011), deriving types via `z.infer`. For the
+**HTTP boundary**, validate via `express-zod-safe` middleware at the route
+layer, not inside handlers (ADR 0012); handlers never parse raw input. A change
+that does not type-check cleanly without suppressions is not complete.
+
+Enforcement: strict `tsconfig` (the type checker) + **Biome** lint rules
+(ADR 0010) banning `any`/`!`/TS-suppressions + Zod at boundaries. Biome does not
+do full type-aware linting, so review remains the backstop for unsafe casts.
+
+## 9. How to validate changes before a task is considered complete
+
+A task is done only when all of the following hold:
+
+1. The change accomplishes what was asked — no more, no less.
+2. Relevant documentation is updated (`architecture.md`, ADRs, and/or
+   `memory.md`) in the same change.
+3. Any significant decision made along the way is recorded as an ADR.
+4. Open questions and remaining uncertainties are captured in `memory.md`.
+5. The change has been checked to the extent possible for this project's
+   current state (e.g. reviewed for correctness and consistency; and, once a
+   stack exists, built/tested/linted per the rules that will be added here).
+6. Nothing was left in a broken or half-documented state.
+
+If any of these cannot be satisfied, say so explicitly rather than declaring
+the task complete.

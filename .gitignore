@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output (tsc -> dist, per ADR 0005)
+dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage / test output
+coverage/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
