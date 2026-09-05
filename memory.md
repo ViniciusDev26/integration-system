@@ -113,10 +113,14 @@ Base server + health check are in place. Done so far: `users`/`sessions` schema
 + migration; **`UserRepository`** as a **port** (`user.repository.ts`) with a
 Postgres adapter factory `createPostgresUserRepository` (`user.repository.postgres.ts`)
 — `findById`/`findByGithubId`/`upsertByGithubId`, built TDD, 6 integration tests
-green via Testcontainers (PG18). Style: closures + ports/adapters + manual
-composition root (ADR 0026/0027). Next: an in-memory user repo fake + the
-user/session service (unit-tested with fakes) + the auth OAuth flow + the
-composition root (`src/container.ts`) and prod db client.
+green via Testcontainers (PG18). **`SessionRepository`** likewise: port
+(`src/modules/sessions/session.repository.ts`) + `createPostgresSessionRepository`
+adapter — `create`/`findById`/`deleteById`, 5 integration tests green (incl. FK
+cascade on user delete). Style: closures + ports/adapters + manual composition
+root (ADR 0026/0027). Full suite: 11 tests green. Next: in-memory fakes for both
+repos + the auth/session service (unit-tested with fakes) + the OAuth flow + the
+composition root (`src/container.ts`) and prod db client (`shared/db`, adds
+DATABASE_URL to `shared/env.ts`).
 Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Architecture plan (DDD migration)
