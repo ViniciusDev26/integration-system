@@ -68,6 +68,7 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 | Lint / format | Biome | [ADR 0010](./adrs/0010-biome-linter-formatter.md) |
 | Runtime validation | Zod (at boundaries) | [ADR 0011](./adrs/0011-zod-runtime-validation.md) |
 | HTTP input validation | `express-zod-safe` middleware | [ADR 0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
+| Module system | ESM (`type: module`, NodeNext) | [ADR 0017](./adrs/0017-esm-module-system.md) |
 
 ### Patterns & conventions
 
@@ -86,14 +87,28 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 
 ### Execution & layout
 
-- Source lives under `src/`; the API entry point is `src/server.ts`.
-- `tsc` compiles to `dist/`; the app runs as `node dist/server.js`.
-- Development: on change, rebuild with `tsc` and restart the dev server
-  ([ADR 0005](./adrs/0005-execution-and-dev-workflow.md)).
+Source lives under `src/`; `tsc` compiles to `dist/`; the app runs as
+`node dist/server.js`. Development rebuilds and restarts on change via
+`tsc-watch` ([ADR 0005](./adrs/0005-execution-and-dev-workflow.md)).
+
+**App/server split** — the Express app is built separately from the process that
+listens, so tests (e.g. supertest) can import and exercise the app without
+binding a port:
+
+- `src/app.ts` — exports `createApp(): Express`; builds and configures the app
+  (middleware, routes). No `listen`.
+- `src/server.ts` — entry point; imports `createApp()` and `env`, then
+  `app.listen(env.PORT)`.
+- `src/env.ts` — validates `process.env` with Zod once and exports a typed `env`
+  object (ADR 0009/0011). **No other module reads `process.env` directly.**
+
+Current routes: `GET /health` → `{ "status": "ok" }`.
+
+Node version is pinned to **24.18.0** via `.tool-versions` (mise); npm's
+`engine-strict` (ADR 0006) will refuse installs on an older Node.
 
 ### Not yet decided
 
-No components, boundaries, or architectural patterns have been chosen yet. The
-module system (ESM vs CommonJS) currently follows the recommended tsconfig /
-`tsc` defaults (see `../memory.md`). These sections will be filled in as the
-architecture emerges, each significant decision recorded as an ADR.
+No feature components or domain boundaries exist yet beyond the health check.
+These sections will be filled in as the architecture emerges, each significant
+decision recorded as an ADR.

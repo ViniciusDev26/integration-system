@@ -1,0 +1,33 @@
+{
+  "name": "integration-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sample music API (Spotify-like)",
+  "type": "module",
+  "engines": {
+    "node": ">=24",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "preinstall": "npx --yes only-allow npm",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsc-watch --onSuccess \"node dist/server.js\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "@types/express": "5.0.6",
+    "@types/node": "26.4.1",
+    "tsc-watch": "7.2.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  }
+}

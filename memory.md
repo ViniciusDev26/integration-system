@@ -39,6 +39,8 @@ See `AGENTS.md` for the rules on how to use this file.
   - Zod for runtime validation at boundaries — [ADR 0011](docs/adrs/0011-zod-runtime-validation.md)
   - HTTP input validated via `express-zod-safe` middleware (outside handlers) —
     [ADR 0012](docs/adrs/0012-express-zod-safe-validation-middleware.md)
+  - ESM module system (`type: module`, NodeNext, `.js` in relative imports) —
+    [ADR 0017](docs/adrs/0017-esm-module-system.md)
 - **Domain decided:** a sample music API, Spotify-like. Serves music metadata
   and playback URLs, with authenticated users.
 - **Storage split:** primary database = **PostgreSQL** (relational) for metadata
@@ -53,12 +55,19 @@ See `AGENTS.md` for the rules on how to use this file.
   (data layer need not map 1:1 to a future domain layer).
 - **Repository-layer integration tests via Testcontainers** (real Postgres) —
   [ADR 0015](docs/adrs/0015-testcontainers-repository-integration-tests.md).
-- `.npmrc` exists (`save-exact=true`, `engine-strict=true`). No other
-  scaffolding yet — no `package.json`, `tsconfig.json`, or application code.
+- **Scaffolding + first code done.** `package.json` (ESM, engines node>=24,
+  `preinstall: only-allow npm`), `tsconfig.json` (NodeNext, strict +
+  noUncheckedIndexedAccess), `biome.json`, `.npmrc`, `.tool-versions`.
+  Source: `src/app.ts` (`createApp`), `src/server.ts` (listen), `src/env.ts`
+  (Zod-validated env). Deps installed: express 5.2.1; dev: typescript, tsc-watch,
+  @types/node, @types/express, @biomejs/biome, vitest, zod 4.5.4.
+- **Verified working:** `npm run typecheck`, `npm run build`, `npm run lint` all
+  pass; server runs and `GET /health` → `200 {"status":"ok"}`, unknown route →
+  404. supertest not installed yet (planned).
+- npm-only enforcement now complete: `engines` + `preinstall: only-allow npm` in
+  package.json back the `.npmrc` `engine-strict` (ADR 0006 follow-up done).
 
 ## Implementation roadmap
-
-Ordered plan (not yet implemented — no code by decision):
 
 1. **Auth: GitHub social login (OAuth).** First feature. Authenticated state =
    server-side session via httpOnly cookie, not JWT ([ADR 0016](docs/adrs/0016-session-httponly-cookie-auth.md)).
@@ -66,12 +75,15 @@ Ordered plan (not yet implemented — no code by decision):
 3. **`GET /musics/:id`** — music information + URL to listen (URL served from R2,
    likely a presigned URL).
 
-Expected core entities: users, playlists, musics, and a playlist↔music
-relationship (many-to-many). To be modeled once the database type is chosen.
+Base server + health check are in place; feature work starts at step 1.
+Expected core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Important discoveries
 
-- _(none yet)_
+- **Local Node default is v22 (mise), but the project requires Node 24** (ADR
+  0001) and `engine-strict` blocks installs on older Node. Node 24.18.0 was
+  already installed via mise; pinned it in `.tool-versions`. Run tooling with
+  Node 24 active (`mise use node@24` / mise auto-activation in this dir).
 
 ## Open questions
 
@@ -85,14 +97,7 @@ relationship (many-to-many). To be modeled once the database type is chosen.
 - GitHub OAuth implementation details: app registration, callback URL, CSRF
   mitigation for cookie auth, and the OAuth/session middleware to use
   (follow-up once auth work starts).
-- Stack details still not decided:
-  - Module system: ESM or CommonJS? (currently defaulting to the recommended
-    tsconfig / `tsc` defaults per ADR 0004; revisit if a specific one is needed)
-- Follow-up when scaffolding is created: complete npm-only enforcement in
-  `package.json` — add an `engines` field and an npm-only guard (e.g.
-  `preinstall: "npx only-allow npm"` and/or `"packageManager": "npm@<version>"`)
-  to back up the `engine-strict=true` in `.npmrc` (ADR 0006).
-- What architecture and boundaries are appropriate once the domain is known?
+- What architecture and boundaries are appropriate as features are added?
 
 ## Temporary context
 
