@@ -41,6 +41,9 @@ See `AGENTS.md` for the rules on how to use this file.
     [ADR 0012](docs/adrs/0012-express-zod-safe-validation-middleware.md)
   - ESM module system (`type: module`, NodeNext, `.js` in relative imports) —
     [ADR 0017](docs/adrs/0017-esm-module-system.md)
+  - Feature-modular (vertical slice) layered architecture: `src/modules/<feature>/`
+    (routes/controller/service/repository/schema) + `src/shared/` for infra;
+    deps point inward — [ADR 0018](docs/adrs/0018-feature-modular-architecture.md)
 - **Domain decided:** a sample music API, Spotify-like. Serves music metadata
   and playback URLs, with authenticated users.
 - **Storage split:** primary database = **PostgreSQL** (relational) for metadata
@@ -58,8 +61,9 @@ See `AGENTS.md` for the rules on how to use this file.
 - **Scaffolding + first code done.** `package.json` (ESM, engines node>=24,
   `preinstall: only-allow npm`), `tsconfig.json` (NodeNext, strict +
   noUncheckedIndexedAccess), `biome.json`, `.npmrc`, `.tool-versions`.
-  Source: `src/app.ts` (`createApp`), `src/server.ts` (listen), `src/env.ts`
-  (Zod-validated env). Deps installed: express 5.2.1; dev: typescript, tsc-watch,
+  Source: `src/app.ts` (`createApp`), `src/server.ts` (listen),
+  `src/shared/env.ts` (Zod-validated env). Layout follows ADR 0018
+  (feature-modular); feature modules created as features are built. Deps installed: express 5.2.1; dev: typescript, tsc-watch,
   @types/node, @types/express, @biomejs/biome, vitest, zod 4.5.4.
 - **Verified working:** `npm run typecheck`, `npm run build`, `npm run lint` all
   pass; server runs and `GET /health` → `200 {"status":"ok"}`, unknown route →

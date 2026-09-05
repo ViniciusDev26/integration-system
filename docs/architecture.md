@@ -69,9 +69,18 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 | Runtime validation | Zod (at boundaries) | [ADR 0011](./adrs/0011-zod-runtime-validation.md) |
 | HTTP input validation | `express-zod-safe` middleware | [ADR 0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
 | Module system | ESM (`type: module`, NodeNext) | [ADR 0017](./adrs/0017-esm-module-system.md) |
+| Architecture | Feature-modular (vertical slice), layered | [ADR 0018](./adrs/0018-feature-modular-architecture.md) |
 
 ### Patterns & conventions
 
+- **Architecture — feature-modular** ([ADR 0018](./adrs/0018-feature-modular-architecture.md)):
+  each feature is a vertical slice under `src/modules/<feature>/` with its own
+  `routes/controller/service/repository/schema`. Cross-cutting infrastructure
+  lives in `src/shared/`. Dependencies point inward (controller → service →
+  repository); Express/Drizzle/R2 are edge concerns. Modules talk via
+  services/public entry points — never by reaching into another module's
+  internals. Module folders are created as features are built (no empty
+  speculative scaffolding).
 - **Data access — Repository pattern** ([ADR 0014](./adrs/0014-repository-pattern-data-access.md)):
   all database access goes through per-entity repositories; repositories are the
   only code that touches Drizzle directly. Services/handlers depend on
@@ -96,11 +105,14 @@ listens, so tests (e.g. supertest) can import and exercise the app without
 binding a port:
 
 - `src/app.ts` — exports `createApp(): Express`; builds and configures the app
-  (middleware, routes). No `listen`.
+  (middleware, module routes). No `listen`.
 - `src/server.ts` — entry point; imports `createApp()` and `env`, then
   `app.listen(env.PORT)`.
-- `src/env.ts` — validates `process.env` with Zod once and exports a typed `env`
-  object (ADR 0009/0011). **No other module reads `process.env` directly.**
+- `src/shared/env.ts` — validates `process.env` with Zod once and exports a
+  typed `env` object (ADR 0009/0011). **No other module reads `process.env`
+  directly.**
+- `src/modules/<feature>/` — feature slices (created as features are built;
+  ADR 0018). None yet beyond the health check.
 
 Current routes: `GET /health` → `{ "status": "ok" }`.
 
