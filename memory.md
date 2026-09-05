@@ -125,9 +125,12 @@ Core entities: users, playlists, musics, playlist↔music (many-to-many).
 - Testing strategy for **service and handler layers** (unit with fake repos, or
   broader integration/e2e — possibly Testcontainers too). Only the repository
   layer is decided (ADR 0015); the rest is open.
-- GitHub OAuth setup details (for when auth is implemented): register the GitHub
-  OAuth app, callback URL, and add `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` /
-  callback + session cookie settings to `shared/env.ts` (Zod-validated).
+- Env config: chosen `PUBLIC_BASE_URL` (host only); callback is derived in code
+  as `${PUBLIC_BASE_URL}/auth/github/callback`. Documented in `.env.example`
+  (PORT, NODE_ENV, PUBLIC_BASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,
+  DATABASE_URL). User has filled their local `.env`. Still TODO: add these vars
+  to the Zod schema in `shared/env.ts` when implementing auth/DB (currently
+  env.ts only validates PORT + NODE_ENV).
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - What architecture and boundaries are appropriate as features are added?
 
