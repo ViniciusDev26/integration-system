@@ -179,6 +179,15 @@ Enforcement: strict `tsconfig` (the type checker) + **Biome** lint rules
 (ADR 0010) banning `any`/`!`/TS-suppressions + Zod at boundaries. Biome does not
 do full type-aware linting, so review remains the backstop for unsafe casts.
 
+### Code style & dependency injection (ADR 0026, ADR 0027)
+
+- Write repositories/services/controllers as **factory functions returning an
+  object** (closures), **not classes** (ADR 0026). Export the shape as a type.
+- Define collaborators as **ports** (TS `interface`s); provide **adapters** as
+  factories (e.g. `createPostgresUserRepository(db)`, and in-memory fakes for
+  tests). Wire the graph **manually in a composition root** — no DI container
+  (ADR 0027).
+
 ### Test-Driven Development (ADR 0022) — mandatory for feature code
 
 Implement behavior-bearing code with **TDD**: **red → green → refactor**. Write a

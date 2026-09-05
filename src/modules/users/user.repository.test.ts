@@ -6,7 +6,8 @@ import {
   startTestDatabase,
   type TestDatabase,
 } from "../../test-support/postgres.js";
-import { UserRepository } from "./user.repository.js";
+import type { UserRepository } from "./user.repository.js";
+import { createPostgresUserRepository } from "./user.repository.postgres.js";
 
 const UUID_V7 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -36,7 +37,7 @@ describe("UserRepository", () => {
     await db.execute(
       sql`truncate table sessions, users restart identity cascade`,
     );
-    repository = new UserRepository(db);
+    repository = createPostgresUserRepository(db);
   });
 
   it("creates a user via upsert and returns it with a generated UUIDv7 id", async () => {

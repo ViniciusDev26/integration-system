@@ -48,6 +48,11 @@ See `AGENTS.md` for the rules on how to use this file.
     [ADR 0019](docs/adrs/0019-sessions-persisted-in-postgresql.md)
   - GitHub OAuth implemented manually (fetch + Zod, no auth lib), own state/CSRF —
     [ADR 0020](docs/adrs/0020-manual-github-oauth.md)
+  - Factory functions (closures) over classes for repos/services/controllers —
+    [ADR 0026](docs/adrs/0026-factory-functions-over-classes.md)
+  - DI via ports (interfaces) + adapter factories + manual composition root,
+    no DI container (TS interfaces are erased at runtime; containers need
+    tokens+classes+reflect-metadata) — [ADR 0027](docs/adrs/0027-di-ports-adapters-manual-composition-root.md)
   - Local Postgres via Docker Compose (`docker compose up -d`) —
     [ADR 0021](docs/adrs/0021-docker-compose-local-database.md)
   - TDD (red → green → refactor) for feature code; repos = Testcontainers
@@ -105,9 +110,13 @@ playlists** with real invariants), **reassess the architecture and plan the
 migration toward hexagonal/DDD** per module — see "Architecture plan" below.
 
 Base server + health check are in place. Done so far: `users`/`sessions` schema
-+ migration; **`UserRepository`** (`src/modules/users/`) with `findById`,
-`findByGithubId`, `upsertByGithubId` — built TDD, 6 integration tests green via
-Testcontainers (PG18). Next: user/session service + the auth OAuth flow.
++ migration; **`UserRepository`** as a **port** (`user.repository.ts`) with a
+Postgres adapter factory `createPostgresUserRepository` (`user.repository.postgres.ts`)
+— `findById`/`findByGithubId`/`upsertByGithubId`, built TDD, 6 integration tests
+green via Testcontainers (PG18). Style: closures + ports/adapters + manual
+composition root (ADR 0026/0027). Next: an in-memory user repo fake + the
+user/session service (unit-tested with fakes) + the auth OAuth flow + the
+composition root (`src/container.ts`) and prod db client.
 Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Architecture plan (DDD migration)

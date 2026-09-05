@@ -96,6 +96,12 @@ Planned (not yet modeled):
   services/public entry points — never by reaching into another module's
   internals. Module folders are created as features are built (no empty
   speculative scaffolding).
+- **Code style & DI** ([ADR 0026](./adrs/0026-factory-functions-over-classes.md),
+  [ADR 0027](./adrs/0027-di-ports-adapters-manual-composition-root.md)):
+  repositories/services/controllers are **factory functions** (closures), not
+  classes. Collaborators are **ports** (interfaces) with **adapter** factories
+  (`createPostgres…` for prod, in-memory fakes for tests); the graph is wired by
+  hand in a **composition root** — no DI container.
 - **Data access — Repository pattern** ([ADR 0014](./adrs/0014-repository-pattern-data-access.md)):
   all database access goes through per-entity repositories; repositories are the
   only code that touches Drizzle directly. Services/handlers depend on
