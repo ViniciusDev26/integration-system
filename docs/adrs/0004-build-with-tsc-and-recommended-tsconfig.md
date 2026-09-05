@@ -33,6 +33,11 @@ JavaScript on Node.
   module system or stricter options, that will be a follow-up decision (ADR).
 - Vitest (ADR 0003) runs the TypeScript sources directly for tests and does not
   depend on the `tsc` build output.
+- The config is split into two files: `tsconfig.json` (base; `noEmit`, used by
+  the editor and `typecheck`, and covering root tooling files like
+  `drizzle.config.ts`) and `tsconfig.build.json` (`extends` the base; sets
+  `rootDir: src` / `outDir: dist` and emits). This keeps the build output flat
+  (`dist/server.js`, ADR 0005) while still type-checking files outside `src/`.
 
 ## Alternatives considered
 

@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**/*.ts", "*.json", "!dist", "!node_modules"]
+    "includes": [
+      "src/**/*.ts",
+      "drizzle.config.ts",
+      "*.json",
+      "!dist",
+      "!node_modules"
+    ]
   },
   "formatter": {
     "enabled": true,

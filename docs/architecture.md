@@ -43,9 +43,16 @@ music info — relational vs NoSQL **decision pending**) and an **object store**
 for the audio binaries (**Cloudflare R2**, S3-compatible —
 [ADR 0007](./adrs/0007-r2-object-storage-for-audio-files.md)).
 
-Indicative data model (to be realized as the Drizzle schema, ADR 0013):
+Data model — realized so far as Drizzle schema in `src/shared/db/schema/`
+(migrations in `drizzle/`):
 
-- `users` — identity from GitHub login
+- `users` — identity from GitHub login: `id` (UUIDv7), `github_id` (unique,
+  upsert key), `name`, `email` (unique), `image_url`, timestamps. **Implemented.**
+- `sessions` — server-side sessions (ADR 0016/0019): `id` (opaque cookie token),
+  `user_id` → `users.id` (cascade), `expires_at`, `created_at`. **Implemented.**
+
+Planned (not yet modeled):
+
 - `playlists` — available playlists
 - `musics` — music metadata + R2 object key for the audio file
 - `playlist_musics` — join table (many-to-many playlist↔music)
@@ -64,6 +71,8 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 | Object storage | Cloudflare R2 (S3-compatible) | [ADR 0007](./adrs/0007-r2-object-storage-for-audio-files.md) |
 | Primary database | PostgreSQL (relational) | [ADR 0008](./adrs/0008-postgresql-relational-database.md) |
 | Data access / ORM | Drizzle ORM + Drizzle Kit (migrations) | [ADR 0013](./adrs/0013-drizzle-orm-data-access.md) |
+| DB driver | postgres.js (`postgres`) | [ADR 0024](./adrs/0024-postgres-driver-and-migrations.md) |
+| Primary keys | UUIDv7 via PostgreSQL 18 `uuidv7()` | [ADR 0025](./adrs/0025-uuidv7-primary-keys.md) |
 | Auth | GitHub OAuth, implemented manually (fetch + Zod) | [ADR 0020](./adrs/0020-manual-github-oauth.md) |
 | Session | Server-side session, httpOnly cookie (not JWT) | [ADR 0016](./adrs/0016-session-httponly-cookie-auth.md) |
 | Session store | PostgreSQL (`sessions` table) | [ADR 0019](./adrs/0019-sessions-persisted-in-postgresql.md) |

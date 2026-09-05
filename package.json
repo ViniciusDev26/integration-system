@@ -10,22 +10,27 @@
   },
   "scripts": {
     "preinstall": "npx --yes only-allow npm",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "dev": "tsc-watch --onSuccess \"node dist/server.js\"",
-    "typecheck": "tsc --noEmit",
+    "dev": "tsc-watch -p tsconfig.build.json --onSuccess \"node dist/server.js\"",
+    "typecheck": "tsc -p tsconfig.json",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "test": "vitest"
+    "test": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env node_modules/.bin/drizzle-kit migrate"
   },
   "dependencies": {
+    "drizzle-orm": "0.45.2",
     "express": "5.2.1",
+    "postgres": "3.4.9",
     "zod": "4.5.4"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "@types/express": "5.0.6",
     "@types/node": "26.4.1",
+    "drizzle-kit": "0.31.10",
     "tsc-watch": "7.2.1",
     "typescript": "7.0.2",
     "vitest": "5.0.0"

@@ -56,6 +56,12 @@ See `AGENTS.md` for the rules on how to use this file.
   - Production app image: multi-stage `Dockerfile` (Node 24 alpine, non-root,
     /health HEALTHCHECK) — [ADR 0023](docs/adrs/0023-dockerfile-production-image.md).
     Verified: builds, runs, `/health`→200; image ~246MB.
+  - DB driver = postgres.js; migrations via Drizzle Kit (`db:generate`/`db:migrate`),
+    schema in `src/shared/db/schema/`, migrations in `drizzle/` —
+    [ADR 0024](docs/adrs/0024-postgres-driver-and-migrations.md)
+  - UUIDv7 PKs via **Postgres 18** native `uuidv7()` (no app uuid lib); session id
+    is a random token, not uuidv7 — [ADR 0025](docs/adrs/0025-uuidv7-primary-keys.md).
+    Compose + Testcontainers pinned to **postgres:18-alpine** (ADR 0021 updated).
 - **Domain decided:** a sample music API, Spotify-like. Serves music metadata
   and playback URLs, with authenticated users.
 - **Storage split:** primary database = **PostgreSQL** (relational) for metadata

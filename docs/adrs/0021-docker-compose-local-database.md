@@ -16,7 +16,8 @@ Provide a **`docker-compose.yml`** at the repo root that runs **PostgreSQL** as
 a service for local development. `docker compose up -d` starts it; the app
 connects via `DATABASE_URL` (see `.env.example`).
 
-- Postgres image pinned to a specific major version (`postgres:17-alpine`).
+- Postgres image pinned to `postgres:18-alpine` (Postgres 18 is required for
+  native `uuidv7()` primary keys — ADR 0025).
 - Credentials/db name match the `DATABASE_URL` in `.env.example`
   (`user`/`password`/`integration_system`).
 - Data persisted in a named volume; a healthcheck reports readiness.
@@ -24,7 +25,7 @@ connects via `DATABASE_URL` (see `.env.example`).
 ## Consequences
 
 - One-command, reproducible local database; no host Postgres install needed.
-- The Compose Postgres major version should match the version used by
+- The Compose Postgres major version (18) should match the version used by
   Testcontainers (ADR 0015) so local, CI, and tests behave identically.
 - Compose is for **local dev only**; it is not the production deployment
   mechanism. Production DB provisioning is a separate, later concern.
