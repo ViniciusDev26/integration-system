@@ -1,0 +1,21 @@
+# Keep the build context small and avoid leaking local/dev files into the image.
+node_modules
+dist
+coverage
+
+# Secrets / local env (never copy into the image)
+.env
+.env.*
+!.env.example
+
+# VCS / tooling / docs not needed at build time
+.git
+.gitignore
+*.log
+.vscode
+.idea
+
+# Container/dev files not needed inside the build
+Dockerfile
+.dockerignore
+docker-compose.yml

@@ -74,6 +74,7 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 | Module system | ESM (`type: module`, NodeNext) | [ADR 0017](./adrs/0017-esm-module-system.md) |
 | Architecture | Feature-modular (vertical slice), layered | [ADR 0018](./adrs/0018-feature-modular-architecture.md) |
 | Local database | Docker Compose (PostgreSQL) | [ADR 0021](./adrs/0021-docker-compose-local-database.md) |
+| App image | Multi-stage Dockerfile (Node 24 alpine) | [ADR 0023](./adrs/0023-dockerfile-production-image.md) |
 | Methodology | TDD (red → green → refactor) | [ADR 0022](./adrs/0022-tdd-methodology.md) |
 
 ### Patterns & conventions
@@ -100,6 +101,10 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 - **Local database** ([ADR 0021](./adrs/0021-docker-compose-local-database.md)):
   `docker compose up -d` runs PostgreSQL locally; the app connects via
   `DATABASE_URL`.
+- **App container** ([ADR 0023](./adrs/0023-dockerfile-production-image.md)):
+  multi-stage `Dockerfile` builds with `tsc` and ships `dist/` + prod deps on
+  `node:24.18.0-alpine`; runs non-root with a `/health` HEALTHCHECK. Config is
+  injected via environment at runtime.
 - **HTTP input validation** ([ADR 0012](./adrs/0012-express-zod-safe-validation-middleware.md)):
   validated by `express-zod-safe` middleware at the route layer; handlers
   receive typed, validated input and contain business logic only.
