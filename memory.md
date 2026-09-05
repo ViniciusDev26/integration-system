@@ -104,7 +104,10 @@ Then, when playlists start getting complex (e.g. **shared/collaborative
 playlists** with real invariants), **reassess the architecture and plan the
 migration toward hexagonal/DDD** per module — see "Architecture plan" below.
 
-Base server + health check are in place; feature work starts at step 1.
+Base server + health check are in place. Done so far: `users`/`sessions` schema
++ migration; **`UserRepository`** (`src/modules/users/`) with `findById`,
+`findByGithubId`, `upsertByGithubId` — built TDD, 6 integration tests green via
+Testcontainers (PG18). Next: user/session service + the auth OAuth flow.
 Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 ## Architecture plan (DDD migration)
@@ -131,6 +134,11 @@ Core entities: users, playlists, musics, playlist↔music (many-to-many).
 - **Arctic (OAuth lib) was deprecated July 2026**, along with the Lucia/Oslo
   ecosystem (same author now recommends copy-paste over the lib). This is why
   GitHub OAuth is implemented manually (ADR 0020), not via Arctic.
+- **Testcontainers hung on this machine (WSL2)** resolving the Docker host to the
+  bridge gateway `172.17.0.1` (Reaper/container connections unreachable). Fix:
+  `TESTCONTAINERS_HOST_OVERRIDE=localhost`, set (with `??=`) in
+  `src/test-support/postgres.ts`. With it, containers start in ~1.5s and Ryuk
+  works. Docker must be running to run repository tests.
 
 ## Open questions
 

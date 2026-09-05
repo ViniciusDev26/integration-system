@@ -28,9 +28,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
+    "@testcontainers/postgresql": "12.1.0",
     "@types/express": "5.0.6",
     "@types/node": "26.4.1",
     "drizzle-kit": "0.31.10",
+    "testcontainers": "12.1.0",
     "tsc-watch": "7.2.1",
     "typescript": "7.0.2",
     "vitest": "5.0.0"
