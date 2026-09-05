@@ -48,6 +48,11 @@ See `AGENTS.md` for the rules on how to use this file.
     [ADR 0019](docs/adrs/0019-sessions-persisted-in-postgresql.md)
   - GitHub OAuth implemented manually (fetch + Zod, no auth lib), own state/CSRF —
     [ADR 0020](docs/adrs/0020-manual-github-oauth.md)
+  - Local Postgres via Docker Compose (`docker compose up -d`) —
+    [ADR 0021](docs/adrs/0021-docker-compose-local-database.md)
+  - TDD (red → green → refactor) for feature code; repos = Testcontainers
+    integration, services/controllers = unit with fakes —
+    [ADR 0022](docs/adrs/0022-tdd-methodology.md), also in AGENTS.md §8
 - **Domain decided:** a sample music API, Spotify-like. Serves music metadata
   and playback URLs, with authenticated users.
 - **Storage split:** primary database = **PostgreSQL** (relational) for metadata
@@ -122,9 +127,6 @@ Core entities: users, playlists, musics, playlist↔music (many-to-many).
 
 - Note (ADR 0010): Biome does not do full type-aware linting, so type-aware
   "unsafe-*" checks rely on strict `tsconfig` + code review, not the linter.
-- Testing strategy for **service and handler layers** (unit with fake repos, or
-  broader integration/e2e — possibly Testcontainers too). Only the repository
-  layer is decided (ADR 0015); the rest is open.
 - Env config: chosen `PUBLIC_BASE_URL` (host only); callback is derived in code
   as `${PUBLIC_BASE_URL}/auth/github/callback`. Documented in `.env.example`
   (PORT, NODE_ENV, PUBLIC_BASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,

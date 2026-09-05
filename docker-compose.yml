@@ -1,0 +1,25 @@
+# Local development database (ADR 0021). Not a production deployment mechanism.
+# Start with: docker compose up -d
+# The app connects via DATABASE_URL (see .env.example).
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: integration-system-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: integration_system
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d integration_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

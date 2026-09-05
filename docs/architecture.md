@@ -73,6 +73,8 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
 | HTTP input validation | `express-zod-safe` middleware | [ADR 0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
 | Module system | ESM (`type: module`, NodeNext) | [ADR 0017](./adrs/0017-esm-module-system.md) |
 | Architecture | Feature-modular (vertical slice), layered | [ADR 0018](./adrs/0018-feature-modular-architecture.md) |
+| Local database | Docker Compose (PostgreSQL) | [ADR 0021](./adrs/0021-docker-compose-local-database.md) |
+| Methodology | TDD (red → green → refactor) | [ADR 0022](./adrs/0022-tdd-methodology.md) |
 
 ### Patterns & conventions
 
@@ -89,10 +91,15 @@ Indicative data model (to be realized as the Drizzle schema, ADR 0013):
   only code that touches Drizzle directly. Services/handlers depend on
   repositories, not on the ORM. This seam is also the integration-test boundary
   and keeps the data layer free to diverge from a future domain layer.
-- **Testing — data access** ([ADR 0015](./adrs/0015-testcontainers-repository-integration-tests.md)):
-  the repository layer is tested with **integration tests against real
-  PostgreSQL via Testcontainers**. Testing strategy for service/handler layers
-  is not yet decided.
+- **Development methodology — TDD** ([ADR 0022](./adrs/0022-tdd-methodology.md)):
+  feature code is written test-first (red → green → refactor).
+- **Testing** ([ADR 0015](./adrs/0015-testcontainers-repository-integration-tests.md)):
+  the repository layer is driven by **integration tests against real PostgreSQL
+  via Testcontainers**; services/controllers by **unit tests** with fakes over
+  the repository seam.
+- **Local database** ([ADR 0021](./adrs/0021-docker-compose-local-database.md)):
+  `docker compose up -d` runs PostgreSQL locally; the app connects via
+  `DATABASE_URL`.
 - **HTTP input validation** ([ADR 0012](./adrs/0012-express-zod-safe-validation-middleware.md)):
   validated by `express-zod-safe` middleware at the route layer; handlers
   receive typed, validated input and contain business logic only.

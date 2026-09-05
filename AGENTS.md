@@ -179,6 +179,18 @@ Enforcement: strict `tsconfig` (the type checker) + **Biome** lint rules
 (ADR 0010) banning `any`/`!`/TS-suppressions + Zod at boundaries. Biome does not
 do full type-aware linting, so review remains the backstop for unsafe casts.
 
+### Test-Driven Development (ADR 0022) — mandatory for feature code
+
+Implement behavior-bearing code with **TDD**: **red → green → refactor**. Write a
+failing test that specifies the behavior first, then the minimum code to pass it,
+then refactor under the green suite.
+
+- **Repositories:** integration tests against real PostgreSQL via **Testcontainers**
+  (ADR 0015), matching the Compose Postgres version (ADR 0021).
+- **Services / controllers:** unit tests with fakes/mocks over the repository
+  seam (ADR 0014).
+- Trivial/mechanical changes (config, docs, scaffolding) are exempt.
+
 ## 9. How to validate changes before a task is considered complete
 
 A task is done only when all of the following hold:
@@ -188,10 +200,11 @@ A task is done only when all of the following hold:
    `memory.md`) in the same change.
 3. Any significant decision made along the way is recorded as an ADR.
 4. Open questions and remaining uncertainties are captured in `memory.md`.
-5. The change has been checked to the extent possible for this project's
-   current state (e.g. reviewed for correctness and consistency; and, once a
-   stack exists, built/tested/linted per the rules that will be added here).
-6. Nothing was left in a broken or half-documented state.
+5. For behavior-bearing code, it was built test-first (TDD, ADR 0022) and the
+   test suite is green.
+6. The change type-checks, builds, lints (Biome), and tests pass — per the
+   project rules in §8.
+7. Nothing was left in a broken or half-documented state.
 
 If any of these cannot be satisfied, say so explicitly rather than declaring
 the task complete.
