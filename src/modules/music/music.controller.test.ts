@@ -66,7 +66,7 @@ describe("GET /musics/new", () => {
     expect(res.text).toContain('action="/musics"');
     expect(res.text).toContain('enctype="multipart/form-data"');
     expect(res.text).toContain('name="file"');
-    expect(res.text).toContain('name="genre"');
+    expect(res.text).toContain('name="genres"');
     expect(res.text).toContain('name="thumbnail"');
     expect(res.text).not.toContain("Track uploaded");
   });
@@ -99,7 +99,7 @@ describe("GET /musics", () => {
     const sessionId = await signIn(container);
     await container.musicRepository.create({
       name: "Nocturne",
-      genre: "classical",
+      genres: ["classical", "piano"],
       objectKey: "musics/nocturne.mp3",
       thumbnailObjectKey: "musics/thumbnails/nocturne.png",
       uploadedBy: "user-1",
@@ -112,7 +112,9 @@ describe("GET /musics", () => {
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/html/);
     expect(res.text).toContain("Nocturne");
+    // Both genres render as tags.
     expect(res.text).toContain("classical");
+    expect(res.text).toContain("piano");
     // The in-memory storage fake embeds the object key in the presigned URL.
     expect(res.text).toContain("musics/nocturne.mp3");
     expect(res.text).toContain("<audio");
@@ -152,7 +154,7 @@ describe("POST /musics", () => {
       .post("/musics")
       .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
       .field("name", "Nocturne")
-      .field("genre", "classical")
+      .field("genres", "classical")
       .attach("file", Buffer.from("audio-bytes"), {
         filename: "nocturne.mp3",
         contentType: "audio/mpeg",
@@ -163,13 +165,34 @@ describe("POST /musics", () => {
 
     const [row] = await container.musicRepository.list();
     expect(row?.name).toBe("Nocturne");
-    expect(row?.genre).toBe("classical");
+    expect(row?.genres).toEqual(["classical"]);
     expect(row?.objectKey).toBeTruthy();
 
     const stored = container.objectStorage.get(row?.objectKey ?? "");
     expect(stored?.body.toString()).toBe("audio-bytes");
     expect(stored?.contentType).toBe("audio/mpeg");
     expect(row?.thumbnailObjectKey).toBeNull();
+  });
+
+  it("splits a comma-separated genres field into a list", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+
+    const res = await request(app)
+      .post("/musics")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
+      .field("name", "Nocturne")
+      .field("genres", "Pop music, Hip hop music , Pop music")
+      .attach("file", Buffer.from("audio-bytes"), {
+        filename: "nocturne.mp3",
+        contentType: "audio/mpeg",
+      });
+
+    expect(res.status).toBe(303);
+
+    const [row] = await container.musicRepository.list();
+    // Trimmed and de-duplicated.
+    expect(row?.genres).toEqual(["Pop music", "Hip hop music"]);
   });
 
   it("stores an optional thumbnail alongside the audio", async () => {
@@ -180,7 +203,7 @@ describe("POST /musics", () => {
       .post("/musics")
       .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
       .field("name", "Nocturne")
-      .field("genre", "classical")
+      .field("genres", "classical")
       .attach("file", Buffer.from("audio-bytes"), {
         filename: "nocturne.mp3",
         contentType: "audio/mpeg",
@@ -209,7 +232,7 @@ describe("POST /musics", () => {
       .post("/musics")
       .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
       .field("name", "Nocturne")
-      .field("genre", "classical")
+      .field("genres", "classical")
       .attach("file", Buffer.from("audio-bytes"), {
         filename: "nocturne.mp3",
         contentType: "audio/mpeg",
@@ -229,7 +252,7 @@ describe("POST /musics", () => {
     const res = await request(app)
       .post("/musics")
       .field("name", "Nocturne")
-      .field("genre", "classical")
+      .field("genres", "classical")
       .attach("file", Buffer.from("audio-bytes"), {
         filename: "nocturne.mp3",
         contentType: "audio/mpeg",
@@ -247,7 +270,7 @@ describe("POST /musics", () => {
       .post("/musics")
       .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
       .field("name", "Nocturne")
-      .field("genre", "classical");
+      .field("genres", "classical");
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("invalid_upload");
@@ -277,7 +300,7 @@ describe("POST /musics", () => {
       .post("/musics")
       .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
       .field("name", "Nocturne")
-      .field("genre", "classical")
+      .field("genres", "classical")
       .attach("file", Buffer.from("<html>"), {
         filename: "evil.html",
         contentType: "text/html",

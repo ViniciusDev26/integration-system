@@ -44,13 +44,13 @@ describe("MusicRepository", () => {
   function input(
     overrides: Partial<{
       name: string;
-      genre: string;
+      genres: string[];
       thumbnailObjectKey: string | null;
     }> = {},
   ) {
     return {
       name: overrides.name ?? "Nocturne",
-      genre: overrides.genre ?? "classical",
+      genres: overrides.genres ?? ["classical"],
       objectKey: "musics/abc.mp3",
       thumbnailObjectKey:
         overrides.thumbnailObjectKey === undefined
@@ -65,11 +65,20 @@ describe("MusicRepository", () => {
 
     expect(music.id).toMatch(UUID_V7);
     expect(music.name).toBe("Nocturne");
-    expect(music.genre).toBe("classical");
+    expect(music.genres).toEqual(["classical"]);
     expect(music.objectKey).toBe("musics/abc.mp3");
     expect(music.thumbnailObjectKey).toBeNull();
     expect(music.uploadedBy).toBe(uploaderId);
     expect(music.createdAt).toBeInstanceOf(Date);
+  });
+
+  it("round-trips multiple genres", async () => {
+    const music = await repository.create(
+      input({ genres: ["Pop music", "Hip hop music"] }),
+    );
+
+    const found = await repository.findById(music.id);
+    expect(found?.genres).toEqual(["Pop music", "Hip hop music"]);
   });
 
   it("persists a thumbnail object key when provided", async () => {

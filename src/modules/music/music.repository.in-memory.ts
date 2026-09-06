@@ -19,7 +19,7 @@ export function createInMemoryMusicRepository(): MusicRepository {
       const music: Music = {
         id: `music-${sequence}`,
         name: input.name,
-        genre: input.genre,
+        genres: input.genres,
         objectKey: input.objectKey,
         thumbnailObjectKey: input.thumbnailObjectKey,
         uploadedBy: input.uploadedBy,

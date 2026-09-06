@@ -13,7 +13,11 @@
           {{/if}}
           <div class="track-meta">
             <span class="track-name">{{this.name}}</span>
-            <span class="track-genre">{{this.genre}}</span>
+            {{#if this.genres.length}}
+              <span class="track-genres">
+                {{#each this.genres}}<span class="track-genre">{{this}}</span>{{/each}}
+              </span>
+            {{/if}}
           </div>
         </div>
         <audio class="track-audio" controls preload="none" src="{{this.playbackUrl}}"></audio>

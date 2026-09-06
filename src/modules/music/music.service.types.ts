@@ -11,7 +11,7 @@ export interface UploadedFile {
 
 export interface RegisterMusicInput {
   name: string;
-  genre: string;
+  genres: string[];
   file: UploadedFile;
   /** Optional cover image. */
   thumbnail?: UploadedFile;
@@ -23,7 +23,7 @@ export interface RegisterMusicInput {
 export interface MusicListItem {
   id: string;
   name: string;
-  genre: string;
+  genres: string[];
   /** Short-lived presigned URL to stream the audio (ADR 0031). */
   playbackUrl: string;
   /** Short-lived presigned URL for the cover image, or `null` if none. */

@@ -1,0 +1,1 @@
+ALTER TABLE "musics" DROP COLUMN "genre";

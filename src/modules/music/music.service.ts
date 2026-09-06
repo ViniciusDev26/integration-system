@@ -26,7 +26,7 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
     ((file) => keyFor(MUSIC_THUMBNAIL_KEY_PREFIX, file));
 
   return {
-    async register({ name, genre, file, thumbnail, uploadedBy }) {
+    async register({ name, genres, file, thumbnail, uploadedBy }) {
       const objectKey = generateObjectKey(file);
 
       // Store the bytes first, then the row: if the row insert fails we leak an
@@ -50,7 +50,7 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
 
       return musicRepository.create({
         name,
-        genre,
+        genres,
         objectKey,
         thumbnailObjectKey,
         uploadedBy,
@@ -63,7 +63,7 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
         tracks.map(async (track) => ({
           id: track.id,
           name: track.name,
-          genre: track.genre,
+          genres: track.genres,
           playbackUrl: await objectStorage.getSignedUrl(track.objectKey),
           thumbnailUrl:
             track.thumbnailObjectKey === null

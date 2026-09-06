@@ -153,6 +153,12 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       Controller tests updated (render form, banner, redirects); boot smoke
       confirmed `GET /` + `GET /musics/new` (anon → 302 login).
 
+- [x] **Multiple genres** — `musics.genre` (text) → `musics.genres` (`text[]`,
+      not null, default `{}`); migrations `0003` (drop) + `0004` (add). Threaded
+      through repo/service/controller (`RegisterMusicInput.genres`, `MusicListItem.genres`);
+      the upload form takes a comma-separated `genres` field (split + de-duped by
+      `parseGenres`); the listing renders one pill per genre. Local seed script
+      (`scripts/`, git-ignored) reads the JSON's `genres` array.
 - [x] **Thumbnails (optional cover image)** — `musics.thumbnail_object_key`
       (nullable) + migration `0002_sleepy_nekra.sql`. Upload middleware
       generalized to multi-field (`createUpload([...])`, `getUploadedFile(req,

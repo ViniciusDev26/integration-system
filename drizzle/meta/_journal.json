@@ -22,6 +22,20 @@
       "when": 1788662570866,
       "tag": "0002_sleepy_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788664349031,
+      "tag": "0003_daffy_nick_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788664370974,
+      "tag": "0004_old_inertia",
+      "breakpoints": true
     }
   ]
 }

@@ -10,13 +10,28 @@ import type {
  * Body schema for `POST /musics` (ADR 0012). The audio file is handled by the
  * multer middleware (ADR 0032); only the text fields are validated here. Shared
  * with the route so the middleware validates and the handler reads typed values.
+ *
+ * `genres` is a comma-separated list (one text input); it is split into a
+ * non-empty array by {@link parseGenres} in the handler.
  */
 export const createMusicSchema = {
   body: z.object({
     name: z.string().min(1),
-    genre: z.string().min(1),
+    genres: z.string().min(1),
   }),
 };
+
+/** Splits the comma-separated `genres` field into a trimmed, de-duped list. */
+export function parseGenres(raw: string): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((genre) => genre.trim())
+        .filter((genre) => genre.length > 0),
+    ),
+  ];
+}
 
 export function createMusicController(
   options: MusicControllerOptions,
@@ -43,10 +58,18 @@ export function createMusicController(
       const user = getAuthenticatedUser(res);
       const file = getUploadedFile(req, "file");
       const thumbnail = getOptionalFile(req, "thumbnail");
+      const genres = parseGenres(req.body.genres);
+
+      if (genres.length === 0) {
+        res
+          .status(400)
+          .json({ error: "invalid_input", message: "at least one genre" });
+        return;
+      }
 
       await musicService.register({
         name: req.body.name,
-        genre: req.body.genre,
+        genres,
         file,
         thumbnail,
         uploadedBy: user.id,

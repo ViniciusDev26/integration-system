@@ -36,7 +36,7 @@ describe("MusicService.register", () => {
 
     const music = await service.register({
       name: "Nocturne",
-      genre: "classical",
+      genres: ["classical"],
       file,
       uploadedBy: "user-1",
     });
@@ -61,7 +61,7 @@ describe("MusicService.register", () => {
 
     const music = await service.register({
       name: "Nocturne",
-      genre: "classical",
+      genres: ["classical"],
       file,
       thumbnail,
       uploadedBy: "user-1",
@@ -79,7 +79,7 @@ describe("MusicService.register", () => {
 
     const music = await service.register({
       name: "Nocturne",
-      genre: "classical",
+      genres: ["classical"],
       file,
       uploadedBy: "user-1",
     });
@@ -101,13 +101,13 @@ describe("MusicService.listAll", () => {
 
     await service.register({
       name: "First",
-      genre: "rock",
+      genres: ["rock"],
       file,
       uploadedBy: "user-1",
     });
     await service.register({
       name: "Second",
-      genre: "jazz",
+      genres: ["jazz"],
       file,
       uploadedBy: "user-2",
     });
@@ -128,14 +128,14 @@ describe("MusicService.listAll", () => {
 
     await service.register({
       name: "WithThumb",
-      genre: "pop",
+      genres: ["pop"],
       file,
       thumbnail,
       uploadedBy: "user-1",
     });
     await service.register({
       name: "NoThumb",
-      genre: "pop",
+      genres: ["pop"],
       file,
       uploadedBy: "user-1",
     });

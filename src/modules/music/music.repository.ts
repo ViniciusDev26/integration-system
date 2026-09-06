@@ -6,7 +6,7 @@ import type { Music } from "../../shared/db/schema/musics.js";
  */
 export interface CreateMusicInput {
   name: string;
-  genre: string;
+  genres: string[];
   objectKey: string;
   /** Storage key of the cover image, or `null` if none. */
   thumbnailObjectKey: string | null;
