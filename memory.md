@@ -12,6 +12,17 @@ It is **not** a replacement for stable documentation:
 When something here becomes stable or decided, promote it to the right place
 and remove it from this file. Keep this file pruned and current.
 
+> **Monorepo (2026-09-06):** repo is now Turborepo + npm workspaces
+> (`docs/adrs/0001`): API in `apps/api`, Vite React scaffold in `apps/web`,
+> shared Biome config in `packages/biome-config` (`docs/adrs/0002`). Run tasks
+> from the root via turbo (`npm run build｜lint｜typecheck｜test｜dev`) or per app
+> with `-w @integration-system/api｜web`. Notes below predating this refer to the
+> API app — read `src/…` as `apps/api/src/…`. **Migrations** need `DATABASE_URL`
+> in the env now (no `--env-file`): e.g.
+> `DATABASE_URL=postgres://user:password@localhost:5432/integration_system npm run db:migrate`.
+> The seed script moved to `apps/api/scripts/` (run from repo root:
+> `node --env-file=.env apps/api/scripts/seed-musics.mjs`).
+
 See `AGENTS.md` for the rules on how to use this file.
 
 ---

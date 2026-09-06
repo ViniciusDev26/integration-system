@@ -1,7 +1,13 @@
 # Tasks
 
 Actionable task tracker. High-level state and rationale live in
-[`memory.md`](./memory.md); decisions live in [`docs/adrs/`](./docs/adrs/).
+[`memory.md`](./memory.md). Decisions: repo-wide in [`docs/adrs/`](./docs/adrs/),
+API-specific in [`apps/api/docs/adrs/`](./apps/api/docs/adrs/).
+
+> **Monorepo (2026-09-06):** the app is now `apps/api` in a Turborepo/npm-workspaces
+> monorepo (`docs/adrs/0001`); a `apps/web` Vite SPA scaffold was added. Paths in
+> the entries below written before this refer to the API app — read `src/…` as
+> `apps/api/src/…`. Run tasks from the root via `turbo` (e.g. `npm run test`).
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 

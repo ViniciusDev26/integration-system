@@ -8,7 +8,7 @@ not create ADRs speculatively. See [`../architecture.md`](../architecture.md)
 for the resulting *shape* of the system; the ADRs here capture the *why*.
 
 Every new dependency added to `package.json` must be justified by an ADR — see
-the mandatory rule in [`../../AGENTS.md`](../../AGENTS.md) §4.
+the mandatory rule in [`../../../../AGENTS.md`](../../../../AGENTS.md) §4.
 
 ## Index
 
@@ -82,4 +82,4 @@ What becomes easier, harder, or constrained as a result. Trade-offs accepted.
 Options that were weighed and why they were not chosen.
 ```
 
-See [`../../AGENTS.md`](../../AGENTS.md) for when to create or update an ADR.
+See [`../../../../AGENTS.md`](../../../../AGENTS.md) for when to create or update an ADR.

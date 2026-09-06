@@ -26,6 +26,27 @@ once real decisions are made and recorded (see ADRs).
 
 ---
 
+## 1b. Monorepo layout
+
+This repo is a **Turborepo + npm-workspaces monorepo** (see `docs/adrs/0001`):
+
+| Path                     | What                                                            |
+| ------------------------ | -------------------------------------------------------------- |
+| `apps/api`               | Node/Express API (`@integration-system/api`) — the original app |
+| `apps/web`               | Vite React SPA (`@integration-system/web`) — front-end scaffold |
+| `packages/biome-config`  | Shared Biome config (`base` + `api`/`web` variants), ADR 0002   |
+| `docs/adrs/`             | **Repo-wide** ADRs (monorepo/tooling)                          |
+| `apps/*/docs/adrs/`      | **Per-app** ADRs (the API's 0001–00NN live in `apps/api`)      |
+
+- Run tasks from the **root** via Turbo: `npm run build｜lint｜typecheck｜test｜dev｜format`.
+  For a single app: `npm run <task> -w @integration-system/api` (or `/web`).
+- Infra (`Dockerfile`, `docker-compose.yml`, `.env`, `.npmrc`, `.tool-versions`)
+  lives at the **root**. Top-level `AGENTS.md`/`tasks.md`/`memory.md` are repo-wide.
+- Historical paths in `tasks.md`/`memory.md` written before the monorepo refer to
+  the API app; read them as `apps/api/<path>`.
+
+---
+
 ## 2. How to reason about and modify the project
 
 - **Understand before changing.** Read `memory.md`, `docs/architecture.md`, and
