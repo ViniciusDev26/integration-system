@@ -24,9 +24,18 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">
-        Welcome, {user?.name ?? user?.email}
-      </h1>
+      <div className="flex items-center gap-3">
+        {user?.imageUrl && (
+          <img
+            src={user.imageUrl}
+            alt=""
+            className="h-12 w-12 rounded-full object-cover"
+          />
+        )}
+        <h1 className="text-2xl font-bold">
+          Welcome, {user?.name ?? user?.email}
+        </h1>
+      </div>
       <div className="flex flex-wrap gap-3">
         <Link className={linkClass} to="/musics">
           Browse tracks

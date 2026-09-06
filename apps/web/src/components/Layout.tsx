@@ -45,6 +45,13 @@ export function Layout() {
         <div className="flex items-center gap-3">
           {isSignedIn ? (
             <>
+              {user?.imageUrl && (
+                <img
+                  src={user.imageUrl}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover"
+                />
+              )}
               <span className="text-sm text-gray-500">
                 {user?.name ?? user?.email}
               </span>
