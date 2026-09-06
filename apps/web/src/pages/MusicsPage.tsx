@@ -7,6 +7,7 @@ export function MusicsPage() {
   const musics = trpc.musics.list.useQuery();
   const playTrack = usePlayerStore((s) => s.playTrack);
   const addToQueue = usePlayerStore((s) => s.addToQueue);
+  const queue = usePlayerStore((s) => s.queue);
 
   if (musics.isLoading) {
     return <p className="text-gray-500">Loading…</p>;
@@ -60,16 +61,22 @@ export function MusicsPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => addToQueue(track)}
-                  aria-label={`Add ${track.name} to queue`}
-                >
-                  + Queue
-                </Button>
-                <Button onClick={() => playTrack(track)}>▶ Play</Button>
-              </div>
+              {(() => {
+                const queued = queue.some((t) => t.id === track.id);
+                return (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => addToQueue(track)}
+                      disabled={queued}
+                      aria-label={`Add ${track.name} to queue`}
+                    >
+                      {queued ? "In queue" : "+ Queue"}
+                    </Button>
+                    <Button onClick={() => playTrack(track)}>▶ Play</Button>
+                  </div>
+                );
+              })()}
             </li>
           ))}
         </ul>

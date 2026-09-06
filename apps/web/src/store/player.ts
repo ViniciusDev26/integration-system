@@ -11,18 +11,8 @@ export interface PlayerTrack {
 
 export type RepeatMode = "off" | "all" | "one";
 
-/** A queue entry: a track plus a stable id (the same track may be queued twice). */
-export interface QueueItem {
-  uid: string;
-  track: PlayerTrack;
-}
-
-function toItem(track: PlayerTrack): QueueItem {
-  return { uid: crypto.randomUUID(), track };
-}
-
 interface PlayerState {
-  queue: QueueItem[];
+  queue: PlayerTrack[];
   index: number; // -1 when the queue is empty
   isPlaying: boolean;
   volume: number; // 0..1
@@ -71,7 +61,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeat: "off",
 
   playTrack(track) {
-    set({ queue: [toItem(track)], index: 0, isPlaying: true, currentTime: 0 });
+    set({ queue: [track], index: 0, isPlaying: true, currentTime: 0 });
   },
 
   playQueue(tracks, startIndex = 0) {
@@ -79,7 +69,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
     const index = Math.min(Math.max(startIndex, 0), tracks.length - 1);
-    set({ queue: tracks.map(toItem), index, isPlaying: true, currentTime: 0 });
+    set({ queue: tracks, index, isPlaying: true, currentTime: 0 });
   },
 
   play() {
@@ -117,7 +107,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   addToQueue(track) {
     set((s) => {
-      const queue = [...s.queue, toItem(track)];
+      // No duplicates: a track can be in the queue at most once.
+      if (s.queue.some((t) => t.id === track.id)) {
+        return {};
+      }
+      const queue = [...s.queue, track];
       return s.index < 0 ? { queue, index: 0 } : { queue };
     });
   },
