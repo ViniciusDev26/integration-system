@@ -1,11 +1,14 @@
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { startTestDatabase, type TestDatabase } from "../../container-test.js";
-import type { Database } from "../../shared/db/database.js";
-import type { MusicRepository } from "../music/music.repository.js";
-import { createPostgresMusicRepository } from "../music/music.repository.postgres.js";
-import type { UserRepository } from "../users/user.repository.js";
-import { createPostgresUserRepository } from "../users/user.repository.postgres.js";
+import {
+  startTestDatabase,
+  type TestDatabase,
+} from "../../../container-test.js";
+import type { Database } from "../../../shared/db/database.js";
+import type { MusicRepository } from "../../music/repository/music.repository.js";
+import { createPostgresMusicRepository } from "../../music/repository/music.repository.postgres.js";
+import type { UserRepository } from "../../users/user.repository.js";
+import { createPostgresUserRepository } from "../../users/user.repository.postgres.js";
 import type { PlaylistRepository } from "./playlist.repository.js";
 import { createPostgresPlaylistRepository } from "./playlist.repository.postgres.js";
 

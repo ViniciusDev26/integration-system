@@ -1,5 +1,5 @@
-import type { Session } from "../../shared/db/schema/sessions.js";
-import type { SessionRepository } from "./session.repository.js";
+import type { Session } from "../../../shared/db/schema/sessions.js";
+import type { SessionRepository } from "../repository/session.repository.js";
 
 export interface SessionServiceOptions {
   sessionRepository: SessionRepository;

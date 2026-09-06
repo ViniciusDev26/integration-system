@@ -1,6 +1,6 @@
-import type { Music } from "../../shared/db/schema/musics.js";
-import type { ObjectStorage } from "../../shared/storage/object-storage.js";
-import type { MusicRepository } from "./music.repository.js";
+import type { Music } from "../../../shared/db/schema/musics.js";
+import type { ObjectStorage } from "../../../shared/storage/object-storage.js";
+import type { MusicRepository } from "../repository/music.repository.js";
 
 /** An uploaded file the service needs — a structural subset of a multer file. */
 export interface UploadedFile {

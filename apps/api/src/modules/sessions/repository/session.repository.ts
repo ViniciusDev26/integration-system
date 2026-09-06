@@ -1,4 +1,4 @@
-import type { Session } from "../../shared/db/schema/sessions.js";
+import type { Session } from "../../../shared/db/schema/sessions.js";
 
 /**
  * Data to create a server-side session (ADR 0016/0019). `id` is the opaque,

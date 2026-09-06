@@ -1,4 +1,4 @@
-import type { Session } from "../../shared/db/schema/sessions.js";
+import type { Session } from "../../../shared/db/schema/sessions.js";
 import type {
   CreateSessionInput,
   SessionRepository,

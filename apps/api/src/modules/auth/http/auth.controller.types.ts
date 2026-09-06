@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import type { ValidatedRequest } from "express-zod-safe";
+import type { AuthService } from "../service/auth.service.types.js";
 import type { githubCallbackSchema } from "./auth.controller.js";
-import type { AuthService } from "./auth.service.types.js";
 
 export interface AuthControllerOptions {
   authService: AuthService;

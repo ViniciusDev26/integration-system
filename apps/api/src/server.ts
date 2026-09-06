@@ -1,6 +1,6 @@
 import { createApp } from "./app.js";
 import { createContainer } from "./container.js";
-import { createAuthController } from "./modules/auth/auth.controller.js";
+import { createAuthController } from "./modules/auth/http/auth.controller.js";
 import { env } from "./shared/env.js";
 import { createContextFactory } from "./trpc/context.js";
 import { createAppRouter } from "./trpc/router.js";

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createInMemoryObjectStorage } from "../../shared/storage/object-storage.in-memory.js";
-import { createInMemoryMusicRepository } from "../music/music.repository.in-memory.js";
-import type { MusicRepository } from "../music/music.repository.js";
-import { createInMemoryPlaylistRepository } from "./playlist.repository.in-memory.js";
+import { createInMemoryObjectStorage } from "../../../shared/storage/object-storage.in-memory.js";
+import { createInMemoryMusicRepository } from "../../music/repository/music.repository.in-memory.js";
+import type { MusicRepository } from "../../music/repository/music.repository.js";
+import { createInMemoryPlaylistRepository } from "../repository/playlist.repository.in-memory.js";
 import {
   MusicNotFoundError,
   PlaylistForbiddenError,

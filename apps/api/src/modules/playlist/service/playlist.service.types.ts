@@ -1,8 +1,8 @@
-import type { Playlist } from "../../shared/db/schema/playlists.js";
-import type { ObjectStorage } from "../../shared/storage/object-storage.js";
-import type { MusicRepository } from "../music/music.repository.js";
-import type { MusicListItem } from "../music/music.service.types.js";
-import type { PlaylistRepository } from "./playlist.repository.js";
+import type { Playlist } from "../../../shared/db/schema/playlists.js";
+import type { ObjectStorage } from "../../../shared/storage/object-storage.js";
+import type { MusicRepository } from "../../music/repository/music.repository.js";
+import type { MusicListItem } from "../../music/service/music.service.types.js";
+import type { PlaylistRepository } from "../repository/playlist.repository.js";
 
 export interface CreatePlaylistForUserInput {
   name: string;

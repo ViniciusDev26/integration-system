@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createInMemorySessionRepository } from "../sessions/session.repository.in-memory.js";
-import { createSessionService } from "../sessions/session.service.js";
-import { createInMemoryUserRepository } from "../users/user.repository.in-memory.js";
+import { createInMemorySessionRepository } from "../../sessions/repository/session.repository.in-memory.js";
+import { createSessionService } from "../../sessions/service/session.service.js";
+import { createInMemoryUserRepository } from "../../users/user.repository.in-memory.js";
+import { createFakeGitHubOAuthClient } from "../oauth/github-oauth.client.fake.js";
 import { createAuthService } from "./auth.service.js";
-import { createFakeGitHubOAuthClient } from "./github-oauth.client.fake.js";
 
 const githubUser = {
   id: "gh-1",

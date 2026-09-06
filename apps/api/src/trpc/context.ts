@@ -1,7 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { CookieOptions } from "express";
-import { SESSION_COOKIE } from "../modules/auth/auth.controller.constants.js";
-import type { AuthService } from "../modules/auth/auth.service.types.js";
+import { SESSION_COOKIE } from "../modules/auth/http/auth.controller.constants.js";
+import type { AuthService } from "../modules/auth/service/auth.service.types.js";
 import type { User } from "../shared/db/schema/users.js";
 import { readCookie } from "../shared/http/cookies.js";
 

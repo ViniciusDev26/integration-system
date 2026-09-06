@@ -1,9 +1,9 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import type { Database } from "../../shared/db/database.js";
-import { musics } from "../../shared/db/schema/musics.js";
-import { playlistMembers } from "../../shared/db/schema/playlist-members.js";
-import { playlistMusics } from "../../shared/db/schema/playlist-musics.js";
-import { playlists } from "../../shared/db/schema/playlists.js";
+import type { Database } from "../../../shared/db/database.js";
+import { musics } from "../../../shared/db/schema/musics.js";
+import { playlistMembers } from "../../../shared/db/schema/playlist-members.js";
+import { playlistMusics } from "../../../shared/db/schema/playlist-musics.js";
+import { playlists } from "../../../shared/db/schema/playlists.js";
 import type { PlaylistRepository } from "./playlist.repository.js";
 
 /**

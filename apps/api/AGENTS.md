@@ -18,7 +18,9 @@ wired in a manual composition root (`src/container.ts`); the tRPC layer is in
 
 ## Where things live
 
-- Code: `src/` (modules in `src/modules/`, shared in `src/shared/`).
+- Code: `src/` (modules in `src/modules/`, shared in `src/shared/`). Modules with
+  more than one concern group files into responsibility sub-modules — `oauth/`,
+  `service/`, `repository/`, `http/` (ADR 0018).
 - Decisions: [`docs/adrs/`](./docs/adrs/) (0001–00NN). Architecture:
   [`docs/architecture.md`](./docs/architecture.md).
 - DB migrations: `drizzle/` (schema in `src/shared/db/schema/`).

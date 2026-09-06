@@ -5,8 +5,8 @@ import {
   MusicNotFoundError,
   PlaylistForbiddenError,
   PlaylistNotFoundError,
-} from "./playlist.service.errors.js";
-import type { PlaylistService } from "./playlist.service.types.js";
+} from "./service/playlist.service.errors.js";
+import type { PlaylistService } from "./service/playlist.service.types.js";
 
 /** Maps a {@link PlaylistService} domain error to a tRPC error, else rethrows. */
 function rethrowAsTRPC(err: unknown): never {

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import type { Database } from "../../shared/db/database.js";
-import { sessions } from "../../shared/db/schema/sessions.js";
+import type { Database } from "../../../shared/db/database.js";
+import { sessions } from "../../../shared/db/schema/sessions.js";
 import type {
   CreateSessionInput,
   SessionRepository,

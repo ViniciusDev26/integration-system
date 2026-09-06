@@ -1,4 +1,4 @@
-import type { Music } from "../../shared/db/schema/musics.js";
+import type { Music } from "../../../shared/db/schema/musics.js";
 import type { CreateMusicInput, MusicRepository } from "./music.repository.js";
 
 /**

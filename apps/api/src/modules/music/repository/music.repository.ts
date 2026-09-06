@@ -1,4 +1,4 @@
-import type { Music } from "../../shared/db/schema/musics.js";
+import type { Music } from "../../../shared/db/schema/musics.js";
 
 /**
  * Data needed to persist a music track. The audio itself already lives in object

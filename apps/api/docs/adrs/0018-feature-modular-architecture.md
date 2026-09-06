@@ -22,6 +22,16 @@ Adopt a **layered architecture organized by feature (vertical slices)**.
 - Each feature lives under `src/modules/<feature>/` and contains its own layers:
   `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`,
   `*.schema.ts` (Zod).
+- **Responsibility sub-modules (amended 2026-09-06):** once a module accumulates
+  more than one concern, its files are grouped into sub-module folders by
+  responsibility instead of sitting flat — e.g. `auth/oauth/`, `auth/service/`,
+  `auth/http/`; `music/repository/`, `music/service/`. Filenames keep their
+  descriptive prefix (`music.service.ts`, not `service.ts`) so editor tabs stay
+  unambiguous across modules; the folder carries the responsibility. A folder is
+  introduced only when it earns its keep — a module with a single concern
+  (`users/`, repository-only) or a lone transport file (`music.router.ts` at the
+  module root) stays flat. No barrel `index.ts` files; imports point at the
+  concrete file. This is a refinement of this ADR, not a new architecture.
 - Cross-cutting/infrastructure code lives under `src/shared/`: `db/` (Drizzle
   client + schema), `r2/` (S3 client), `env.ts`, `middleware/`, `errors/`.
 - `src/app.ts` (composition of module routes) and `src/server.ts` (bootstrap)

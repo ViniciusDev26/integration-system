@@ -1,10 +1,10 @@
-import { createAuthRouter } from "../modules/auth/auth.router.js";
-import type { AuthService } from "../modules/auth/auth.service.types.js";
+import { createAuthRouter } from "../modules/auth/http/auth.router.js";
+import type { AuthService } from "../modules/auth/service/auth.service.types.js";
 import { createMusicRouter } from "../modules/music/music.router.js";
-import type { MusicService } from "../modules/music/music.service.types.js";
+import type { MusicService } from "../modules/music/service/music.service.types.js";
 import { createPlaylistRouter } from "../modules/playlist/playlist.router.js";
-import type { PlaylistService } from "../modules/playlist/playlist.service.types.js";
-import type { SessionService } from "../modules/sessions/session.service.types.js";
+import type { PlaylistService } from "../modules/playlist/service/playlist.service.types.js";
+import type { SessionService } from "../modules/sessions/service/session.service.types.js";
 import { router } from "./trpc.js";
 
 export interface AppRouterDeps {

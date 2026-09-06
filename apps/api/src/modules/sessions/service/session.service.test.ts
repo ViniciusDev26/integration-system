@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createInMemorySessionRepository } from "./session.repository.in-memory.js";
+import { createInMemorySessionRepository } from "../repository/session.repository.in-memory.js";
 import { createSessionService } from "./session.service.js";
 
 const userId = "01920000-0000-7000-8000-000000000001";

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc/trpc.js";
-import type { MusicService } from "./music.service.types.js";
+import type { MusicService } from "./service/music.service.types.js";
 
 const fileMetaSchema = z.object({
   filename: z.string().min(1),

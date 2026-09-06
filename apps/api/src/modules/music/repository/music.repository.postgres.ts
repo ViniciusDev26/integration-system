@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
-import type { Database } from "../../shared/db/database.js";
-import { musics } from "../../shared/db/schema/musics.js";
+import type { Database } from "../../../shared/db/database.js";
+import { musics } from "../../../shared/db/schema/musics.js";
 import type { MusicRepository } from "./music.repository.js";
 
 /**

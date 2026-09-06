@@ -1,17 +1,17 @@
 import type { CookieOptions } from "express";
-import { readCookie } from "../../shared/http/cookies.js";
+import { readCookie } from "../../../shared/http/cookies.js";
 import {
   protectedProcedure,
   publicProcedure,
   router,
-} from "../../trpc/trpc.js";
-import type { SessionService } from "../sessions/session.service.types.js";
+} from "../../../trpc/trpc.js";
+import type { SessionService } from "../../sessions/service/session.service.types.js";
+import type { AuthService } from "../service/auth.service.types.js";
 import {
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE,
   STATE_COOKIE_MAX_AGE_MS,
 } from "./auth.controller.constants.js";
-import type { AuthService } from "./auth.service.types.js";
 
 export interface AuthRouterOptions {
   authService: AuthService;

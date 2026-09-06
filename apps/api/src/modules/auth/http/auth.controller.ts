@@ -1,6 +1,6 @@
 import type { CookieOptions } from "express";
 import { z } from "zod";
-import { readCookie } from "../../shared/http/cookies.js";
+import { readCookie } from "../../../shared/http/cookies.js";
 import {
   OAUTH_STATE_COOKIE,
   POST_LOGIN_REDIRECT_PATH,

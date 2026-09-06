@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTestContainer, type TestContainer } from "../container-test.js";
-import { OAUTH_STATE_COOKIE } from "../modules/auth/auth.controller.constants.js";
+import { OAUTH_STATE_COOKIE } from "../modules/auth/http/auth.controller.constants.js";
 import type { User } from "../shared/db/schema/users.js";
 import type { Context } from "./context.js";
 import { createAppRouter } from "./router.js";

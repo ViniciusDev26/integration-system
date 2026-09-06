@@ -6,8 +6,8 @@ import {
 } from "@trpc/server/adapters/express";
 import cookieParser from "cookie-parser";
 import express, { type Express, type Request, type Response } from "express";
-import type { AuthController } from "./modules/auth/auth.controller.types.js";
-import { createAuthRoutes } from "./modules/auth/auth.routes.js";
+import type { AuthController } from "./modules/auth/http/auth.controller.types.js";
+import { createAuthRoutes } from "./modules/auth/http/auth.routes.js";
 import type { Context } from "./trpc/context.js";
 import type { AppRouter } from "./trpc/router.js";
 

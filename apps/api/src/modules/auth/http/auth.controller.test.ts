@@ -3,8 +3,8 @@ import express, { type Express } from "express";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createTestContainer } from "../../container-test.js";
-import type { UserRepository } from "../users/user.repository.js";
+import { createTestContainer } from "../../../container-test.js";
+import type { UserRepository } from "../../users/user.repository.js";
 import {
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE,

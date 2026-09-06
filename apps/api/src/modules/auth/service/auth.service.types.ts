@@ -1,8 +1,8 @@
-import type { Session } from "../../shared/db/schema/sessions.js";
-import type { User } from "../../shared/db/schema/users.js";
-import type { SessionService } from "../sessions/session.service.types.js";
-import type { UserRepository } from "../users/user.repository.js";
-import type { GitHubOAuthClient } from "./github-oauth.client.js";
+import type { Session } from "../../../shared/db/schema/sessions.js";
+import type { User } from "../../../shared/db/schema/users.js";
+import type { SessionService } from "../../sessions/service/session.service.types.js";
+import type { UserRepository } from "../../users/user.repository.js";
+import type { GitHubOAuthClient } from "../oauth/github-oauth.client.js";
 
 export interface AuthServiceOptions {
   githubClient: GitHubOAuthClient;

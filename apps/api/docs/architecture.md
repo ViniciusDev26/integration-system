@@ -125,13 +125,19 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
 - `src/trpc/` — `trpc.ts` (init, `router`, `publicProcedure`, `protectedProcedure`,
   `createCallerFactory`), `context.ts` (`Context` + `createContextFactory`),
   `router.ts` (`createAppRouter` + the exported `AppRouter` type).
-- `src/modules/auth/` — the OAuth callback controller/route + `auth.router.ts`
-  (`startLogin`, `me`, `logout`).
-- `src/modules/music/` — `music.router.ts` over `MusicService`
-  (`listAll`, `prepareUpload`, `createFromKeys`, plus `register` for the seed) +
-  repository.
-- `src/modules/playlist/` — `playlist.router.ts` over `PlaylistService` +
-  repository; typed domain errors.
+- Modules are split into **responsibility sub-modules** (ADR 0018): a module with
+  more than one concern groups its files under `oauth/`, `service/`,
+  `repository/`, `http/` rather than leaving them flat.
+- `src/modules/auth/` — `oauth/` (GitHub OAuth client port + HTTP adapter + fake),
+  `service/` (`AuthService`), `http/` (the OAuth callback controller/route +
+  `auth.router.ts`: `startLogin`, `me`, `logout`).
+- `src/modules/music/` — `repository/` + `service/` (`MusicService`: `listAll`,
+  `prepareUpload`, `createFromKeys`, plus `register` for the seed); `music.router.ts`
+  at the module root.
+- `src/modules/playlist/` — `repository/` + `service/` (`PlaylistService` + typed
+  domain errors); `playlist.router.ts` at the module root.
+- `src/modules/sessions/` — `repository/` + `service/` (`SessionService`).
+- `src/modules/users/` — repository only (single responsibility; stays flat).
 - `src/shared/storage/` — `ObjectStorage` port + R2 adapter + in-memory fake.
 - `src/shared/http/cookies.ts`, `src/shared/db/`, `src/shared/env.ts` (validates
   `NODE_ENV`, `PORT`, `DATABASE_URL`, `PUBLIC_BASE_URL`, `GITHUB_CLIENT_ID/SECRET`,

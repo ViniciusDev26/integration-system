@@ -1,6 +1,6 @@
-import type { Music } from "../../shared/db/schema/musics.js";
-import type { PlaylistMemberType } from "../../shared/db/schema/playlist-members.js";
-import type { Playlist } from "../../shared/db/schema/playlists.js";
+import type { Music } from "../../../shared/db/schema/musics.js";
+import type { PlaylistMemberType } from "../../../shared/db/schema/playlist-members.js";
+import type { Playlist } from "../../../shared/db/schema/playlists.js";
 
 /** Data to create a playlist. The creator becomes its `OWNER` member. */
 export interface CreatePlaylistInput {

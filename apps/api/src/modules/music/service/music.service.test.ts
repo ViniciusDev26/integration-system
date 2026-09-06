@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createInMemoryObjectStorage } from "../../shared/storage/object-storage.in-memory.js";
-import { createInMemoryMusicRepository } from "./music.repository.in-memory.js";
+import { createInMemoryObjectStorage } from "../../../shared/storage/object-storage.in-memory.js";
+import { createInMemoryMusicRepository } from "../repository/music.repository.in-memory.js";
 import { MUSIC_OBJECT_KEY_PREFIX } from "./music.service.constants.js";
 import { createMusicService } from "./music.service.js";
 import type { MusicServiceOptions } from "./music.service.types.js";
