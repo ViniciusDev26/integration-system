@@ -35,6 +35,12 @@ export function createInMemoryObjectStorage(): InMemoryObjectStorage {
       return url.toString();
     },
 
+    async getUploadUrl(key, contentType) {
+      const url = new URL(`https://upload.storage.test/${key}`);
+      url.searchParams.set("contentType", contentType);
+      return url.toString();
+    },
+
     get(key) {
       return objects.get(key);
     },

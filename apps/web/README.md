@@ -15,9 +15,10 @@ JSON API, hosting a persistent cross-page audio player.
 - shadcn/ui + Tailwind CSS (0003)
 - react-hook-form + Zod (0004)
 - Zustand for client state (0005)
-- axios in an isolated API client, `withCredentials` (0006)
-- httpOnly session cookie, served same-origin by the API; identity via
-  `GET /api/me` (0007)
+- tRPC client + TanStack Query, importing `AppRouter` from the API (0008;
+  supersedes the axios ADR 0006)
+- httpOnly session cookie, served same-origin by the API; identity via the
+  `auth.me` tRPC procedure (0007)
 
 ## Commands
 

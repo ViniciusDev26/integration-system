@@ -29,19 +29,22 @@ Pending work is tracked in [`tasks.md`](tasks.md).
 
 ## Current state
 
-- **`apps/api` is built** end to end (details in
+- **`apps/api` is a tRPC API** (ADR 0037; details in
   [`apps/api/docs/architecture.md`](apps/api/docs/architecture.md)): GitHub OAuth
-  login + server-side sessions; server-rendered "Spotifake" UI (Handlebars);
-  **music** (upload/create + list-all, optional thumbnail, multiple `genres`
-  stored as `text[]`, R2 object storage via an `ObjectStorage` port, multer
-  uploads); **playlists** (relational membership `playlist_members` OWNER|MEMBER,
-  create/view/add-tracks, owner-scoped listing) with membership-based authz.
-  Migrations `0000`–`0005`.
-- **`apps/web`** is the default Vite React+TS scaffold, trimmed — front-end
-  decisions pending (`apps/web/docs/adrs/`).
-- **Next:** move the browser UI to the `apps/web` SPA consuming the API as a JSON
-  API, with a persistent cross-page audio player (see the player task in
-  `tasks.md` and the SPA direction noted in `apps/api/docs/architecture.md`).
+  login (REST redirect at `/auth/*`) + server-side sessions; tRPC procedures
+  `auth.me`/`auth.logout`, `musics.list`/`prepareUpload`/`create`,
+  `playlists.list`/`create`/`get`/`addMusic`; `AppRouter` type exported for the
+  web. **music**: multiple `genres` (`text[]`), optional thumbnail, **presigned
+  direct-to-R2 upload** (ADR 0038 — `ObjectStorage.getUploadUrl`; `register` kept
+  server-side for the seed). **playlists**: relational membership
+  (`playlist_members` OWNER|MEMBER) with membership authz. Migrations `0000`–`0005`.
+- **SSR removed** (ADR 0030 superseded by 0036) and **multer removed** (0032
+  superseded by 0038): no `web` module / Handlebars / `requireAuth` middleware.
+  The app serves `apps/web/dist` same-origin (guarded — inert until built).
+- **`apps/web`** is the trimmed Vite React+TS scaffold; front-end stack decided
+  (`apps/web/docs/adrs/` 0001–0008: tRPC client + TanStack Query).
+- **Next:** build the `apps/web` SPA — `src/api/` tRPC client importing
+  `AppRouter`, screens, and the persistent player (see `tasks.md` §5).
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
   (playlists) still needs applying** before playlists work against a live DB.
 

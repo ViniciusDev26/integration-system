@@ -4,7 +4,6 @@ import { readCookie } from "../../shared/http/cookies.js";
 import {
   OAUTH_STATE_COOKIE,
   POST_LOGIN_REDIRECT_PATH,
-  POST_LOGOUT_REDIRECT_PATH,
   SESSION_COOKIE,
   STATE_COOKIE_MAX_AGE_MS,
 } from "./auth.controller.constants.js";
@@ -15,13 +14,8 @@ import type {
 
 /**
  * Query schema for the OAuth callback (ADR 0012). GitHub returns `code` + the
- * `state` we issued; both are required. Shared with the route so the middleware
- * validates and the handler reads typed values without re-parsing.
- *
- * A plain `z.object` (not a raw shape) is used deliberately: express-zod-safe
- * wraps a raw shape in `z.strictObject` (rejects unknown keys), but GitHub also
- * returns an `iss` param (RFC 9207 issuer identification). `z.object` strips
- * unknown keys instead of 400-ing.
+ * `state` we issued; both required. `z.object` (not a raw shape) strips GitHub's
+ * extra `iss` param (RFC 9207) instead of 400-ing.
  */
 export const githubCallbackSchema = {
   query: z.object({
@@ -30,10 +24,15 @@ export const githubCallbackSchema = {
   }),
 };
 
+/**
+ * The GitHub OAuth **redirect flow** (ADR 0020), the only part of auth that must
+ * stay plain Express (browser redirects). `me`/`logout` are tRPC procedures
+ * (ADR 0037).
+ */
 export function createAuthController(
   options: AuthControllerOptions,
 ): AuthController {
-  const { authService, sessionService, secureCookies } = options;
+  const { authService, secureCookies } = options;
 
   const baseCookie: CookieOptions = {
     httpOnly: true,
@@ -56,9 +55,9 @@ export function createAuthController(
       const { code, state } = req.query;
       const expectedState = readCookie(req, OAUTH_STATE_COOKIE);
 
-      // HTTP-level CSRF check: a missing or mismatched state cookie means this
-      // callback wasn't initiated by us. The service re-checks as defense in
-      // depth, but map it here so the client gets a 401 rather than a 500.
+      // HTTP-level CSRF check: a missing/mismatched state cookie means this
+      // callback wasn't initiated by us (401). The service re-checks as defense
+      // in depth.
       if (expectedState.length === 0 || expectedState !== state) {
         res.clearCookie(OAUTH_STATE_COOKIE, baseCookie);
         res.status(401).json({ error: "invalid_oauth_state" });
@@ -76,17 +75,8 @@ export function createAuthController(
         ...baseCookie,
         expires: session.expiresAt,
       });
+      // Land the browser on the SPA; it will fetch the session via tRPC `auth.me`.
       res.redirect(POST_LOGIN_REDIRECT_PATH);
-    },
-
-    async logout(req, res) {
-      const sessionId = readCookie(req, SESSION_COOKIE);
-      if (sessionId.length > 0) {
-        await sessionService.revoke(sessionId);
-      }
-      res.clearCookie(SESSION_COOKIE, baseCookie);
-      // 303 so the browser follows a POST-logout with a GET of the home page.
-      res.redirect(303, POST_LOGOUT_REDIRECT_PATH);
     },
   };
 }

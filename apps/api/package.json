@@ -4,11 +4,13 @@
   "private": true,
   "description": "Sample music API (Spotify-like)",
   "type": "module",
+  "exports": {
+    "./trpc": "./src/trpc/router.ts"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && npm run copy:views",
-    "copy:views": "mkdir -p dist/views && cp -r src/views/. dist/views/",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "dev": "npm run copy:views && tsc-watch -p tsconfig.build.json --onSuccess \"node dist/server.js\"",
+    "dev": "tsc-watch -p tsconfig.build.json --onSuccess \"node dist/server.js\"",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "biome check .",
     "format": "biome format --write .",
@@ -20,13 +22,12 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1127.0",
     "@aws-sdk/s3-request-presigner": "3.1127.0",
+    "@trpc/server": "11.18.0",
     "axios": "1.20.0",
     "cookie-parser": "1.4.7",
     "drizzle-orm": "0.45.2",
     "express": "5.2.1",
-    "express-handlebars": "9.0.1",
     "express-zod-safe": "3.2.1",
-    "multer": "2.3.0",
     "postgres": "3.4.9",
     "zod": "4.5.4"
   },
@@ -35,7 +36,6 @@
     "@testcontainers/postgresql": "12.1.0",
     "@types/cookie-parser": "1.4.10",
     "@types/express": "5.0.6",
-    "@types/multer": "2.2.0",
     "@types/node": "26.4.1",
     "@types/supertest": "7.2.1",
     "drizzle-kit": "0.31.10",

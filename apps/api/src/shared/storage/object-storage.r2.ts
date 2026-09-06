@@ -73,5 +73,16 @@ export function createR2ObjectStorage(
         expiresIn: urlOptions?.expiresInSeconds ?? defaultTtl,
       });
     },
+
+    async getUploadUrl(key, contentType, urlOptions) {
+      const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: contentType,
+      });
+      return presign(client, command, {
+        expiresIn: urlOptions?.expiresInSeconds ?? defaultTtl,
+      });
+    },
   };
 }

@@ -1,40 +1,26 @@
 import { createApp } from "./app.js";
 import { createContainer } from "./container.js";
 import { createAuthController } from "./modules/auth/auth.controller.js";
-import { createRequireAuth } from "./modules/auth/require-auth.js";
-import { createMusicController } from "./modules/music/music.controller.js";
-import { createPlaylistController } from "./modules/playlist/playlist.controller.js";
-import { createWebController } from "./modules/web/web.controller.js";
 import { env } from "./shared/env.js";
+import { createContextFactory } from "./trpc/context.js";
+import { createAppRouter } from "./trpc/router.js";
 
 const { authService, sessionService, musicService, playlistService } =
   createContainer();
 
-const authController = createAuthController({
-  authService,
+const secureCookies = env.NODE_ENV === "production";
+
+const authController = createAuthController({ authService, secureCookies });
+
+const trpcRouter = createAppRouter({
   sessionService,
-  secureCookies: env.NODE_ENV === "production",
-});
-
-const webController = createWebController({ authService });
-const musicController = createMusicController({ musicService });
-const playlistController = createPlaylistController({
-  playlistService,
   musicService,
+  playlistService,
+  secureCookies,
 });
-// Browser-facing guard (ADR 0030): redirect anonymous visitors to login.
-const requireAuth = createRequireAuth({
-  authService,
-  redirectTo: "/auth/github",
-});
+const createContext = createContextFactory(authService);
 
-const app = createApp({
-  authController,
-  webController,
-  musicController,
-  playlistController,
-  requireAuth,
-});
+const app = createApp({ authController, trpcRouter, createContext });
 
 app.listen(env.PORT, () => {
   console.log(`Server listening on http://localhost:${env.PORT}`);

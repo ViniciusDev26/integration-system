@@ -7,12 +7,11 @@ import {
 import type {
   MusicService,
   MusicServiceOptions,
-  UploadedFile,
 } from "./music.service.types.js";
 
-/** `<prefix><uuid><ext>` — random key, extension carried over from the upload. */
-function keyFor(prefix: string, file: UploadedFile): string {
-  const ext = extname(file.originalname).toLowerCase();
+/** `<prefix><uuid><ext>` — random key, extension carried over from the filename. */
+function keyFor(prefix: string, filename: string): string {
+  const ext = extname(filename).toLowerCase();
   return `${prefix}${randomUUID()}${ext}`;
 }
 
@@ -20,18 +19,16 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
   const { musicRepository, objectStorage } = options;
   const generateObjectKey =
     options.generateObjectKey ??
-    ((file) => keyFor(MUSIC_OBJECT_KEY_PREFIX, file));
+    ((filename) => keyFor(MUSIC_OBJECT_KEY_PREFIX, filename));
   const generateThumbnailKey =
     options.generateThumbnailKey ??
-    ((file) => keyFor(MUSIC_THUMBNAIL_KEY_PREFIX, file));
+    ((filename) => keyFor(MUSIC_THUMBNAIL_KEY_PREFIX, filename));
 
   return {
     async register({ name, genres, file, thumbnail, uploadedBy }) {
-      const objectKey = generateObjectKey(file);
+      const objectKey = generateObjectKey(file.originalname);
 
-      // Store the bytes first, then the row: if the row insert fails we leak an
-      // orphan object (harmless, GC-able later), whereas a row pointing at a
-      // never-stored object would be a broken record.
+      // Store the bytes first, then the row (server-side path, e.g. the seed).
       await objectStorage.put({
         key: objectKey,
         body: file.buffer,
@@ -40,7 +37,7 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
 
       let thumbnailObjectKey: string | null = null;
       if (thumbnail !== undefined) {
-        thumbnailObjectKey = generateThumbnailKey(thumbnail);
+        thumbnailObjectKey = generateThumbnailKey(thumbnail.originalname);
         await objectStorage.put({
           key: thumbnailObjectKey,
           body: thumbnail.buffer,
@@ -55,6 +52,33 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
         thumbnailObjectKey,
         uploadedBy,
       });
+    },
+
+    async prepareUpload({ audio, thumbnail }) {
+      const audioKey = generateObjectKey(audio.filename);
+      const audioUrl = await objectStorage.getUploadUrl(
+        audioKey,
+        audio.contentType,
+      );
+
+      if (thumbnail === undefined) {
+        return { audio: { objectKey: audioKey, uploadUrl: audioUrl } };
+      }
+
+      const thumbnailKey = generateThumbnailKey(thumbnail.filename);
+      const thumbnailUrl = await objectStorage.getUploadUrl(
+        thumbnailKey,
+        thumbnail.contentType,
+      );
+
+      return {
+        audio: { objectKey: audioKey, uploadUrl: audioUrl },
+        thumbnail: { objectKey: thumbnailKey, uploadUrl: thumbnailUrl },
+      };
+    },
+
+    async createFromKeys(input) {
+      return musicRepository.create(input);
     },
 
     async listAll() {

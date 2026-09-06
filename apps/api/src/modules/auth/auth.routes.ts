@@ -9,7 +9,8 @@ import type { AuthController } from "./auth.controller.types.js";
  *
  * - `GET  /github`          → redirect to GitHub, issue the CSRF `state` cookie.
  * - `GET  /github/callback` → verify state, exchange code, set the session cookie.
- * - `POST /logout`          → revoke the session and clear the cookie.
+ *
+ * `me`/`logout` are tRPC procedures (ADR 0037), not routes here.
  */
 export function createAuthRoutes(controller: AuthController): Router {
   const router = Router();
@@ -20,7 +21,6 @@ export function createAuthRoutes(controller: AuthController): Router {
     validate(githubCallbackSchema),
     controller.handleGithubCallback,
   );
-  router.post("/logout", controller.logout);
 
   return router;
 }

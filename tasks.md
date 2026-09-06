@@ -229,17 +229,22 @@ Supersedes the earlier SSR "player module" idea: the browser UI moves to a Vite
 React SPA so the audio player can persist across navigation.
 
 - [x] **Front-end ADRs** (`apps/web/docs/adrs/` 0001–0007): Vite+React+TS SPA;
-      Biome; shadcn/ui + Tailwind; react-hook-form + Zod; Zustand; axios in an
-      isolated API client; httpOnly cookie auth, SPA served same-origin (no SSR).
-- [ ] **API-side prep (`apps/api`):** JSON endpoints under `/api/*` mirroring the
-      current SSR controllers (`/api/me`, musics, playlists); serve the built SPA
-      static + SPA fallback; same-origin. New API ADR(s) for the JSON surface +
-      SSR→SPA transition (revisits ADR 0030). Dev: Vite proxy `/api` → API.
-- [ ] **Web foundation:** Tailwind + shadcn/ui init; `src/api/` client (axios,
-      `withCredentials`, Zod-typed); Zustand store scaffold; routing; auth via
-      `GET /api/me` + `/auth/github` redirect.
-- [ ] **Screens:** home/login, musics list + upload (react-hook-form), playlists
-      list/detail + create/add.
+      Biome; shadcn/ui + Tailwind; react-hook-form + Zod; Zustand; **tRPC client +
+      TanStack Query** (revises the axios-client ADR 0006); httpOnly cookie auth,
+      SPA served same-origin (no SSR).
+- [x] **API-side prep (`apps/api`)** — **tRPC API** (ADR 0037), not REST:
+      `auth.me`/`auth.logout`, `musics.list`/`prepareUpload`/`create`,
+      `playlists.list`/`create`/`get`/`addMusic`; `AppRouter` type exported for the
+      web. **Presigned direct-to-R2 upload** (ADR 0038, supersedes multer 0032) via
+      `ObjectStorage.getUploadUrl`. **SSR removed** (ADR 0036, supersedes 0030):
+      no `web` module / Handlebars / `requireAuth`. OAuth stays REST at `/auth/*`;
+      guarded same-origin serving of `apps/web/dist`. Tests via `createCaller`.
+- [ ] **Web foundation:** Tailwind + shadcn/ui init; `src/api/` tRPC client
+      (`@trpc/client` + `@trpc/react-query`, `httpBatchLink` → `/trpc`,
+      `credentials: "include"`) importing `AppRouter`; Zustand store; routing; auth
+      via `auth.me` + `/auth/github` redirect. Vite dev proxy `/trpc` + `/auth` → API.
+- [ ] **Screens:** login, musics list + upload (prepareUpload → PUT to R2 →
+      create; react-hook-form), playlists list/detail + create/add.
 - [ ] **Persistent player:** Zustand player store + a player component in the app
       shell (survives route changes); play a track, then a playlist/queue
       (play/pause, next/previous, seek), streaming presigned URLs (API ADR 0031).

@@ -1,6 +1,6 @@
 # 0032. Use multer (memory storage) for multipart audio uploads
 
-- Status: Accepted
+- Status: Superseded by [0038](./0038-presigned-direct-r2-upload.md)
 - Date: 2026-09-05
 
 ## Context

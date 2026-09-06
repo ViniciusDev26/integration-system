@@ -21,7 +21,7 @@ export interface SignedUrlOptions {
  * in-memory fake for tests (ADR 0027).
  */
 export interface ObjectStorage {
-  /** Stores (or overwrites) the object at `input.key`. */
+  /** Stores (or overwrites) the object at `input.key` (server-side upload). */
   put(input: PutObjectInput): Promise<void>;
   /**
    * Returns a time-limited URL that grants read access to the object at `key`,
@@ -29,4 +29,14 @@ export interface ObjectStorage {
    * exists — that is deferred to the eventual GET.
    */
   getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string>;
+  /**
+   * Returns a time-limited presigned **PUT** URL so a client can upload the bytes
+   * for `key` directly to storage (ADR 0038), constrained to `contentType`. The
+   * app never sees the bytes.
+   */
+  getUploadUrl(
+    key: string,
+    contentType: string,
+    options?: SignedUrlOptions,
+  ): Promise<string>;
 }

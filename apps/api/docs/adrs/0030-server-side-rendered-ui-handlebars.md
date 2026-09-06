@@ -1,6 +1,6 @@
 # 0030. Server-side rendered UI with Handlebars (express-handlebars)
 
-- Status: Accepted
+- Status: Superseded by [0036](./0036-json-api-and-retire-ssr.md)
 - Date: 2026-09-05
 
 ## Context

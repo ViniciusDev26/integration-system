@@ -19,6 +19,37 @@ export interface RegisterMusicInput {
   uploadedBy: string;
 }
 
+/** Client-declared metadata for a file about to be uploaded (ADR 0038). */
+export interface FileMeta {
+  filename: string;
+  contentType: string;
+}
+
+export interface PrepareUploadInput {
+  audio: FileMeta;
+  thumbnail?: FileMeta;
+}
+
+/** A presigned PUT target: where to upload and the key to reference afterwards. */
+export interface UploadTarget {
+  objectKey: string;
+  uploadUrl: string;
+}
+
+export interface PrepareUploadResult {
+  audio: UploadTarget;
+  thumbnail?: UploadTarget;
+}
+
+/** Persist a track from already-uploaded object keys (ADR 0038). */
+export interface CreateFromKeysInput {
+  name: string;
+  genres: string[];
+  objectKey: string;
+  thumbnailObjectKey: string | null;
+  uploadedBy: string;
+}
+
 /** A music track plus ready-to-use URLs, shaped for listing (no storage keys). */
 export interface MusicListItem {
   id: string;
@@ -34,26 +65,26 @@ export interface MusicServiceOptions {
   musicRepository: MusicRepository;
   objectStorage: ObjectStorage;
   /**
-   * Audio storage key generator, injectable for deterministic tests. Defaults to
-   * `musics/<uuid><ext>`.
+   * Audio storage key generator (from the upload filename), injectable for
+   * deterministic tests. Defaults to `musics/<uuid><ext>`.
    */
-  generateObjectKey?: (file: UploadedFile) => string;
+  generateObjectKey?: (filename: string) => string;
   /**
-   * Thumbnail storage key generator, injectable for deterministic tests.
-   * Defaults to `musics/thumbnails/<uuid><ext>`.
+   * Thumbnail storage key generator. Defaults to `musics/thumbnails/<uuid><ext>`.
    */
-  generateThumbnailKey?: (file: UploadedFile) => string;
+  generateThumbnailKey?: (filename: string) => string;
 }
 
 /**
- * Orchestrates music creation (ADR 0031): store the audio bytes in object
- * storage, then persist the metadata row referencing the storage key.
+ * Orchestrates music (ADR 0031/0038):
+ * - `register`: server-side upload (bytes → storage, then row) — used by the seed.
+ * - `prepareUpload` + `createFromKeys`: the browser's presigned direct-upload flow
+ *   (issue PUT URLs, then persist the row from the resulting keys).
+ * - `listAll`: all tracks with presigned playback/thumbnail URLs.
  */
 export interface MusicService {
   register(input: RegisterMusicInput): Promise<Music>;
-  /**
-   * All tracks (newest first, not user-scoped), each with a fresh presigned
-   * playback URL for streaming from object storage.
-   */
+  prepareUpload(input: PrepareUploadInput): Promise<PrepareUploadResult>;
+  createFromKeys(input: CreateFromKeysInput): Promise<Music>;
   listAll(): Promise<MusicListItem[]>;
 }

@@ -4,7 +4,6 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createTestContainer } from "../../container-test.js";
-import type { SessionService } from "../sessions/session.service.types.js";
 import type { UserRepository } from "../users/user.repository.js";
 import {
   OAUTH_STATE_COOKIE,
@@ -23,12 +22,11 @@ const githubUser = {
 
 interface Harness {
   app: Express;
-  sessionService: SessionService;
   userRepository: UserRepository;
 }
 
 function setup(): Harness {
-  const { authService, sessionService, userRepository } = createTestContainer({
+  const { authService, userRepository } = createTestContainer({
     github: {
       authorizationUrl: "https://github.test/login/oauth/authorize",
       tokensByCode: { "good-code": "access-1" },
@@ -38,7 +36,6 @@ function setup(): Harness {
   });
   const controller = createAuthController({
     authService,
-    sessionService,
     secureCookies: false,
   });
 
@@ -46,7 +43,7 @@ function setup(): Harness {
   app.use(cookieParser());
   app.use("/auth", createAuthRoutes(controller));
 
-  return { app, sessionService, userRepository };
+  return { app, userRepository };
 }
 
 /** The `set-cookie` header is an array at runtime; validate at this boundary. */
@@ -141,32 +138,6 @@ describe("auth controller — GET /auth/github/callback", () => {
       .set("Cookie", `${OAUTH_STATE_COOKIE}=state-xyz`);
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe("/");
-  });
-});
-
-describe("auth controller — POST /auth/logout", () => {
-  it("revokes the session and clears the cookie", async () => {
-    const { app, sessionService } = setup();
-    const session = await sessionService.createForUser(
-      "00000000-0000-0000-0000-000000000001",
-    );
-
-    const res = await request(app)
-      .post("/auth/logout")
-      .set("Cookie", `${SESSION_COOKIE}=${session.id}`);
-
-    expect(res.status).toBe(303);
-    expect(res.headers.location).toBe("/");
-    expect(await sessionService.validate(session.id)).toBeNull();
-  });
-
-  it("redirects home even without a session cookie", async () => {
-    const { app } = setup();
-
-    const res = await request(app).post("/auth/logout");
-
-    expect(res.status).toBe(303);
     expect(res.headers.location).toBe("/");
   });
 });

@@ -1,6 +1,6 @@
 # 0006. Backend access via axios in an isolated API client
 
-- Status: Accepted
+- Status: Superseded by [0008](./0008-trpc-client-and-tanstack-query.md)
 - Date: 2026-09-06
 
 ## Context

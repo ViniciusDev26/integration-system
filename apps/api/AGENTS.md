@@ -8,11 +8,13 @@ adds what is specific to `apps/api`.
 
 ## What this app is
 
-A Node 24 / TypeScript / Express app with a **server-rendered UI** (Handlebars;
-browser-first — mutations redirect, the auth guard redirects to login), backed by
-PostgreSQL (Drizzle) and R2 object storage. Feature-modular under `src/modules/*`,
-ports/adapters wired in a manual composition root (`src/container.ts`). A move to
-a JSON API for the `apps/web` SPA is planned (see `docs/architecture.md`).
+A Node 24 / TypeScript **tRPC API** (ADR 0037) for the `apps/web` SPA, backed by
+PostgreSQL (Drizzle) and R2 object storage; uploads go **directly to R2 via
+presigned URLs** (ADR 0038). Express hosts the tRPC middleware (`/trpc`) + the
+GitHub OAuth redirect flow (`/auth`) and serves the SPA build same-origin. **No
+SSR** (ADR 0030 superseded). Feature-modular under `src/modules/*`, ports/adapters
+wired in a manual composition root (`src/container.ts`); the tRPC layer is in
+`src/trpc/` and per-feature `*.router.ts`. See `docs/architecture.md`.
 
 ## Where things live
 

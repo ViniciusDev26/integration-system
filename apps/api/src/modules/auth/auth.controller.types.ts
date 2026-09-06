@@ -1,12 +1,10 @@
 import type { Request, Response } from "express";
 import type { ValidatedRequest } from "express-zod-safe";
-import type { SessionService } from "../sessions/session.service.types.js";
 import type { githubCallbackSchema } from "./auth.controller.js";
 import type { AuthService } from "./auth.service.types.js";
 
 export interface AuthControllerOptions {
   authService: AuthService;
-  sessionService: SessionService;
   /**
    * Set the `Secure` attribute on auth cookies. Enable in production (HTTPS);
    * disable for plain-HTTP local development (ADR 0016).
@@ -20,9 +18,8 @@ export type GithubCallbackRequest = ValidatedRequest<
 >;
 
 /**
- * HTTP layer for the GitHub OAuth login (ADR 0020). Handlers translate between
- * HTTP (cookies, redirects, status codes) and the {@link AuthService}; they hold
- * no business logic and never parse raw input (ADR 0012).
+ * The GitHub OAuth redirect flow (ADR 0020). `me`/`logout` live in the auth tRPC
+ * router (ADR 0037), not here.
  */
 export interface AuthController {
   startGithubLogin(req: Request, res: Response): void;
@@ -30,5 +27,4 @@ export interface AuthController {
     req: GithubCallbackRequest,
     res: Response,
   ): Promise<void>;
-  logout(req: Request, res: Response): Promise<void>;
 }

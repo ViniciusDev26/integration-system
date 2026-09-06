@@ -150,3 +150,50 @@ describe("MusicService.listAll", () => {
     expect(await service.listAll()).toEqual([]);
   });
 });
+
+describe("MusicService.prepareUpload", () => {
+  it("returns presigned PUT targets for audio (+ optional thumbnail)", async () => {
+    const { service } = setup({
+      generateObjectKey: () => "musics/x.mp3",
+      generateThumbnailKey: () => "musics/thumbnails/x.png",
+    });
+
+    const result = await service.prepareUpload({
+      audio: { filename: "song.mp3", contentType: "audio/mpeg" },
+      thumbnail: { filename: "cover.png", contentType: "image/png" },
+    });
+
+    expect(result.audio.objectKey).toBe("musics/x.mp3");
+    expect(result.audio.uploadUrl).toContain("musics/x.mp3");
+    expect(result.audio.uploadUrl).toContain("contentType=audio%2Fmpeg");
+    expect(result.thumbnail?.objectKey).toBe("musics/thumbnails/x.png");
+  });
+
+  it("omits the thumbnail target when none is requested", async () => {
+    const { service } = setup({ generateObjectKey: () => "musics/x.mp3" });
+    const result = await service.prepareUpload({
+      audio: { filename: "song.mp3", contentType: "audio/mpeg" },
+    });
+    expect(result.thumbnail).toBeUndefined();
+  });
+});
+
+describe("MusicService.createFromKeys", () => {
+  it("persists a row from already-uploaded keys (no storage write)", async () => {
+    const { service, musicRepository, objectStorage } = setup();
+
+    const music = await service.createFromKeys({
+      name: "Nocturne",
+      genres: ["classical"],
+      objectKey: "musics/uploaded.mp3",
+      thumbnailObjectKey: "musics/thumbnails/uploaded.png",
+      uploadedBy: "user-1",
+    });
+
+    expect(music.objectKey).toBe("musics/uploaded.mp3");
+    expect(music.thumbnailObjectKey).toBe("musics/thumbnails/uploaded.png");
+    expect(await musicRepository.findById(music.id)).not.toBeNull();
+    // createFromKeys does not upload bytes (the client already did).
+    expect(objectStorage.get("musics/uploaded.mp3")).toBeUndefined();
+  });
+});
