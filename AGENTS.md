@@ -69,10 +69,31 @@ Rules:
 Create a new ADR whenever an important **technical, architectural, or
 structural decision** is made, for example:
 
-- Choosing (or replacing) a technology, language, framework, or major library.
+- Adding (or replacing) **any dependency** — see the mandatory rule below.
+- Choosing (or replacing) a technology, language, framework, or library.
 - Defining or changing the system's architecture, boundaries, or key patterns.
 - Establishing a project-wide convention or constraint.
 - Making a trade-off that a future maintainer would need the reasoning behind.
+
+### Every new dependency requires justification — mandatory
+
+**No library, framework, or tool enters the project without an ADR that
+justifies its existence.** This applies to every entry added to
+`package.json` (runtime *and* dev dependencies), and to any external tool a
+workflow relies on (e.g. a CLI, a Python package, a system binary).
+
+- Before adding a dependency, write an ADR that answers: *what problem does it
+  solve, why is a dependency the right answer (vs. the standard library or
+  existing deps), and what alternatives were rejected and why.* The ADR's
+  **Alternatives considered** section is not optional here.
+- Adding the dependency and writing its ADR happen in the **same change**. A
+  new entry in `package.json` with no corresponding ADR is an incomplete change.
+- Prefer **not** taking a dependency. A dependency is a permanent liability
+  (supply chain, maintenance, upgrade cost); the burden of proof is on adding
+  it, not on doing without.
+- Trivial type-only stubs (`@types/*`) that merely type an already-justified
+  dependency do not need their own ADR — record them alongside the dependency
+  they type.
 
 Guidelines:
 

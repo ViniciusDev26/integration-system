@@ -3,8 +3,12 @@
 This directory holds the project's **Architecture Decision Records** — one file
 per significant technical, architectural, or structural decision.
 
-**No ADRs exist yet.** They will be created over time, whenever an important
-decision is actually made. Do not create ADRs speculatively.
+ADRs are created over time, whenever an important decision is actually made. Do
+not create ADRs speculatively. See [`../architecture.md`](../architecture.md)
+for the resulting *shape* of the system; the ADRs here capture the *why*.
+
+Every new dependency added to `package.json` must be justified by an ADR — see
+the mandatory rule in [`../../AGENTS.md`](../../AGENTS.md) §4.
 
 ## Conventions
 
