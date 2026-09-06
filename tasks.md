@@ -149,7 +149,9 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       `file`): `requireAuth` → `multer` (ADR 0032) → `express-zod-safe` for the
       text fields → controller. Wired via `container.ts` → `server.ts` →
       `app.ts` (`/musics`). Supertest tests: 201 (+ stored object + row), 401
-      anon, 400 no-file / missing-field / non-audio.
+      anon, 400 no-file / missing-field / non-audio. _(Superseded below: the
+      response now redirects 303, `genre`→`genres` (comma-separated), and an
+      optional `thumbnail` field was added.)_
 - [x] **UI** — upload form page (`src/views/music-upload.handlebars`) at
       `GET /musics/new`, posting multipart to `POST /musics`. Home links to it
       when signed in. To keep the app browser-first (ADR 0030, like the auth

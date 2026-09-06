@@ -8,10 +8,11 @@ adds what is specific to `apps/api`.
 
 ## What this app is
 
-A Node 24 / TypeScript / Express HTTP app (server-rendered UI via Handlebars,
-plus the beginnings of a JSON surface) backed by PostgreSQL (Drizzle) and R2
-object storage. Feature-modular under `src/modules/*`, ports/adapters wired in a
-manual composition root (`src/container.ts`).
+A Node 24 / TypeScript / Express app with a **server-rendered UI** (Handlebars;
+browser-first — mutations redirect, the auth guard redirects to login), backed by
+PostgreSQL (Drizzle) and R2 object storage. Feature-modular under `src/modules/*`,
+ports/adapters wired in a manual composition root (`src/container.ts`). A move to
+a JSON API for the `apps/web` SPA is planned (see `docs/architecture.md`).
 
 ## Where things live
 

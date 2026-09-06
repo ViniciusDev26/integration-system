@@ -1,32 +1,31 @@
-# React + TypeScript + Vite
+# @integration-system/web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The browser front-end for Spotifake — a **Vite + React + TypeScript** SPA. It
+lives in the monorepo (`apps/web`) and will consume the API (`apps/api`) as a
+JSON API, hosting a persistent cross-page audio player.
 
-Currently, two official plugins are available:
+> **Status:** default Vite scaffold, trimmed to a clean placeholder. Front-end
+> architecture (routing, data fetching, state, the player, styling, testing, dev
+> proxy) is **not decided yet** — record decisions as ADRs in
+> [`docs/adrs/`](./docs/adrs/) before introducing them. See
+> [`AGENTS.md`](./AGENTS.md) and the repo-wide [`../../AGENTS.md`](../../AGENTS.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Commands
 
-## React Compiler
+Run from the repo root (Turbo), or scope to this app with `-w`:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm run dev       -w @integration-system/web   # Vite dev server
+npm run build     -w @integration-system/web   # tsc -b && vite build
+npm run preview   -w @integration-system/web   # preview the build
+npm run typecheck -w @integration-system/web   # tsc -b
+npm run lint      -w @integration-system/web   # Biome
+npm run format    -w @integration-system/web   # Biome (write)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Tooling
+
+- **Lint/format: Biome** via the shared `@integration-system/biome-config` (web
+  variant) — not ESLint/Oxlint. The shared base bans `any`, non-null assertions,
+  and unsafe casts (repo-wide type-safety rule).
+- **TypeScript** project references (`tsconfig.app.json` + `tsconfig.node.json`).

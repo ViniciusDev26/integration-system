@@ -4,10 +4,11 @@ This document defines how AI agents should work on this project. It is the
 primary operating manual for any agent (or human) making changes here. Read it
 before doing anything else.
 
-At this stage the project is **technology-agnostic**. No stack, architecture,
-or domain has been chosen. These rules are intentionally general and contain
-no technology-specific guidance. Technology-specific rules will be added only
-once real decisions are made and recorded (see ADRs).
+Sections 1–7 and §9 are **repo-wide** engineering discipline (docs, ADRs,
+memory, uncertainty, definition of done). §1b describes the monorepo layout.
+§8 holds **technology-specific rules for the API app** (`apps/api`), backed by
+its ADRs. Each app also has its own `AGENTS.md` with app-specific notes — read
+that too when working inside an app.
 
 ---
 
@@ -49,8 +50,9 @@ This repo is a **Turborepo + npm-workspaces monorepo** (see `docs/adrs/0001`):
 
 ## 2. How to reason about and modify the project
 
-- **Understand before changing.** Read `memory.md`, `docs/architecture.md`, and
-  the relevant ADRs in `docs/adrs/` before modifying anything.
+- **Understand before changing.** Read `memory.md`, the relevant app's
+  `apps/<app>/docs/architecture.md`, and the relevant ADRs (repo-wide in
+  `docs/adrs/`, per-app in `apps/<app>/docs/adrs/`) before modifying anything.
 - **Stay within scope.** Do only what the current task requires. Do not
   introduce a technology stack, framework, or architectural pattern unless the
   task explicitly calls for it and the decision is recorded as an ADR.
@@ -165,8 +167,8 @@ across sessions and agents. Use it to:
 
 Do **not** use `memory.md` as a replacement for stable documentation:
 
-- Durable structural knowledge belongs in `docs/architecture.md`.
-- Decisions belong in an ADR under `docs/adrs/`.
+- Durable structural knowledge belongs in the app's `docs/architecture.md`.
+- Decisions belong in an ADR (repo-wide `docs/adrs/` or per-app `apps/<app>/docs/adrs/`).
 
 When a fact in `memory.md` becomes stable or decided, **promote it** to the
 proper place (architecture doc or ADR) and remove it from `memory.md`. Keep
@@ -176,11 +178,12 @@ proper place (architecture doc or ADR) and remove it from `memory.md`. Keep
 
 ## 6. How to document architectural decisions
 
-- The **shape** of the system lives in `docs/architecture.md` — describe what
+- The **shape** of each app lives in its `docs/architecture.md` — describe what
   exists as it emerges, not what might exist.
-- The **reasoning** behind individual decisions lives in `docs/adrs/`.
+- The **reasoning** behind individual decisions lives in ADRs (repo-wide
+  `docs/adrs/` or per-app `apps/<app>/docs/adrs/`).
 - When you make an architectural decision: record the decision as an ADR, then
-  reflect its outcome in `docs/architecture.md`. The ADR explains *why*; the
+  reflect its outcome in the app's `docs/architecture.md`. The ADR explains *why*; the
   architecture doc explains *what*.
 
 ---
