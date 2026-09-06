@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
 import { MusicsPage } from "./pages/MusicsPage";
 import { MusicUploadPage } from "./pages/MusicUploadPage";
 import { PlaylistDetailPage } from "./pages/PlaylistDetailPage";
@@ -17,6 +18,7 @@ export function App() {
 
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="musics" element={<MusicsPage />} />

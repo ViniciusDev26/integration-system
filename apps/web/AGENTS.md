@@ -28,8 +28,9 @@ over **tRPC** and will host a persistent, cross-page audio player. The foundatio
   (loading/authenticating/authenticated/anonymous) + `login`/`logout`/`fetchMe`
   via a standalone tRPC client; login shows a spinner. The OAuth callback is REST
   at `/auth/github/callback` (0007).
-- **Routing:** React Router (0009) — a persistent layout route (`<Outlet/>`) +
-  child routes; the shell is where the player will live.
+- **Routing:** React Router (0009) — a persistent, **auth-guarded** layout route
+  (`<Outlet/>`): anonymous visitors are redirected to `/login` (a public route),
+  the initial session check shows a spinner. The shell is where the player will live.
 - **Uploads:** presigned direct-to-R2 (api ADR 0038) — `musics.prepareUpload` →
   `PUT` to the URL → `musics.create`.
 
