@@ -224,6 +224,27 @@ then refactor under the green suite.
   seam (ADR 0014).
 - Trivial/mechanical changes (config, docs, scaffolding) are exempt.
 
+### Commands (verification)
+
+Run these from the repo root. §9 requires the checks to pass before a task is
+done — these are the exact commands.
+
+| Purpose            | Command             |
+| ------------------ | ------------------- |
+| Type-check         | `npm run typecheck` |
+| Lint (Biome)       | `npm run lint`      |
+| Format (write)     | `npm run format`    |
+| Tests (Vitest)     | `npm test`          |
+| Build              | `npm run build`     |
+| Run (compiled)     | `npm start`         |
+| Dev loop (watch)   | `npm run dev`       |
+| Generate migration | `npm run db:generate` |
+| Apply migrations   | `npm run db:migrate`  |
+
+Repository integration tests use Testcontainers (ADR 0015) and need a working
+Docker daemon; the local database/dev environment runs via Docker Compose
+(ADR 0021, ADR 0029).
+
 ## 9. How to validate changes before a task is considered complete
 
 A task is done only when all of the following hold:
