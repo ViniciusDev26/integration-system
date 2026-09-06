@@ -180,15 +180,25 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
 
 ### 3. Playlist module (`src/modules/playlist/`)
 
-- [ ] **Schema + migration** — `playlists` (`id`, `name`, `owner_id` →
-      `users.id`, timestamps) + `playlist_musics` join (`playlist_id`,
-      `music_id`, unique pair; many-to-many).
-- [ ] **`PlaylistRepository`** (port + postgres adapter) — `create`, `findById`,
-      `listByOwner`, `addMusic`, `listMusics`. Integration-tested.
-- [ ] **`PlaylistService`** — `createForUser`, `addMusic` (enforce ownership),
-      `getWithMusics`. Unit-tested with fakes.
+Membership is a **relation**, not an `owner_id` column (per decision): a playlist
+has many `playlist_members` with `type` OWNER|MEMBER, so it can grow to
+shared/collaborative playlists without a schema change.
+
+- [x] **Schema + migration** — `playlists` (`id`, `name`, timestamps);
+      `playlist_members` (PK `(playlist_id, user_id)`, `type` text + CHECK
+      OWNER|MEMBER, `user_id` index); `playlist_musics` join (PK
+      `(playlist_id, music_id)`; many-to-many). Migration `0005`, cascades on
+      playlist/user/music delete. Applies cleanly (Testcontainers).
+- [x] **`PlaylistRepository`** (port + postgres + in-memory fake) — `create`
+      (tx: playlist + OWNER row), `findById`, `listByOwner`, `getMemberType`
+      (for authz), `addMusic` (dedupe), `listMusics` (in add order).
+      Integration-tested (5): OWNER membership, owner-scoped listing, add/dedupe/
+      order, cascade.
+- [ ] **`PlaylistService`** — `createForUser`, `addMusic` (enforce the requester
+      is a member via `getMemberType`), `getWithMusics` (tracks + presigned URLs).
+      Unit-tested with fakes.
 - [ ] **Controller + routes** — `POST /playlists` (create), `POST
-      /playlists/:id/musics` (add a music), all `requireAuth` + ownership checks.
+      /playlists/:id/musics` (add a music), all `requireAuth` + membership checks.
 - [ ] **UI** — create-playlist form + add-music-to-playlist flow.
 
 ### 4. Playlist listing — only the current user's
