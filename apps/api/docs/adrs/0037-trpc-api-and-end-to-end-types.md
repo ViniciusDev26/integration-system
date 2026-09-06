@@ -38,7 +38,8 @@ client (web ADR — tRPC client + TanStack Query). No REST controllers, no codeg
 
 - Change a procedure's input/output and the web app fails to type-check until it
   adapts — the core benefit.
-- Auth/OAuth redirects stay plain Express under `/auth`; everything else is tRPC
+- Only the OAuth **callback** stays plain Express (`/auth/github/callback`); login
+  start (`auth.startLogin`), `me`, and `logout` are tRPC. Everything else is tRPC
   under `/trpc`. `express-zod-safe` is nearly retired (kept for the callback).
 - Couples web→api at the **type** level (dev-time only); fine in one monorepo,
   served same-origin.

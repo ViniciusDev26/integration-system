@@ -24,8 +24,9 @@ implemented yet; add each dependency in the same change as its first use.
   `credentials: "include"`. Components use the generated hooks, never `fetch`/axios
   directly (except the presigned-`PUT` upload).
 - **Auth:** httpOnly session cookie, same-origin (dev via Vite proxy `/trpc` +
-  `/auth`); no SSR. Identity via the `auth.me` procedure; login via the
-  `/auth/github` redirect (0007).
+  `/auth`); no SSR. Identity via `auth.me`; login via `auth.startLogin` (navigate
+  to the returned GitHub URL); the OAuth callback is REST at
+  `/auth/github/callback` (0007).
 - **Uploads:** presigned direct-to-R2 (api ADR 0038) — `musics.prepareUpload` →
   `PUT` to the URL → `musics.create`.
 

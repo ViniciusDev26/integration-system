@@ -5,7 +5,6 @@ import {
   OAUTH_STATE_COOKIE,
   POST_LOGIN_REDIRECT_PATH,
   SESSION_COOKIE,
-  STATE_COOKIE_MAX_AGE_MS,
 } from "./auth.controller.constants.js";
 import type {
   AuthController,
@@ -25,14 +24,14 @@ export const githubCallbackSchema = {
 };
 
 /**
- * The GitHub OAuth **redirect flow** (ADR 0020), the only part of auth that must
- * stay plain Express (browser redirects). `me`/`logout` are tRPC procedures
- * (ADR 0037).
+ * The GitHub OAuth **callback** (ADR 0020) — the one irreducible REST route: a
+ * browser redirect from GitHub that sets the session cookie and redirects to the
+ * SPA. Login initiation, `me`, and `logout` are tRPC procedures (ADR 0037).
  */
 export function createAuthController(
   options: AuthControllerOptions,
 ): AuthController {
-  const { authService, secureCookies } = options;
+  const { secureCookies } = options;
 
   const baseCookie: CookieOptions = {
     httpOnly: true,
@@ -42,15 +41,6 @@ export function createAuthController(
   };
 
   return {
-    startGithubLogin(_req, res) {
-      const { url, state } = authService.getLoginUrl();
-      res.cookie(OAUTH_STATE_COOKIE, state, {
-        ...baseCookie,
-        maxAge: STATE_COOKIE_MAX_AGE_MS,
-      });
-      res.redirect(url);
-    },
-
     async handleGithubCallback(req, res) {
       const { code, state } = req.query;
       const expectedState = readCookie(req, OAUTH_STATE_COOKIE);
@@ -64,7 +54,7 @@ export function createAuthController(
         return;
       }
 
-      const session = await authService.handleCallback({
+      const session = await options.authService.handleCallback({
         code,
         state,
         expectedState,

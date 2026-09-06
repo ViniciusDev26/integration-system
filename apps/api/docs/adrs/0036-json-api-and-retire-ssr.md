@@ -19,8 +19,9 @@ Drop server-side rendering and make this app an **API** consumed by the SPA:
 
 - **Remove the SSR layer**: the `web` module, the Handlebars templates
   (`src/views/`), and the `express-handlebars` dependency. **Supersedes ADR 0030.**
-- The GitHub OAuth flow stays a browser redirect under `/auth` (`/auth/github` +
-  `/auth/github/callback`); `logout` becomes a data operation (no redirect).
+- The GitHub OAuth **callback** stays a browser redirect at
+  `/auth/github/callback`; login start and `logout` become data operations (tRPC,
+  ADR 0037).
 - Authentication for API calls responds **401** for anonymous requests (no
   redirect) — the SPA drives the `/auth/github` redirect itself.
 - **Serve the SPA same-origin**: static `apps/web/dist` + an SPA fallback to

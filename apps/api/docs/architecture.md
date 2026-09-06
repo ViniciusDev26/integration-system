@@ -28,10 +28,12 @@ wired by hand in a composition root. There is **no server-side rendering**
 
 A sample music service (Spotify-like) with authenticated users:
 
-- **Auth** — GitHub OAuth (ADR 0020), a browser **redirect flow** at `/auth/*`
-  (the only non-tRPC HTTP); the session is an httpOnly cookie (ADR 0016) stored in
-  PostgreSQL (ADR 0019). Current user + logout are tRPC procedures (`auth.me`,
-  `auth.logout`).
+- **Auth** — GitHub OAuth (ADR 0020); the session is an httpOnly cookie (ADR 0016)
+  stored in PostgreSQL (ADR 0019). Login start, current user, and logout are tRPC
+  (`auth.startLogin` → returns the GitHub URL + sets the CSRF `state` cookie;
+  `auth.me`; `auth.logout`). Only the **OAuth callback** stays REST
+  (`GET /auth/github/callback`) — it's a browser redirect from GitHub and can't be
+  tRPC.
 - **Music** — list all tracks (presigned playback/thumbnail URLs) and a two-step
   create: `musics.prepareUpload` returns presigned **PUT** URLs, the browser
   uploads audio (+ optional cover) straight to R2, then `musics.create` persists
@@ -123,8 +125,8 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
 - `src/trpc/` — `trpc.ts` (init, `router`, `publicProcedure`, `protectedProcedure`,
   `createCallerFactory`), `context.ts` (`Context` + `createContextFactory`),
   `router.ts` (`createAppRouter` + the exported `AppRouter` type).
-- `src/modules/auth/` — OAuth redirect controller/routes + `auth.router.ts`
-  (`me`, `logout`).
+- `src/modules/auth/` — the OAuth callback controller/route + `auth.router.ts`
+  (`startLogin`, `me`, `logout`).
 - `src/modules/music/` — `music.router.ts` over `MusicService`
   (`listAll`, `prepareUpload`, `createFromKeys`, plus `register` for the seed) +
   repository.
@@ -137,11 +139,12 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
 
 Routes:
 
-- `GET /health` → `{ status: "ok" }`.
-- `POST|GET /trpc/*` → tRPC (`auth.me`, `auth.logout`, `musics.list|prepareUpload|
-  create`, `playlists.list|create|get|addMusic`).
-- `GET /auth/github`, `GET /auth/github/callback` → OAuth redirects (cookies
-  `HttpOnly` + `SameSite=Lax`, `Secure` in production).
+- `GET /health` → `{ status: "ok" }` (infra probe).
+- `POST|GET /trpc/*` → tRPC (`auth.startLogin|me|logout`, `musics.list|
+  prepareUpload|create`, `playlists.list|create|get|addMusic`).
+- `GET /auth/github/callback` → the OAuth callback (the only REST route): sets the
+  session cookie (`HttpOnly` + `SameSite=Lax`, `Secure` in prod) and redirects to
+  the SPA.
 - Non-`/trpc`/`/auth` GETs → the SPA `index.html` (when built).
 
 ### What's next

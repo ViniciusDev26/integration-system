@@ -13,6 +13,7 @@ const secureCookies = env.NODE_ENV === "production";
 const authController = createAuthController({ authService, secureCookies });
 
 const trpcRouter = createAppRouter({
+  authService,
   sessionService,
   musicService,
   playlistService,

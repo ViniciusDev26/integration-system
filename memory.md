@@ -31,8 +31,9 @@ Pending work is tracked in [`tasks.md`](tasks.md).
 
 - **`apps/api` is a tRPC API** (ADR 0037; details in
   [`apps/api/docs/architecture.md`](apps/api/docs/architecture.md)): GitHub OAuth
-  login (REST redirect at `/auth/*`) + server-side sessions; tRPC procedures
-  `auth.me`/`auth.logout`, `musics.list`/`prepareUpload`/`create`,
+  (only the **callback** is REST, `/auth/github/callback`) + server-side sessions;
+  tRPC procedures `auth.startLogin`/`auth.me`/`auth.logout`,
+  `musics.list`/`prepareUpload`/`create`,
   `playlists.list`/`create`/`get`/`addMusic`; `AppRouter` type exported for the
   web. **music**: multiple `genres` (`text[]`), optional thumbnail, **presigned
   direct-to-R2 upload** (ADR 0038 — `ObjectStorage.getUploadUrl`; `register` kept

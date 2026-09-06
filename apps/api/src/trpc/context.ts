@@ -14,6 +14,7 @@ import { readCookie } from "../shared/http/cookies.js";
 export interface Context {
   req: { cookies: unknown };
   res: {
+    cookie: (name: string, value: string, options?: CookieOptions) => void;
     clearCookie: (name: string, options?: CookieOptions) => void;
   };
   user: User | null;

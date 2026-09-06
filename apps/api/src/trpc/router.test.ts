@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { createTestContainer, type TestContainer } from "../container-test.js";
+import { OAUTH_STATE_COOKIE } from "../modules/auth/auth.controller.constants.js";
 import type { User } from "../shared/db/schema/users.js";
 import type { Context } from "./context.js";
 import { createAppRouter } from "./router.js";
+
+function appRouterFor(container: TestContainer) {
+  return createAppRouter({
+    authService: container.authService,
+    sessionService: container.sessionService,
+    musicService: container.musicService,
+    playlistService: container.playlistService,
+    secureCookies: false,
+  });
+}
 
 function callerFor(
   container: TestContainer,
@@ -11,15 +22,10 @@ function callerFor(
 ) {
   const ctx: Context = {
     req: { cookies },
-    res: { clearCookie: () => undefined },
+    res: { cookie: () => undefined, clearCookie: () => undefined },
     user,
   };
-  return createAppRouter({
-    sessionService: container.sessionService,
-    musicService: container.musicService,
-    playlistService: container.playlistService,
-    secureCookies: false,
-  }).createCaller(ctx);
+  return appRouterFor(container).createCaller(ctx);
 }
 
 function seedUser(container: TestContainer, githubId = "gh-1"): Promise<User> {
@@ -30,6 +36,32 @@ function seedUser(container: TestContainer, githubId = "gh-1"): Promise<User> {
     imageUrl: null,
   });
 }
+
+describe("trpc auth.startLogin", () => {
+  it("returns the GitHub URL and sets the state cookie", async () => {
+    const container = createTestContainer({
+      github: { authorizationUrl: "https://github.test/authorize" },
+    });
+    const cookiesSet: string[] = [];
+    const ctx: Context = {
+      req: { cookies: {} },
+      res: {
+        cookie: (name) => {
+          cookiesSet.push(name);
+        },
+        clearCookie: () => undefined,
+      },
+      user: null,
+    };
+
+    const { url } = await appRouterFor(container)
+      .createCaller(ctx)
+      .auth.startLogin();
+
+    expect(url).toContain("github.test/authorize");
+    expect(cookiesSet).toContain(OAUTH_STATE_COOKIE);
+  });
+});
 
 describe("trpc auth", () => {
   it("me returns the current user; UNAUTHORIZED when anonymous", async () => {

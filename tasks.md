@@ -242,7 +242,8 @@ React SPA so the audio player can persist across navigation.
 - [ ] **Web foundation:** Tailwind + shadcn/ui init; `src/api/` tRPC client
       (`@trpc/client` + `@trpc/react-query`, `httpBatchLink` → `/trpc`,
       `credentials: "include"`) importing `AppRouter`; Zustand store; routing; auth
-      via `auth.me` + `/auth/github` redirect. Vite dev proxy `/trpc` + `/auth` → API.
+      via `auth.me`, login via `auth.startLogin` (navigate to the returned URL),
+      callback at `/auth/github/callback`. Vite dev proxy `/trpc` + `/auth` → API.
 - [ ] **Screens:** login, musics list + upload (prepareUpload → PUT to R2 →
       create; react-hook-form), playlists list/detail + create/add.
 - [ ] **Persistent player:** Zustand player store + a player component in the app

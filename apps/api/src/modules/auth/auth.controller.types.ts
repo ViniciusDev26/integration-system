@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import type { ValidatedRequest } from "express-zod-safe";
 import type { githubCallbackSchema } from "./auth.controller.js";
 import type { AuthService } from "./auth.service.types.js";
@@ -18,11 +18,10 @@ export type GithubCallbackRequest = ValidatedRequest<
 >;
 
 /**
- * The GitHub OAuth redirect flow (ADR 0020). `me`/`logout` live in the auth tRPC
- * router (ADR 0037), not here.
+ * The GitHub OAuth **callback** (ADR 0020) — the only REST auth route. Login
+ * initiation, `me`, and `logout` are tRPC procedures (ADR 0037).
  */
 export interface AuthController {
-  startGithubLogin(req: Request, res: Response): void;
   handleGithubCallback(
     req: GithubCallbackRequest,
     res: Response,

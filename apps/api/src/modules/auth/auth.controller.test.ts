@@ -55,22 +55,6 @@ function cookieValue(setCookie: string[], name: string): string | undefined {
   return entry?.split(";")[0]?.split("=")[1];
 }
 
-describe("auth controller — GET /auth/github", () => {
-  it("redirects to GitHub and sets the state as an httpOnly cookie", async () => {
-    const { app } = setup();
-
-    const res = await request(app).get("/auth/github");
-
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toContain("state=state-xyz");
-    const setCookie = setCookieSchema.parse(res.headers["set-cookie"]);
-    expect(cookieValue(setCookie, OAUTH_STATE_COOKIE)).toBe("state-xyz");
-    expect(
-      setCookie.find((c) => c.startsWith(`${OAUTH_STATE_COOKIE}=`)),
-    ).toMatch(/HttpOnly/i);
-  });
-});
-
 describe("auth controller — GET /auth/github/callback", () => {
   it("exchanges the code, sets a session cookie, and redirects on success", async () => {
     const { app, userRepository } = setup();

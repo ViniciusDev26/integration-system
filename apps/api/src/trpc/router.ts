@@ -1,4 +1,5 @@
 import { createAuthRouter } from "../modules/auth/auth.router.js";
+import type { AuthService } from "../modules/auth/auth.service.types.js";
 import { createMusicRouter } from "../modules/music/music.router.js";
 import type { MusicService } from "../modules/music/music.service.types.js";
 import { createPlaylistRouter } from "../modules/playlist/playlist.router.js";
@@ -7,6 +8,7 @@ import type { SessionService } from "../modules/sessions/session.service.types.j
 import { router } from "./trpc.js";
 
 export interface AppRouterDeps {
+  authService: AuthService;
   sessionService: SessionService;
   musicService: MusicService;
   playlistService: PlaylistService;
@@ -22,6 +24,7 @@ export interface AppRouterDeps {
 export function createAppRouter(deps: AppRouterDeps) {
   return router({
     auth: createAuthRouter({
+      authService: deps.authService,
       sessionService: deps.sessionService,
       secureCookies: deps.secureCookies,
     }),

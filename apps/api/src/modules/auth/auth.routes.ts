@@ -4,18 +4,15 @@ import { githubCallbackSchema } from "./auth.controller.js";
 import type { AuthController } from "./auth.controller.types.js";
 
 /**
- * GitHub OAuth routes (ADR 0020). Input is validated by `express-zod-safe`
- * middleware at the route layer (ADR 0012); handlers receive typed data.
+ * The GitHub OAuth **callback** (ADR 0020) — the only REST auth route (a browser
+ * redirect from GitHub). Input validated by `express-zod-safe` (ADR 0012).
+ * Login initiation (`auth.startLogin`), `me`, and `logout` are tRPC (ADR 0037).
  *
- * - `GET  /github`          → redirect to GitHub, issue the CSRF `state` cookie.
- * - `GET  /github/callback` → verify state, exchange code, set the session cookie.
- *
- * `me`/`logout` are tRPC procedures (ADR 0037), not routes here.
+ * - `GET /github/callback` → verify state, exchange code, set the session cookie.
  */
 export function createAuthRoutes(controller: AuthController): Router {
   const router = Router();
 
-  router.get("/github", controller.startGithubLogin);
   router.get(
     "/github/callback",
     validate(githubCallbackSchema),
