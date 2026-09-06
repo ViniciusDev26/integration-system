@@ -4,11 +4,20 @@ The browser front-end for Spotifake — a **Vite + React + TypeScript** SPA. It
 lives in the monorepo (`apps/web`) and will consume the API (`apps/api`) as a
 JSON API, hosting a persistent cross-page audio player.
 
-> **Status:** default Vite scaffold, trimmed to a clean placeholder. Front-end
-> architecture (routing, data fetching, state, the player, styling, testing, dev
-> proxy) is **not decided yet** — record decisions as ADRs in
-> [`docs/adrs/`](./docs/adrs/) before introducing them. See
+> **Status:** the stack is **decided** ([`docs/adrs/`](./docs/adrs/)) but the code
+> is still the trimmed Vite scaffold — implementation follows. See
 > [`AGENTS.md`](./AGENTS.md) and the repo-wide [`../../AGENTS.md`](../../AGENTS.md).
+
+## Stack (see `docs/adrs/`)
+
+- Vite + React + TypeScript SPA, no SSR (0001)
+- Biome lint/format via the shared config (0002)
+- shadcn/ui + Tailwind CSS (0003)
+- react-hook-form + Zod (0004)
+- Zustand for client state (0005)
+- axios in an isolated API client, `withCredentials` (0006)
+- httpOnly session cookie, served same-origin by the API; identity via
+  `GET /api/me` (0007)
 
 ## Commands
 

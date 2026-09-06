@@ -223,21 +223,26 @@ shared/collaborative playlists without a schema change.
       (Delivered with §3.)
 - [x] **UI** — `playlist-list` page linking into each playlist's detail. (§3.)
 
-### 5. Player module (`src/modules/player/`)
+### 5. Front-end SPA (`apps/web`) + persistent player
 
-- [ ] **Player module** — a dedicated playback experience beyond the inline
-      `<audio>` tags on the listing. Likely a "now playing" page/route that plays
-      a selected track (and eventually a whole playlist) with transport controls
-      (play/pause, next/previous, seek). Build under the current conventions:
-      feature-modular (ADR 0018), SSR + Handlebars (ADR 0030), ports/adapters +
-      composition root (ADR 0026/0027), TDD (ADR 0022); reuse
-      `MusicService.listAll` / presigned URLs (ADR 0031) rather than re-fetching
-      audio server-side.
-  - **Decide first (scope):** single-track vs playlist/queue playback; pure
-    server-rendered `<audio>` vs a small client-side player script; whether it
-    needs its own state (now-playing / queue) or stays stateless.
-  - A small **ADR** if it introduces client-side JS (departs from the current
-    no-JS, server-redirect pattern) or a new playback state model.
+Supersedes the earlier SSR "player module" idea: the browser UI moves to a Vite
+React SPA so the audio player can persist across navigation.
+
+- [x] **Front-end ADRs** (`apps/web/docs/adrs/` 0001–0007): Vite+React+TS SPA;
+      Biome; shadcn/ui + Tailwind; react-hook-form + Zod; Zustand; axios in an
+      isolated API client; httpOnly cookie auth, SPA served same-origin (no SSR).
+- [ ] **API-side prep (`apps/api`):** JSON endpoints under `/api/*` mirroring the
+      current SSR controllers (`/api/me`, musics, playlists); serve the built SPA
+      static + SPA fallback; same-origin. New API ADR(s) for the JSON surface +
+      SSR→SPA transition (revisits ADR 0030). Dev: Vite proxy `/api` → API.
+- [ ] **Web foundation:** Tailwind + shadcn/ui init; `src/api/` client (axios,
+      `withCredentials`, Zod-typed); Zustand store scaffold; routing; auth via
+      `GET /api/me` + `/auth/github` redirect.
+- [ ] **Screens:** home/login, musics list + upload (react-hook-form), playlists
+      list/detail + create/add.
+- [ ] **Persistent player:** Zustand player store + a player component in the app
+      shell (survives route changes); play a track, then a playlist/queue
+      (play/pause, next/previous, seek), streaming presigned URLs (API ADR 0031).
 
 ### Later
 
