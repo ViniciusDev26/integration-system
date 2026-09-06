@@ -8,8 +8,9 @@ import { users } from "./users.js";
  * stream the file back via a presigned URL.
  *
  * `id` is a PostgreSQL 18 native UUIDv7 (ADR 0025). `genre` is free-text (open-
- * ended; no enum). `uploadedBy` records who uploaded it; tracks are removed with
- * their uploader.
+ * ended; no enum). `objectKey` points at the audio; `thumbnailObjectKey` (nullable
+ * — thumbnails are optional) points at the cover image. `uploadedBy` records who
+ * uploaded it; tracks are removed with their uploader.
  */
 export const musics = pgTable(
   "musics",
@@ -18,6 +19,7 @@ export const musics = pgTable(
     name: text("name").notNull(),
     genre: text("genre").notNull(),
     objectKey: text("object_key").notNull(),
+    thumbnailObjectKey: text("thumbnail_object_key"),
     uploadedBy: uuid("uploaded_by")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

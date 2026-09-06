@@ -41,11 +41,21 @@ describe("MusicRepository", () => {
     uploaderId = uploader.id;
   });
 
-  function input(overrides: Partial<{ name: string; genre: string }> = {}) {
+  function input(
+    overrides: Partial<{
+      name: string;
+      genre: string;
+      thumbnailObjectKey: string | null;
+    }> = {},
+  ) {
     return {
       name: overrides.name ?? "Nocturne",
       genre: overrides.genre ?? "classical",
       objectKey: "musics/abc.mp3",
+      thumbnailObjectKey:
+        overrides.thumbnailObjectKey === undefined
+          ? null
+          : overrides.thumbnailObjectKey,
       uploadedBy: uploaderId,
     };
   }
@@ -57,8 +67,18 @@ describe("MusicRepository", () => {
     expect(music.name).toBe("Nocturne");
     expect(music.genre).toBe("classical");
     expect(music.objectKey).toBe("musics/abc.mp3");
+    expect(music.thumbnailObjectKey).toBeNull();
     expect(music.uploadedBy).toBe(uploaderId);
     expect(music.createdAt).toBeInstanceOf(Date);
+  });
+
+  it("persists a thumbnail object key when provided", async () => {
+    const music = await repository.create(
+      input({ thumbnailObjectKey: "musics/thumbnails/abc.png" }),
+    );
+
+    const found = await repository.findById(music.id);
+    expect(found?.thumbnailObjectKey).toBe("musics/thumbnails/abc.png");
   });
 
   it("finds a music by id", async () => {

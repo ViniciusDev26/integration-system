@@ -67,6 +67,7 @@ describe("GET /musics/new", () => {
     expect(res.text).toContain('enctype="multipart/form-data"');
     expect(res.text).toContain('name="file"');
     expect(res.text).toContain('name="genre"');
+    expect(res.text).toContain('name="thumbnail"');
     expect(res.text).not.toContain("Track uploaded");
   });
 
@@ -100,6 +101,7 @@ describe("GET /musics", () => {
       name: "Nocturne",
       genre: "classical",
       objectKey: "musics/nocturne.mp3",
+      thumbnailObjectKey: "musics/thumbnails/nocturne.png",
       uploadedBy: "user-1",
     });
 
@@ -114,6 +116,9 @@ describe("GET /musics", () => {
     // The in-memory storage fake embeds the object key in the presigned URL.
     expect(res.text).toContain("musics/nocturne.mp3");
     expect(res.text).toContain("<audio");
+    // Thumbnail is rendered as an <img> pointing at its presigned URL.
+    expect(res.text).toContain("musics/thumbnails/nocturne.png");
+    expect(res.text).toContain("<img");
   });
 
   it("shows an empty state when there are no tracks", async () => {
@@ -164,6 +169,58 @@ describe("POST /musics", () => {
     const stored = container.objectStorage.get(row?.objectKey ?? "");
     expect(stored?.body.toString()).toBe("audio-bytes");
     expect(stored?.contentType).toBe("audio/mpeg");
+    expect(row?.thumbnailObjectKey).toBeNull();
+  });
+
+  it("stores an optional thumbnail alongside the audio", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+
+    const res = await request(app)
+      .post("/musics")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
+      .field("name", "Nocturne")
+      .field("genre", "classical")
+      .attach("file", Buffer.from("audio-bytes"), {
+        filename: "nocturne.mp3",
+        contentType: "audio/mpeg",
+      })
+      .attach("thumbnail", Buffer.from("png-bytes"), {
+        filename: "cover.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(303);
+
+    const [row] = await container.musicRepository.list();
+    expect(row?.thumbnailObjectKey).toBeTruthy();
+    const storedThumb = container.objectStorage.get(
+      row?.thumbnailObjectKey ?? "",
+    );
+    expect(storedThumb?.body.toString()).toBe("png-bytes");
+    expect(storedThumb?.contentType).toBe("image/png");
+  });
+
+  it("returns 400 for a non-image thumbnail", async () => {
+    const { app, container } = setup();
+    const sessionId = await signIn(container);
+
+    const res = await request(app)
+      .post("/musics")
+      .set("Cookie", `${SESSION_COOKIE}=${sessionId}`)
+      .field("name", "Nocturne")
+      .field("genre", "classical")
+      .attach("file", Buffer.from("audio-bytes"), {
+        filename: "nocturne.mp3",
+        contentType: "audio/mpeg",
+      })
+      .attach("thumbnail", Buffer.from("not-an-image"), {
+        filename: "evil.exe",
+        contentType: "application/octet-stream",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_upload");
   });
 
   it("redirects an anonymous upload to login", async () => {

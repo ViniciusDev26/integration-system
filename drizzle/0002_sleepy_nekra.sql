@@ -1,0 +1,1 @@
+ALTER TABLE "musics" ADD COLUMN "thumbnail_object_key" text;

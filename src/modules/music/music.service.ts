@@ -1,24 +1,32 @@
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
-import { MUSIC_OBJECT_KEY_PREFIX } from "./music.service.constants.js";
+import {
+  MUSIC_OBJECT_KEY_PREFIX,
+  MUSIC_THUMBNAIL_KEY_PREFIX,
+} from "./music.service.constants.js";
 import type {
   MusicService,
   MusicServiceOptions,
-  UploadedAudio,
+  UploadedFile,
 } from "./music.service.types.js";
 
-/** `musics/<uuid><ext>` — random key, extension carried over from the upload. */
-function defaultObjectKey(file: UploadedAudio): string {
+/** `<prefix><uuid><ext>` — random key, extension carried over from the upload. */
+function keyFor(prefix: string, file: UploadedFile): string {
   const ext = extname(file.originalname).toLowerCase();
-  return `${MUSIC_OBJECT_KEY_PREFIX}${randomUUID()}${ext}`;
+  return `${prefix}${randomUUID()}${ext}`;
 }
 
 export function createMusicService(options: MusicServiceOptions): MusicService {
   const { musicRepository, objectStorage } = options;
-  const generateObjectKey = options.generateObjectKey ?? defaultObjectKey;
+  const generateObjectKey =
+    options.generateObjectKey ??
+    ((file) => keyFor(MUSIC_OBJECT_KEY_PREFIX, file));
+  const generateThumbnailKey =
+    options.generateThumbnailKey ??
+    ((file) => keyFor(MUSIC_THUMBNAIL_KEY_PREFIX, file));
 
   return {
-    async register({ name, genre, file, uploadedBy }) {
+    async register({ name, genre, file, thumbnail, uploadedBy }) {
       const objectKey = generateObjectKey(file);
 
       // Store the bytes first, then the row: if the row insert fails we leak an
@@ -30,7 +38,23 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
         contentType: file.mimetype,
       });
 
-      return musicRepository.create({ name, genre, objectKey, uploadedBy });
+      let thumbnailObjectKey: string | null = null;
+      if (thumbnail !== undefined) {
+        thumbnailObjectKey = generateThumbnailKey(thumbnail);
+        await objectStorage.put({
+          key: thumbnailObjectKey,
+          body: thumbnail.buffer,
+          contentType: thumbnail.mimetype,
+        });
+      }
+
+      return musicRepository.create({
+        name,
+        genre,
+        objectKey,
+        thumbnailObjectKey,
+        uploadedBy,
+      });
     },
 
     async listAll() {
@@ -41,6 +65,10 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
           name: track.name,
           genre: track.genre,
           playbackUrl: await objectStorage.getSignedUrl(track.objectKey),
+          thumbnailUrl:
+            track.thumbnailObjectKey === null
+              ? null
+              : await objectStorage.getSignedUrl(track.thumbnailObjectKey),
         })),
       );
     },

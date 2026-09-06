@@ -1,6 +1,12 @@
 import { type RequestHandler, Router } from "express";
 import validate from "express-zod-safe";
-import { createAudioUpload } from "../../shared/http/upload.js";
+import {
+  DEFAULT_AUDIO_MIME_TYPES,
+  DEFAULT_IMAGE_MIME_TYPES,
+  DEFAULT_MAX_IMAGE_BYTES,
+  DEFAULT_MAX_UPLOAD_BYTES,
+} from "../../shared/http/upload.constants.js";
+import { createUpload } from "../../shared/http/upload.js";
 import { createMusicSchema } from "./music.controller.js";
 import type { MusicController } from "./music.controller.types.js";
 
@@ -10,10 +16,10 @@ import type { MusicController } from "./music.controller.types.js";
  *
  * - `GET  /`    → list ALL musics (not user-scoped) with playback URLs.
  * - `GET  /new` → render the upload form page.
- * - `POST /`    → upload an audio file + create a music. Middleware chain:
- *   `requireAuth` (reject anonymous before buffering any bytes) → multer
- *   (parse/validate the file, ADR 0032) → `express-zod-safe` (validate the text
- *   fields, ADR 0012) → controller.
+ * - `POST /`    → upload the audio (+ optional thumbnail image) and create a
+ *   music. Middleware chain: `requireAuth` (reject anonymous before buffering any
+ *   bytes) → multer (parse/validate the files, ADR 0032) → `express-zod-safe`
+ *   (validate the text fields, ADR 0012) → controller.
  */
 export function createMusicRoutes(
   controller: MusicController,
@@ -27,7 +33,19 @@ export function createMusicRoutes(
   router.post(
     "/",
     requireAuth,
-    createAudioUpload({ field: "file" }),
+    createUpload([
+      {
+        name: "file",
+        allowedMimeTypes: DEFAULT_AUDIO_MIME_TYPES,
+        required: true,
+        maxBytes: DEFAULT_MAX_UPLOAD_BYTES,
+      },
+      {
+        name: "thumbnail",
+        allowedMimeTypes: DEFAULT_IMAGE_MIME_TYPES,
+        maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+      },
+    ]),
     validate(createMusicSchema),
     controller.create,
   );

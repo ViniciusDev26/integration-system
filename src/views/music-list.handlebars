@@ -5,9 +5,16 @@
   <ul class="tracks">
     {{#each musics}}
       <li class="track">
-        <div class="track-meta">
-          <span class="track-name">{{this.name}}</span>
-          <span class="track-genre">{{this.genre}}</span>
+        <div class="track-head">
+          {{#if this.thumbnailUrl}}
+            <img class="track-thumb" src="{{this.thumbnailUrl}}" alt="" />
+          {{else}}
+            <div class="track-thumb track-thumb--empty" aria-hidden="true">🎵</div>
+          {{/if}}
+          <div class="track-meta">
+            <span class="track-name">{{this.name}}</span>
+            <span class="track-genre">{{this.genre}}</span>
+          </div>
         </div>
         <audio class="track-audio" controls preload="none" src="{{this.playbackUrl}}"></audio>
       </li>

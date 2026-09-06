@@ -3,14 +3,15 @@ import { createInMemoryObjectStorage } from "../../shared/storage/object-storage
 import { createInMemoryMusicRepository } from "./music.repository.in-memory.js";
 import { MUSIC_OBJECT_KEY_PREFIX } from "./music.service.constants.js";
 import { createMusicService } from "./music.service.js";
+import type { MusicServiceOptions } from "./music.service.types.js";
 
-function setup(generateObjectKey?: (file: { originalname: string }) => string) {
+function setup(overrides: Partial<MusicServiceOptions> = {}) {
   const musicRepository = createInMemoryMusicRepository();
   const objectStorage = createInMemoryObjectStorage();
   const service = createMusicService({
     musicRepository,
     objectStorage,
-    generateObjectKey,
+    ...overrides,
   });
   return { service, musicRepository, objectStorage };
 }
@@ -21,11 +22,17 @@ const file = {
   originalname: "nocturne.mp3",
 };
 
+const thumbnail = {
+  buffer: Buffer.from("png-bytes"),
+  mimetype: "image/png",
+  originalname: "cover.png",
+};
+
 describe("MusicService.register", () => {
   it("stores the audio and persists a row referencing its key", async () => {
-    const { service, musicRepository, objectStorage } = setup(
-      () => "musics/fixed.mp3",
-    );
+    const { service, musicRepository, objectStorage } = setup({
+      generateObjectKey: () => "musics/fixed.mp3",
+    });
 
     const music = await service.register({
       name: "Nocturne",
@@ -35,9 +42,8 @@ describe("MusicService.register", () => {
     });
 
     expect(music.name).toBe("Nocturne");
-    expect(music.genre).toBe("classical");
-    expect(music.uploadedBy).toBe("user-1");
     expect(music.objectKey).toBe("musics/fixed.mp3");
+    expect(music.thumbnailObjectKey).toBeNull();
 
     const stored = objectStorage.get("musics/fixed.mp3");
     expect(stored?.body.toString()).toBe("audio-bytes");
@@ -45,6 +51,27 @@ describe("MusicService.register", () => {
 
     const persisted = await musicRepository.findById(music.id);
     expect(persisted?.objectKey).toBe("musics/fixed.mp3");
+  });
+
+  it("stores an optional thumbnail and records its key", async () => {
+    const { service, objectStorage } = setup({
+      generateObjectKey: () => "musics/fixed.mp3",
+      generateThumbnailKey: () => "musics/thumbnails/fixed.png",
+    });
+
+    const music = await service.register({
+      name: "Nocturne",
+      genre: "classical",
+      file,
+      thumbnail,
+      uploadedBy: "user-1",
+    });
+
+    expect(music.thumbnailObjectKey).toBe("musics/thumbnails/fixed.png");
+
+    const storedThumb = objectStorage.get("musics/thumbnails/fixed.png");
+    expect(storedThumb?.body.toString()).toBe("png-bytes");
+    expect(storedThumb?.contentType).toBe("image/png");
   });
 
   it("defaults the object key to the prefix + a uuid + the file extension", async () => {
@@ -65,9 +92,11 @@ describe("MusicService.register", () => {
 describe("MusicService.listAll", () => {
   it("returns every track (newest first) with a presigned playback URL", async () => {
     let n = 0;
-    const { service } = setup(() => {
-      n += 1;
-      return `musics/key-${n}.mp3`;
+    const { service } = setup({
+      generateObjectKey: () => {
+        n += 1;
+        return `musics/key-${n}.mp3`;
+      },
     });
 
     await service.register({
@@ -86,11 +115,34 @@ describe("MusicService.listAll", () => {
     const all = await service.listAll();
 
     expect(all.map((m) => m.name)).toEqual(["Second", "First"]);
-    // The in-memory storage fake mints URLs that embed the object key.
     expect(all[0]?.playbackUrl).toContain("musics/key-2.mp3");
     expect(all[1]?.playbackUrl).toContain("musics/key-1.mp3");
-    // The storage key itself is not leaked in the list item.
     expect(all[0]).not.toHaveProperty("objectKey");
+  });
+
+  it("includes a thumbnail URL only when the track has one", async () => {
+    const { service } = setup({
+      generateObjectKey: () => "musics/a.mp3",
+      generateThumbnailKey: () => "musics/thumbnails/a.png",
+    });
+
+    await service.register({
+      name: "WithThumb",
+      genre: "pop",
+      file,
+      thumbnail,
+      uploadedBy: "user-1",
+    });
+    await service.register({
+      name: "NoThumb",
+      genre: "pop",
+      file,
+      uploadedBy: "user-1",
+    });
+
+    const [noThumb, withThumb] = await service.listAll();
+    expect(noThumb?.thumbnailUrl).toBeNull();
+    expect(withThumb?.thumbnailUrl).toContain("musics/thumbnails/a.png");
   });
 
   it("returns an empty array when there are no tracks", async () => {

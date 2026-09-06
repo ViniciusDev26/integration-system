@@ -21,3 +21,6 @@ coverage/
 *.swp
 .idea/
 .vscode/
+
+# Scripts directory
+scripts/

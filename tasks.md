@@ -153,6 +153,15 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       Controller tests updated (render form, banner, redirects); boot smoke
       confirmed `GET /` + `GET /musics/new` (anon → 302 login).
 
+- [x] **Thumbnails (optional cover image)** — `musics.thumbnail_object_key`
+      (nullable) + migration `0002_sleepy_nekra.sql`. Upload middleware
+      generalized to multi-field (`createUpload([...])`, `getUploadedFile(req,
+      field)` / `getOptionalFile`); `POST /musics` now takes an optional
+      `thumbnail` (image MIME allowlist, 5 MiB). `MusicService.register` stores it
+      under `musics/thumbnails/<uuid><ext>`; listing exposes a presigned
+      `thumbnailUrl` (or `null`). Upload form has a thumbnail input; listing shows
+      the cover `<img>` (🎵 placeholder when absent).
+
 ### 2. Music listing — all musics
 
 - [x] **`GET /musics`** — lists **ALL** musics (not user-scoped). `MusicService.listAll()`
@@ -182,6 +191,22 @@ authenticated — needs the **`requireAuth` middleware** first (see auth follow-
       user (`listByOwner(currentUser.id)`).
 - [ ] **UI** — a page listing the user's playlists (link into each playlist's
       musics).
+
+### 5. Player module (`src/modules/player/`)
+
+- [ ] **Player module** — a dedicated playback experience beyond the inline
+      `<audio>` tags on the listing. Likely a "now playing" page/route that plays
+      a selected track (and eventually a whole playlist) with transport controls
+      (play/pause, next/previous, seek). Build under the current conventions:
+      feature-modular (ADR 0018), SSR + Handlebars (ADR 0030), ports/adapters +
+      composition root (ADR 0026/0027), TDD (ADR 0022); reuse
+      `MusicService.listAll` / presigned URLs (ADR 0031) rather than re-fetching
+      audio server-side.
+  - **Decide first (scope):** single-track vs playlist/queue playback; pure
+    server-rendered `<audio>` vs a small client-side player script; whether it
+    needs its own state (now-playing / queue) or stays stateless.
+  - A small **ADR** if it introduces client-side JS (departs from the current
+    no-JS, server-redirect pattern) or a new playback state model.
 
 ### Later
 

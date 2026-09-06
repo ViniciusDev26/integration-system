@@ -19,3 +19,15 @@ export const DEFAULT_AUDIO_MIME_TYPES = [
   "audio/flac",
   "audio/webm",
 ] as const;
+
+/** Max size for an image upload (e.g. a music thumbnail). */
+export const DEFAULT_MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MiB
+
+/** Image MIME types accepted for thumbnails (ADR 0032). */
+export const DEFAULT_IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+] as const;

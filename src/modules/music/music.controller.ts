@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getUploadedFile } from "../../shared/http/upload.js";
+import { getOptionalFile, getUploadedFile } from "../../shared/http/upload.js";
 import { getAuthenticatedUser } from "../auth/require-auth.js";
 import type {
   MusicController,
@@ -37,15 +37,18 @@ export function createMusicController(
     },
 
     async create(req, res) {
-      // `requireAuth` and the upload middleware guarantee both of these exist by
-      // the time we get here (else they'd have redirected / 400'd upstream).
+      // `requireAuth` and the upload middleware guarantee the user + audio file
+      // exist here (else they'd have redirected / 400'd upstream). The thumbnail
+      // is optional.
       const user = getAuthenticatedUser(res);
-      const file = getUploadedFile(req);
+      const file = getUploadedFile(req, "file");
+      const thumbnail = getOptionalFile(req, "thumbnail");
 
       await musicService.register({
         name: req.body.name,
         genre: req.body.genre,
         file,
+        thumbnail,
         uploadedBy: user.id,
       });
 

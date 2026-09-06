@@ -21,6 +21,7 @@ export function createInMemoryMusicRepository(): MusicRepository {
         name: input.name,
         genre: input.genre,
         objectKey: input.objectKey,
+        thumbnailObjectKey: input.thumbnailObjectKey,
         uploadedBy: input.uploadedBy,
         createdAt: now,
         updatedAt: now,

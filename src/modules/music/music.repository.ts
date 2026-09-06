@@ -8,6 +8,8 @@ export interface CreateMusicInput {
   name: string;
   genre: string;
   objectKey: string;
+  /** Storage key of the cover image, or `null` if none. */
+  thumbnailObjectKey: string | null;
   /** `users.id` of the uploader. */
   uploadedBy: string;
 }
