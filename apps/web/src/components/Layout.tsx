@@ -1,5 +1,6 @@
 import { Link, Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
+import { Player } from "./player/Player";
 import { Button } from "./ui/button";
 import { Spinner } from "./ui/spinner";
 
@@ -55,9 +56,10 @@ export function Layout() {
           </Button>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-8">
+      <main className="mx-auto max-w-3xl px-6 py-8 pb-28">
         <Outlet />
       </main>
+      <Player />
     </div>
   );
 }

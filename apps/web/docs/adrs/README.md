@@ -12,6 +12,7 @@ Front-end decisions for `apps/web` (the Vite SPA).
 - [0008](./0008-trpc-client-and-tanstack-query.md) — Backend access via the tRPC client + TanStack Query
 - [0009](./0009-react-router.md) — Client-side routing with React Router
 - [0010](./0010-auth-session-in-zustand-store.md) — Global auth/session state in a Zustand store
+- [0011](./0011-global-audio-player.md) — Global audio player (single `<audio>` + Zustand queue)
 
 Repo-wide decisions live in [`/docs/adrs`](../../../../docs/adrs/) (monorepo,
 shared Biome config). The SPA foundation + screens are implemented (tRPC client,

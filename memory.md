@@ -48,8 +48,11 @@ Pending work is tracked in [`tasks.md`](tasks.md).
   with react-hook-form + Zod. Screens: home/login, musics list, upload (presigned
   direct-to-R2), playlists list/new/detail. The API serves `apps/web/dist`
   same-origin (verified: `/` + deep links 200, `/trpc/auth.me` anon → 401).
-- **Next:** the **persistent audio player** (plan with the user) — Zustand store
-  (ADR 0005) + a component in the app shell that survives navigation.
+- **Persistent player built** (ADR 0011): one hidden `<audio>` in the shell +
+  `usePlayerStore` (Zustand); fixed control bar (cover, transport, seek/volume via
+  shadcn/Radix Slider, repeat off/all/one). Playback **only via the player** (no
+  inline audio). **Open follow-up:** presigned playback URLs expire (~1h) — add a
+  `musics.playbackUrl` procedure to refresh on demand.
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
   (playlists) still needs applying** before playlists work against a live DB.
 

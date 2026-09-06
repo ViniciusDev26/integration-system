@@ -33,10 +33,12 @@ over **tRPC** and will host a persistent, cross-page audio player. The foundatio
   the initial session check shows a spinner. The shell is where the player will live.
 - **Uploads:** presigned direct-to-R2 (api ADR 0038) — `musics.prepareUpload` →
   `PUT` to the URL → `musics.create`.
+- **Player (0011):** one hidden `<audio>` in the app shell + `usePlayerStore`
+  (Zustand); playback happens **only** through it — no inline `<audio>` on pages.
 
 Structure: `src/api/` (tRPC client + Providers), `src/pages/` (routed screens),
-`src/components/` (Layout + `ui/`), `src/hooks/`, `src/lib/`. Introduce anything
-new (e.g. a testing setup) only with a new ADR.
+`src/components/` (Layout, `player/`, `ui/`), `src/store/` (Zustand: auth, player),
+`src/lib/`. Introduce anything new (e.g. a testing setup) only with a new ADR.
 
 ## Conventions in force now
 

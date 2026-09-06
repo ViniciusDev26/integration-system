@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import { trpc } from "../api/trpc";
+import { Button } from "../components/ui/button";
+import { usePlayerStore } from "../store/player";
 
 export function MusicsPage() {
   const musics = trpc.musics.list.useQuery();
+  const playTrack = usePlayerStore((s) => s.playTrack);
 
   if (musics.isLoading) {
     return <p className="text-gray-500">Loading…</p>;
@@ -30,41 +33,33 @@ export function MusicsPage() {
           {musics.data.map((track) => (
             <li
               key={track.id}
-              className="rounded-lg border border-gray-500/20 p-3"
+              className="flex items-center gap-3 rounded-lg border border-gray-500/20 p-3"
             >
-              <div className="flex items-center gap-3">
-                {track.thumbnailUrl ? (
-                  <img
-                    src={track.thumbnailUrl}
-                    alt=""
-                    className="h-12 w-12 rounded object-cover"
-                  />
-                ) : (
-                  <div className="grid h-12 w-12 place-items-center rounded bg-gray-500/10">
-                    🎵
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <div className="font-semibold">{track.name}</div>
-                  <div className="flex flex-wrap gap-1">
-                    {track.genres.map((genre) => (
-                      <span
-                        key={genre}
-                        className="rounded-full border border-gray-500/30 px-2 py-0.5 text-xs text-gray-500 uppercase"
-                      >
-                        {genre}
-                      </span>
-                    ))}
-                  </div>
+              {track.thumbnailUrl ? (
+                <img
+                  src={track.thumbnailUrl}
+                  alt=""
+                  className="h-12 w-12 rounded object-cover"
+                />
+              ) : (
+                <div className="grid h-12 w-12 place-items-center rounded bg-gray-500/10">
+                  🎵
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold">{track.name}</div>
+                <div className="flex flex-wrap gap-1">
+                  {track.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="rounded-full border border-gray-500/30 px-2 py-0.5 text-xs text-gray-500 uppercase"
+                    >
+                      {genre}
+                    </span>
+                  ))}
                 </div>
               </div>
-              {/* biome-ignore lint/a11y/useMediaCaption: user-uploaded audio has no captions */}
-              <audio
-                controls
-                preload="none"
-                src={track.playbackUrl}
-                className="mt-2 w-full"
-              />
+              <Button onClick={() => playTrack(track)}>▶ Play</Button>
             </li>
           ))}
         </ul>

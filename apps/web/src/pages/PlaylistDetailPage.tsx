@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../api/trpc";
 import { Button } from "../components/ui/button";
+import { usePlayerStore } from "../store/player";
 
 export function PlaylistDetailPage() {
   const { id } = useParams();
   const playlistId = id ?? "";
   const utils = trpc.useUtils();
+  const playQueue = usePlayerStore((s) => s.playQueue);
 
   const playlist = trpc.playlists.get.useQuery(
     { id: playlistId },
@@ -39,27 +41,33 @@ export function PlaylistDetailPage() {
         <Link to="/playlists" className="text-sm text-gray-500 hover:underline">
           ← Your playlists
         </Link>
-        <h1 className="text-xl font-bold">{details.name}</h1>
-        <p className="text-sm text-gray-500">{musics.length} track(s)</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">{details.name}</h1>
+            <p className="text-sm text-gray-500">{musics.length} track(s)</p>
+          </div>
+          <Button
+            onClick={() => playQueue(musics, 0)}
+            disabled={musics.length === 0}
+          >
+            ▶ Play
+          </Button>
+        </div>
       </div>
 
       {musics.length === 0 ? (
         <p className="text-gray-500">No tracks yet — add one below.</p>
       ) : (
-        <ul className="space-y-3">
-          {musics.map((track) => (
+        <ul className="space-y-2">
+          {musics.map((track, i) => (
             <li
               key={track.id}
-              className="rounded-lg border border-gray-500/20 p-3"
+              className="flex items-center gap-3 rounded-lg border border-gray-500/20 p-3"
             >
-              <div className="font-semibold">{track.name}</div>
-              {/* biome-ignore lint/a11y/useMediaCaption: user-uploaded audio has no captions */}
-              <audio
-                controls
-                preload="none"
-                src={track.playbackUrl}
-                className="mt-2 w-full"
-              />
+              <div className="min-w-0 flex-1 font-semibold">{track.name}</div>
+              <Button variant="secondary" onClick={() => playQueue(musics, i)}>
+                ▶ Play
+              </Button>
             </li>
           ))}
         </ul>

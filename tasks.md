@@ -250,10 +250,13 @@ React SPA so the audio player can persist across navigation.
       (react-hook-form + Zod; prepareUpload → PUT to R2 → create), playlists list,
       playlist new, playlist detail (tracks + add-track). Typecheck/lint/build
       green; boot smoke: SPA served same-origin, deep links, `/trpc` 401 anon.
-- [ ] **Persistent player** (plan with the user): a player component in the app
-      shell (survives route changes) backed by a **Zustand** store (ADR 0005);
-      play a track, then a playlist/queue (play/pause, next/previous, seek),
-      streaming presigned URLs (API ADR 0031).
+- [x] **Persistent player** (ADR 0011): one hidden `<audio>` in the app shell +
+      `usePlayerStore` (Zustand, ADR 0005). Fixed control bar — cover, transport,
+      shadcn/Radix **Slider** for seek + volume, **repeat** (`off/all/one`).
+      Playback **only via the player** (no inline `<audio>`): `/musics` Play → the
+      single track; a playlist "Play" → the whole playlist (a track starts it from
+      there). Survives navigation. **Follow-up:** refresh expired presigned URLs
+      (a `musics.playbackUrl` procedure) — deferred.
 
 ### Later
 
