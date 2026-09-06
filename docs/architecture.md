@@ -194,8 +194,8 @@ build time. Controllers pass a ready view model; templates hold no logic. The
 web layer reads the session cookie and calls `authService.getCurrentUser` to
 render auth state.
 
-Node version is pinned to **24.18.0** via `.tool-versions` (mise); npm's
-`engine-strict` (ADR 0006) will refuse installs on an older Node.
+Node version is pinned to **24.18.0** via `.tool-versions` (mise, [ADR 0035](./adrs/0035-node-version-pinning-via-mise.md));
+npm's `engine-strict` (ADR 0006) will refuse installs on an older Node.
 
 ### Not yet decided
 

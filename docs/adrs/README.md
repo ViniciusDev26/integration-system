@@ -50,6 +50,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0032](./0032-multer-multipart-upload-middleware.md) | Use multer (memory storage) for multipart audio uploads | Accepted |
 | [0033](./0033-cookie-parser-request-cookies.md) | cookie-parser for reading request cookies | Accepted |
 | [0034](./0034-supertest-http-integration-testing.md) | supertest for HTTP-level controller/route testing | Accepted |
+| [0035](./0035-node-version-pinning-via-mise.md) | Pin the exact Node version with `.tool-versions` (mise) | Accepted |
 
 ## Conventions
 
