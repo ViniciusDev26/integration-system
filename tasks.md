@@ -255,8 +255,9 @@ React SPA so the audio player can persist across navigation.
       shadcn/Radix **Slider** for seek + volume, **repeat** (`off/all/one`).
       Playback **only via the player** (no inline `<audio>`): `/musics` Play → the
       single track; a playlist "Play" → the whole playlist (a track starts it from
-      there). Survives navigation. **Follow-up:** refresh expired presigned URLs
-      (a `musics.playbackUrl` procedure) — deferred.
+      there). Survives navigation. **Queue panel** (☰): view upcoming tracks, jump
+      to one, add (`/musics` "+ Queue") / remove. **Follow-up:** refresh expired
+      presigned URLs (a `musics.playbackUrl` procedure) — deferred.
 
 ### Later
 

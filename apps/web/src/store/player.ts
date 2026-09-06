@@ -11,8 +11,18 @@ export interface PlayerTrack {
 
 export type RepeatMode = "off" | "all" | "one";
 
+/** A queue entry: a track plus a stable id (the same track may be queued twice). */
+export interface QueueItem {
+  uid: string;
+  track: PlayerTrack;
+}
+
+function toItem(track: PlayerTrack): QueueItem {
+  return { uid: crypto.randomUUID(), track };
+}
+
 interface PlayerState {
-  queue: PlayerTrack[];
+  queue: QueueItem[];
   index: number; // -1 when the queue is empty
   isPlaying: boolean;
   volume: number; // 0..1
@@ -32,6 +42,12 @@ interface PlayerState {
   next: () => void;
   /** Manual previous: go back, wrapping to the end at the start. */
   previous: () => void;
+  /** Append a track to the queue (starts it if the queue was empty). */
+  addToQueue: (track: PlayerTrack) => void;
+  /** Remove the queue item at `at`, adjusting the current index. */
+  removeFromQueue: (at: number) => void;
+  /** Jump to and play the queue item at `at`. */
+  playAt: (at: number) => void;
   /** Called when a track finishes (`ended`), honoring `repeat` for auto-advance. */
   trackEnded: () => void;
 
@@ -55,7 +71,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeat: "off",
 
   playTrack(track) {
-    set({ queue: [track], index: 0, isPlaying: true, currentTime: 0 });
+    set({ queue: [toItem(track)], index: 0, isPlaying: true, currentTime: 0 });
   },
 
   playQueue(tracks, startIndex = 0) {
@@ -63,7 +79,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
     const index = Math.min(Math.max(startIndex, 0), tracks.length - 1);
-    set({ queue: tracks, index, isPlaying: true, currentTime: 0 });
+    set({ queue: tracks.map(toItem), index, isPlaying: true, currentTime: 0 });
   },
 
   play() {
@@ -97,6 +113,51 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     const prevIndex = index <= 0 ? queue.length - 1 : index - 1;
     set({ index: prevIndex, isPlaying: true, currentTime: 0 });
+  },
+
+  addToQueue(track) {
+    set((s) => {
+      const queue = [...s.queue, toItem(track)];
+      return s.index < 0 ? { queue, index: 0 } : { queue };
+    });
+  },
+
+  removeFromQueue(at) {
+    set((s) => {
+      if (at < 0 || at >= s.queue.length) {
+        return {};
+      }
+      const queue = s.queue.filter((_, i) => i !== at);
+      if (queue.length === 0) {
+        return {
+          queue,
+          index: -1,
+          isPlaying: false,
+          currentTime: 0,
+          duration: 0,
+        };
+      }
+      if (at < s.index) {
+        return { queue, index: s.index - 1 };
+      }
+      if (at === s.index) {
+        // Removing the current track: fall onto the next one (same index).
+        return {
+          queue,
+          index: Math.min(s.index, queue.length - 1),
+          currentTime: 0,
+        };
+      }
+      return { queue };
+    });
+  },
+
+  playAt(at) {
+    set((s) =>
+      at < 0 || at >= s.queue.length
+        ? {}
+        : { index: at, isPlaying: true, currentTime: 0 },
+    );
   },
 
   trackEnded() {

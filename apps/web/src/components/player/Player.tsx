@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "../../store/player";
 import { Slider } from "../ui/slider";
 
@@ -41,8 +41,12 @@ export function Player() {
   const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
   const setDuration = usePlayerStore((s) => s.setDuration);
   const cycleRepeat = usePlayerStore((s) => s.cycleRepeat);
+  const playAt = usePlayerStore((s) => s.playAt);
+  const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
 
-  const current = index >= 0 ? queue[index] : undefined;
+  const [showQueue, setShowQueue] = useState(false);
+
+  const current = index >= 0 ? queue[index]?.track : undefined;
   const src = current?.playbackUrl ?? "";
 
   // Load the current source and play/pause it (also plays a newly-selected track).
@@ -112,6 +116,46 @@ export function Player() {
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onEnded={handleEnded}
       />
+
+      {showQueue && (
+        <div className="mx-auto max-h-64 max-w-5xl overflow-auto border-b border-gray-500/20 px-6 py-2">
+          <div className="mb-1 text-xs font-semibold text-gray-500 uppercase">
+            Queue ({queue.length})
+          </div>
+          {queue.length === 0 ? (
+            <p className="text-sm text-gray-500">Queue is empty.</p>
+          ) : (
+            <ul className="space-y-1">
+              {queue.map((item, i) => (
+                <li
+                  key={item.uid}
+                  className={`flex items-center gap-2 rounded px-2 py-1 ${
+                    i === index ? "bg-[#1db954]/10" : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => playAt(i)}
+                    className="min-w-0 flex-1 truncate text-left text-sm"
+                  >
+                    {i === index ? "▶ " : `${i + 1}. `}
+                    {item.track.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeFromQueue(i)}
+                    aria-label={`Remove ${item.track.name} from queue`}
+                    className="text-gray-500 hover:text-red-500"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {current.thumbnailUrl ? (
@@ -178,7 +222,15 @@ export function Player() {
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2">
+        <div className="flex flex-1 items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setShowQueue((v) => !v)}
+            aria-label="Toggle queue"
+            className={`text-lg ${showQueue ? "opacity-100" : "opacity-60"}`}
+          >
+            ☰
+          </button>
           <span aria-hidden="true">🔊</span>
           <Slider
             className="w-24"

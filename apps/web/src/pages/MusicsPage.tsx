@@ -6,6 +6,7 @@ import { usePlayerStore } from "../store/player";
 export function MusicsPage() {
   const musics = trpc.musics.list.useQuery();
   const playTrack = usePlayerStore((s) => s.playTrack);
+  const addToQueue = usePlayerStore((s) => s.addToQueue);
 
   if (musics.isLoading) {
     return <p className="text-gray-500">Loading…</p>;
@@ -59,7 +60,16 @@ export function MusicsPage() {
                   ))}
                 </div>
               </div>
-              <Button onClick={() => playTrack(track)}>▶ Play</Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => addToQueue(track)}
+                  aria-label={`Add ${track.name} to queue`}
+                >
+                  + Queue
+                </Button>
+                <Button onClick={() => playTrack(track)}>▶ Play</Button>
+              </div>
             </li>
           ))}
         </ul>
