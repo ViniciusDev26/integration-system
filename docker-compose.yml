@@ -4,23 +4,21 @@
 #   docker compose up            # postgres + migrations + running API
 #
 # Requires a `.env` at the repo root (copy `.env.example`) — it carries the
-# GitHub OAuth secrets (ADR 0020). DATABASE_URL is provided here, pointing at the
+# GitHub OAuth + storage secrets. DATABASE_URL is provided here, pointing at the
 # `postgres` service, so it need not be in your `.env`.
 #
-# tsc-watch auto-reloads on source changes where the container gets file events
-# for the bind mount. On Docker Desktop + WSL2 with the native TS7 compiler it
-# won't see host edits (ADR 0029) — use `docker compose restart app`, or run
-# `npm run dev` on the host with only Postgres in Compose.
+# The app is the API workspace (apps/api). Build context is the repo ROOT so the
+# workspace manifests + lockfile are available to the image's `npm ci`.
 #
-# After changing dependencies (package.json), rebuild the image AND refresh the
-# container-built node_modules:
+# After changing dependencies, rebuild the image AND refresh the container-built
+# node_modules:
 #
 #   docker compose up --build -V   # -V renews the anon node_modules; keeps pgdata
 
 # Shared config for the app-image services (app + migrate): both build the
-# Dockerfile `dev` stage and bind-mount the repo. `/app/node_modules` is an
-# ANONYMOUS volume so the container uses its own (musl-built) dependencies rather
-# than the host's, and `-V` on `up` re-seeds it from a freshly built image.
+# Dockerfile `dev` stage and bind-mount the repo. node_modules are ANONYMOUS
+# volumes so the container uses its own (musl-built) dependencies rather than the
+# host's, and `-V` on `up` re-seeds them from a freshly built image.
 x-app-dev: &app-dev
   build:
     context: .
@@ -30,6 +28,8 @@ x-app-dev: &app-dev
   volumes:
     - .:/app
     - /app/node_modules
+    - /app/apps/api/node_modules
+    - /app/apps/web/node_modules
 
 services:
   postgres:
@@ -56,7 +56,7 @@ services:
   migrate:
     <<: *app-dev
     container_name: integration-system-migrate
-    command: ["npm", "run", "db:migrate"]
+    command: ["npm", "run", "db:migrate", "-w", "@integration-system/api"]
     environment:
       DATABASE_URL: postgres://user:password@postgres:5432/integration_system
     depends_on:

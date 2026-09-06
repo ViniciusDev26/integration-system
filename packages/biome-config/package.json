@@ -1,0 +1,13 @@
+{
+  "name": "@integration-system/biome-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Biome config: a base + per-app (api/web) variants.",
+  "exports": {
+    "./base": "./biome.json",
+    "./api": "./biome.api.json",
+    "./web": "./biome.web.json"
+  },
+  "files": ["biome.json", "biome.api.json", "biome.web.json"]
+}

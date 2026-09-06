@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build output (tsc -> dist)
+dist/
+
+# Coverage / test output
+coverage/
+
+# Logs
+*.log
+
+# Local ops scripts (large audio/thumbnail downloads + seed)
+scripts/

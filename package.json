@@ -2,51 +2,26 @@
   "name": "integration-system",
   "version": "0.1.0",
   "private": true,
-  "description": "Sample music API (Spotify-like)",
-  "type": "module",
+  "description": "Spotifake monorepo — API (apps/api) + web (apps/web).",
+  "packageManager": "npm@11.16.0",
+  "workspaces": ["apps/*", "packages/*"],
   "engines": {
     "node": ">=24",
     "npm": ">=10"
   },
   "scripts": {
     "preinstall": "npx --yes only-allow npm",
-    "build": "tsc -p tsconfig.build.json && npm run copy:views",
-    "copy:views": "mkdir -p dist/views && cp -r src/views/. dist/views/",
-    "start": "node dist/server.js",
-    "dev": "npm run copy:views && tsc-watch -p tsconfig.build.json --onSuccess \"node dist/server.js\"",
-    "typecheck": "tsc -p tsconfig.json",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "test": "vitest",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --env-file-if-exists=.env node_modules/.bin/drizzle-kit migrate"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "3.1127.0",
-    "@aws-sdk/s3-request-presigner": "3.1127.0",
-    "axios": "1.20.0",
-    "cookie-parser": "1.4.7",
-    "drizzle-orm": "0.45.2",
-    "express": "5.2.1",
-    "express-handlebars": "9.0.1",
-    "express-zod-safe": "3.2.1",
-    "multer": "2.3.0",
-    "postgres": "3.4.9",
-    "zod": "4.5.4"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "npm run db:generate -w @integration-system/api",
+    "db:migrate": "npm run db:migrate -w @integration-system/api"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
-    "@testcontainers/postgresql": "12.1.0",
-    "@types/cookie-parser": "1.4.10",
-    "@types/express": "5.0.6",
-    "@types/multer": "2.2.0",
-    "@types/node": "26.4.1",
-    "@types/supertest": "7.2.1",
-    "drizzle-kit": "0.31.10",
-    "supertest": "7.2.2",
-    "testcontainers": "12.1.0",
-    "tsc-watch": "7.2.1",
-    "typescript": "7.0.2",
-    "vitest": "5.0.0"
+    "turbo": "2.5.8"
   }
 }

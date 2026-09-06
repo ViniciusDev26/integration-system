@@ -4,6 +4,9 @@ node_modules/
 # Build output (tsc -> dist, per ADR 0005)
 dist/
 
+# Turborepo cache
+.turbo/
+
 # Environment / secrets
 .env
 .env.*
