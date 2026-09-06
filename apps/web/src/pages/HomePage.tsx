@@ -1,17 +1,18 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useAuthStore } from "../store/auth";
 
 const linkClass =
   "inline-flex items-center justify-center rounded-md bg-[#1db954] px-4 py-2 text-sm font-semibold text-white hover:opacity-90";
 
 export function HomePage() {
-  const { isSignedIn, isLoading, user } = useAuth();
+  const user = useAuthStore((s) => s.user);
+  const status = useAuthStore((s) => s.status);
 
-  if (isLoading) {
+  if (status === "loading") {
     return <p className="text-gray-500">Loading…</p>;
   }
 
-  if (!isSignedIn) {
+  if (status !== "authenticated") {
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">🎧 Spotifake</h1>

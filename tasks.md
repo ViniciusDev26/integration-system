@@ -242,9 +242,10 @@ React SPA so the audio player can persist across navigation.
 - [x] **Web foundation:** Tailwind (v4) + `cn` (shadcn-style); `src/api/` tRPC
       client (`@trpc/client` + `@trpc/react-query`, `httpBatchLink` → `/trpc`,
       `credentials: "include"`) importing `AppRouter`; TanStack Query provider;
-      React Router (ADR 0009) with a persistent layout; `useAuth` (`auth.me`),
-      login via `auth.startLogin` → navigate, logout via `auth.logout`. Vite dev
-      proxy `/trpc` + `/auth` → API. (shadcn components added as needed.)
+      React Router (ADR 0009) with a persistent layout; **global auth store**
+      (Zustand, ADR 0010): `status` + `login`/`logout`/`fetchMe` via a standalone
+      tRPC client, login shows a spinner. Vite dev proxy `/trpc` + `/auth` → API.
+      (shadcn components added as needed.)
 - [x] **Screens:** home/login, musics list (players + thumbnails + genres), upload
       (react-hook-form + Zod; prepareUpload → PUT to R2 → create), playlists list,
       playlist new, playlist detail (tracks + add-track). Typecheck/lint/build

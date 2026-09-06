@@ -16,16 +16,18 @@ over **tRPC** and will host a persistent, cross-page audio player. The foundatio
 - **Biome** for lint/format via the shared config (0002) — not ESLint/oxlint.
 - **shadcn/ui + Tailwind CSS** for components (0003).
 - **react-hook-form + Zod** for forms/validation (0004).
-- **Zustand** for client/UI state (e.g. the player) (0005) — *not* for server data.
+- **Zustand** for client/UI state (e.g. the player) (0005) — *not* for server list
+  data. The **global auth/session store** lives here too (0010).
 - **tRPC client + TanStack Query** (0008, supersedes the axios ADR 0006): one
   typed client in `src/api/` importing `AppRouter` from
   `@integration-system/api/trpc`; `httpBatchLink` → `/trpc` with
   `credentials: "include"`. Components use the generated hooks, never `fetch`/axios
   directly (except the presigned-`PUT` upload).
 - **Auth:** httpOnly session cookie, same-origin (dev via Vite proxy `/trpc` +
-  `/auth`); no SSR. Identity via `auth.me`; login via `auth.startLogin` (navigate
-  to the returned GitHub URL); the OAuth callback is REST at
-  `/auth/github/callback` (0007).
+  `/auth`); no SSR. Managed by the **global auth store** (0010): `status`
+  (loading/authenticating/authenticated/anonymous) + `login`/`logout`/`fetchMe`
+  via a standalone tRPC client; login shows a spinner. The OAuth callback is REST
+  at `/auth/github/callback` (0007).
 - **Routing:** React Router (0009) — a persistent layout route (`<Outlet/>`) +
   child routes; the shell is where the player will live.
 - **Uploads:** presigned direct-to-R2 (api ADR 0038) — `musics.prepareUpload` →

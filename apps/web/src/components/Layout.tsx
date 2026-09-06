@@ -1,28 +1,26 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { trpc } from "../api/trpc";
-import { useAuth } from "../hooks/useAuth";
+import { useAuthStore } from "../store/auth";
 import { Button } from "./ui/button";
+import { Spinner } from "./ui/spinner";
 
 /**
- * App shell (ADR 0009): persistent header/nav + the routed `<Outlet/>`. This is
- * where the persistent audio player will live so it survives navigation.
+ * App shell (ADR 0009): persistent header/nav + the routed `<Outlet/>`. Auth is
+ * read from the global store (ADR 0010); this shell will also host the player.
  */
 export function Layout() {
   const navigate = useNavigate();
-  const { user, isSignedIn } = useAuth();
-  const utils = trpc.useUtils();
+  const user = useAuthStore((s) => s.user);
+  const status = useAuthStore((s) => s.status);
+  const login = useAuthStore((s) => s.login);
+  const logout = useAuthStore((s) => s.logout);
 
-  const startLogin = trpc.auth.startLogin.useMutation({
-    onSuccess: ({ url }) => {
-      window.location.href = url;
-    },
-  });
-  const logout = trpc.auth.logout.useMutation({
-    onSuccess: async () => {
-      await utils.invalidate();
-      navigate("/");
-    },
-  });
+  const isSignedIn = status === "authenticated";
+  const isAuthenticating = status === "authenticating";
+
+  async function handleLogout() {
+    await logout();
+    navigate("/");
+  }
 
   return (
     <div className="min-h-screen">
@@ -55,20 +53,14 @@ export function Layout() {
               <span className="text-sm text-gray-500">
                 {user?.name ?? user?.email}
               </span>
-              <Button
-                variant="secondary"
-                onClick={() => logout.mutate()}
-                disabled={logout.isPending}
-              >
+              <Button variant="secondary" onClick={handleLogout}>
                 Log out
               </Button>
             </>
           ) : (
-            <Button
-              onClick={() => startLogin.mutate()}
-              disabled={startLogin.isPending}
-            >
-              Sign in with GitHub
+            <Button onClick={() => login()} disabled={isAuthenticating}>
+              {isAuthenticating && <Spinner />}
+              {isAuthenticating ? "Signing in…" : "Sign in with GitHub"}
             </Button>
           )}
         </div>
