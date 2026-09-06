@@ -10,6 +10,9 @@ import type { GitHubOAuthClient } from "./modules/auth/github-oauth.client.js";
 import { createInMemoryMusicRepository } from "./modules/music/music.repository.in-memory.js";
 import type { MusicRepository } from "./modules/music/music.repository.js";
 import { createMusicService } from "./modules/music/music.service.js";
+import { createInMemoryPlaylistRepository } from "./modules/playlist/playlist.repository.in-memory.js";
+import type { PlaylistRepository } from "./modules/playlist/playlist.repository.js";
+import { createPlaylistService } from "./modules/playlist/playlist.service.js";
 import { createInMemorySessionRepository } from "./modules/sessions/session.repository.in-memory.js";
 import { createSessionService } from "./modules/sessions/session.service.js";
 import { createInMemoryUserRepository } from "./modules/users/user.repository.in-memory.js";
@@ -42,6 +45,7 @@ export interface TestContainer extends Container {
   objectStorage: InMemoryObjectStorage;
   userRepository: UserRepository;
   musicRepository: MusicRepository;
+  playlistRepository: PlaylistRepository;
   githubClient: GitHubOAuthClient;
 }
 
@@ -64,13 +68,24 @@ export function createTestContainer(
   const musicRepository = createInMemoryMusicRepository();
   const musicService = createMusicService({ musicRepository, objectStorage });
 
+  const playlistRepository = createInMemoryPlaylistRepository({
+    resolveMusic: (id) => musicRepository.findById(id),
+  });
+  const playlistService = createPlaylistService({
+    playlistRepository,
+    musicRepository,
+    objectStorage,
+  });
+
   return {
     authService,
     sessionService,
     objectStorage,
     musicService,
+    playlistService,
     userRepository,
     musicRepository,
+    playlistRepository,
     githubClient,
   };
 }

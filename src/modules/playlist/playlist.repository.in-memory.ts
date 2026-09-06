@@ -9,9 +9,10 @@ import type {
 export interface InMemoryPlaylistRepositoryOptions {
   /**
    * Resolves a music id to a full row so `listMusics` can return `Music[]` in
-   * unit tests. Defaults to returning nothing (so `listMusics` yields `[]`).
+   * unit tests (async so it can be backed by an in-memory `MusicRepository`).
+   * Defaults to returning nothing (so `listMusics` yields `[]`).
    */
-  resolveMusic?: (id: string) => Music | undefined;
+  resolveMusic?: (id: string) => Promise<Music | null | undefined>;
 }
 
 /**
@@ -22,7 +23,8 @@ export interface InMemoryPlaylistRepositoryOptions {
 export function createInMemoryPlaylistRepository(
   options: InMemoryPlaylistRepositoryOptions = {},
 ): PlaylistRepository {
-  const resolveMusic = options.resolveMusic ?? (() => undefined);
+  const resolveMusic =
+    options.resolveMusic ?? (() => Promise.resolve(undefined));
 
   const playlistsById = new Map<string, Playlist>();
   const creationOrder: string[] = [];
@@ -88,10 +90,12 @@ export function createInMemoryPlaylistRepository(
     },
 
     async listMusics(playlistId) {
-      return links
-        .filter((l) => l.playlistId === playlistId)
-        .map((l) => resolveMusic(l.musicId))
-        .filter((m): m is Music => m !== undefined);
+      const resolved = await Promise.all(
+        links
+          .filter((l) => l.playlistId === playlistId)
+          .map((l) => resolveMusic(l.musicId)),
+      );
+      return resolved.filter((m): m is Music => m != null);
     },
   };
 }

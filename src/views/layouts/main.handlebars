@@ -70,12 +70,14 @@
       }
       .field { display: flex; flex-direction: column; gap: 0.35rem; }
       .field > span { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-      .field input {
+      .field input, .field select {
         width: 100%; padding: 0.6rem 0.7rem; border-radius: 8px;
         border: 1px solid var(--border); background: var(--bg); color: var(--fg);
         font: inherit;
       }
       .field input[type="file"] { padding: 0.5rem; }
+      .playlist-link { color: var(--fg); font-weight: 600; text-decoration: none; }
+      .playlist-link:hover { color: var(--accent); }
       .form .btn { justify-content: center; }
       .banner {
         padding: 0.6rem 0.9rem; border-radius: 8px; font-size: 0.9rem;

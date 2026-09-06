@@ -194,19 +194,26 @@ shared/collaborative playlists without a schema change.
       (for authz), `addMusic` (dedupe), `listMusics` (in add order).
       Integration-tested (5): OWNER membership, owner-scoped listing, add/dedupe/
       order, cascade.
-- [ ] **`PlaylistService`** — `createForUser`, `addMusic` (enforce the requester
-      is a member via `getMemberType`), `getWithMusics` (tracks + presigned URLs).
+- [x] **`PlaylistService`** — `createForUser`, `listForUser`, `addMusic` (enforces
+      the requester is a member via `getMemberType`; validates the music exists),
+      `getWithMusics` (tracks + presigned URLs). Typed domain errors
+      (`PlaylistNotFoundError`/`PlaylistForbiddenError`/`MusicNotFoundError`).
       Unit-tested with fakes.
-- [ ] **Controller + routes** — `POST /playlists` (create), `POST
-      /playlists/:id/musics` (add a music), all `requireAuth` + membership checks.
-- [ ] **UI** — create-playlist form + add-music-to-playlist flow.
+- [x] **Controller + routes** — `GET /playlists`, `GET /playlists/new`,
+      `POST /playlists`, `GET /playlists/:id`, `POST /playlists/:id/musics`; all
+      `requireAuth`, membership errors mapped to 403/404. Wired through the
+      composition root. Supertest-tested (incl. 403 non-member, 404 unknown, 400
+      missing name).
+- [x] **UI** — `playlist-new` (create form), `playlist-list` (owned playlists),
+      `playlist-detail` (tracks with players/thumbnails/genres + add-track picker).
+      Home links to "Your playlists". Boot smoke: `GET /playlists` anon → 302.
 
 ### 4. Playlist listing — only the current user's
 
-- [ ] **`GET /playlists`** — lists **only** playlists owned by the authenticated
-      user (`listByOwner(currentUser.id)`).
-- [ ] **UI** — a page listing the user's playlists (link into each playlist's
-      musics).
+- [x] **`GET /playlists`** — lists **only** playlists owned by the authenticated
+      user (`PlaylistService.listForUser` → `listByOwner(currentUser.id)`).
+      (Delivered with §3.)
+- [x] **UI** — `playlist-list` page linking into each playlist's detail. (§3.)
 
 ### 5. Player module (`src/modules/player/`)
 

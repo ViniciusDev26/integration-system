@@ -11,6 +11,8 @@ import type { AuthController } from "./modules/auth/auth.controller.types.js";
 import { createAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { MusicController } from "./modules/music/music.controller.types.js";
 import { createMusicRoutes } from "./modules/music/music.routes.js";
+import type { PlaylistController } from "./modules/playlist/playlist.controller.types.js";
+import { createPlaylistRoutes } from "./modules/playlist/playlist.routes.js";
 import type { WebController } from "./modules/web/web.controller.types.js";
 import { createWebRoutes } from "./modules/web/web.routes.js";
 
@@ -18,6 +20,7 @@ export interface AppOptions {
   authController: AuthController;
   webController: WebController;
   musicController: MusicController;
+  playlistController: PlaylistController;
   /** Route guard for authenticated endpoints (built from the container's authService). */
   requireAuth: RequestHandler;
 }
@@ -55,6 +58,10 @@ export function createApp(options: AppOptions): Express {
   app.use(
     "/musics",
     createMusicRoutes(options.musicController, options.requireAuth),
+  );
+  app.use(
+    "/playlists",
+    createPlaylistRoutes(options.playlistController, options.requireAuth),
   );
 
   return app;

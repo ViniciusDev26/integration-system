@@ -3,10 +3,12 @@ import { createContainer } from "./container.js";
 import { createAuthController } from "./modules/auth/auth.controller.js";
 import { createRequireAuth } from "./modules/auth/require-auth.js";
 import { createMusicController } from "./modules/music/music.controller.js";
+import { createPlaylistController } from "./modules/playlist/playlist.controller.js";
 import { createWebController } from "./modules/web/web.controller.js";
 import { env } from "./shared/env.js";
 
-const { authService, sessionService, musicService } = createContainer();
+const { authService, sessionService, musicService, playlistService } =
+  createContainer();
 
 const authController = createAuthController({
   authService,
@@ -16,6 +18,10 @@ const authController = createAuthController({
 
 const webController = createWebController({ authService });
 const musicController = createMusicController({ musicService });
+const playlistController = createPlaylistController({
+  playlistService,
+  musicService,
+});
 // Browser-facing guard (ADR 0030): redirect anonymous visitors to login.
 const requireAuth = createRequireAuth({
   authService,
@@ -26,6 +32,7 @@ const app = createApp({
   authController,
   webController,
   musicController,
+  playlistController,
   requireAuth,
 });
 
