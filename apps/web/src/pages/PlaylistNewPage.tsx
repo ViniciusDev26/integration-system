@@ -25,18 +25,22 @@ export function PlaylistNewPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-md space-y-4 rounded-lg bg-card p-6">
       <h1 className="text-xl font-bold">New playlist</h1>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-gray-500">Name</span>
+          <span className="text-sm font-semibold text-muted-foreground">
+            Name
+          </span>
           <input
-            className="w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-gray-600"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             placeholder="Road trip"
             {...register("name")}
           />
           {errors.name && (
-            <span className="text-xs text-red-500">{errors.name.message}</span>
+            <span className="text-xs text-destructive">
+              {errors.name.message}
+            </span>
           )}
         </label>
         <Button type="submit" disabled={isSubmitting}>

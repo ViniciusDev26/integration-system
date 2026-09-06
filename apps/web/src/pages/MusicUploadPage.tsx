@@ -28,7 +28,7 @@ async function putToR2(url: string, file: File): Promise<void> {
 }
 
 const fieldClass =
-  "w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-gray-600";
+  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
 
 export function MusicUploadPage() {
   const navigate = useNavigate();
@@ -87,19 +87,23 @@ export function MusicUploadPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-md space-y-4 rounded-lg bg-card p-6">
       <h1 className="text-xl font-bold">Upload a track</h1>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-gray-500">Name</span>
+          <span className="text-sm font-semibold text-muted-foreground">
+            Name
+          </span>
           <input className={fieldClass} {...register("name")} />
           {errors.name && (
-            <span className="text-xs text-red-500">{errors.name.message}</span>
+            <span className="text-xs text-destructive">
+              {errors.name.message}
+            </span>
           )}
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-gray-500">
+          <span className="text-sm font-semibold text-muted-foreground">
             Genres <small>(comma-separated)</small>
           </span>
           <input
@@ -108,14 +112,14 @@ export function MusicUploadPage() {
             {...register("genres")}
           />
           {errors.genres && (
-            <span className="text-xs text-red-500">
+            <span className="text-xs text-destructive">
               {errors.genres.message}
             </span>
           )}
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-gray-500">
+          <span className="text-sm font-semibold text-muted-foreground">
             Audio file
           </span>
           <input
@@ -125,12 +129,14 @@ export function MusicUploadPage() {
             {...register("file")}
           />
           {errors.file && (
-            <span className="text-xs text-red-500">{errors.file.message}</span>
+            <span className="text-xs text-destructive">
+              {errors.file.message}
+            </span>
           )}
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-gray-500">
+          <span className="text-sm font-semibold text-muted-foreground">
             Thumbnail <small>(optional)</small>
           </span>
           <input

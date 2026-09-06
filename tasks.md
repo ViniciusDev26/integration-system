@@ -258,6 +258,17 @@ React SPA so the audio player can persist across navigation.
       there). Survives navigation. **Queue panel** (☰): view upcoming tracks, jump
       to one, add (`/musics` "+ Queue") / remove. **Follow-up:** refresh expired
       presigned URLs (a `musics.playbackUrl` procedure) — deferred.
+- [x] **Spotify-style visual redesign** (ADRs 0012–0015): always-dark theme via
+      Tailwind v4 tokens (no light mode); left-`Sidebar` shell (nav + user menu)
+      replacing the top-nav header; `lucide-react` icons replacing emoji
+      everywhere; shadcn CLI actually adopted (`components.json`) with
+      `avatar`/`dropdown-menu`/`card`/`scroll-area`/`separator`/`badge` added.
+      All 7 pages, `Player`, and `Layout` restyled — no tRPC/Zustand logic
+      changes. Typecheck/lint/build green; `/login` visually confirmed
+      dark-themed via headless Chromium (no console errors beyond the expected
+      anonymous 401). **Not verified:** authenticated routes/sidebar/player under
+      a real session (no OAuth credentials available in this environment) — see
+      `memory.md` open questions.
 
 ### Later
 

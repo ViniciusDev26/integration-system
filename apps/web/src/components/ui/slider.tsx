@@ -15,12 +15,12 @@ export function Slider({
       )}
       {...props}
     >
-      <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-gray-500/30">
-        <SliderPrimitive.Range className="absolute h-full bg-[#1db954]" />
+      <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-muted">
+        <SliderPrimitive.Range className="absolute h-full bg-primary" />
       </SliderPrimitive.Track>
       <SliderPrimitive.Thumb
         aria-label="value"
-        className="block h-3 w-3 rounded-full bg-[#1db954] shadow transition-transform hover:scale-110 focus:outline-none"
+        className="block h-3 w-3 rounded-full bg-primary shadow transition-transform hover:scale-110 focus:outline-none"
       />
     </SliderPrimitive.Root>
   );

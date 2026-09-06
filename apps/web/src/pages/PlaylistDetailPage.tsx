@@ -1,3 +1,4 @@
+import { ChevronLeft, ListMusic, Play } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../api/trpc";
@@ -22,15 +23,15 @@ export function PlaylistDetailPage() {
   const [selected, setSelected] = useState("");
 
   if (playlist.isLoading) {
-    return <p className="text-gray-500">Loading…</p>;
+    return <p className="text-muted-foreground">Loading…</p>;
   }
   if (playlist.error?.data?.code === "FORBIDDEN") {
     return (
-      <p className="text-red-500">You are not a member of this playlist.</p>
+      <p className="text-destructive">You are not a member of this playlist.</p>
     );
   }
   if (playlist.error || playlist.data === undefined) {
-    return <p className="text-red-500">Playlist not found.</p>;
+    return <p className="text-destructive">Playlist not found.</p>;
   }
 
   const { playlist: details, musics } = playlist.data;
@@ -38,35 +39,53 @@ export function PlaylistDetailPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link to="/playlists" className="text-sm text-gray-500 hover:underline">
-          ← Your playlists
+        <Link
+          to="/playlists"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Your playlists
         </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">{details.name}</h1>
-            <p className="text-sm text-gray-500">{musics.length} track(s)</p>
+        <div className="flex items-center gap-6 pt-3">
+          <div className="grid h-32 w-32 shrink-0 place-items-center rounded bg-gradient-to-br from-secondary to-muted">
+            <ListMusic className="h-12 w-12 text-muted-foreground" />
           </div>
-          <Button
-            onClick={() => playQueue(musics, 0)}
-            disabled={musics.length === 0}
-          >
-            ▶ Play
-          </Button>
+          <div className="flex flex-1 items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">{details.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {musics.length} track(s)
+              </p>
+            </div>
+            <Button
+              size="icon-lg"
+              className="rounded-full"
+              onClick={() => playQueue(musics, 0)}
+              disabled={musics.length === 0}
+              aria-label="Play playlist"
+            >
+              <Play className="h-5 w-5" fill="currentColor" />
+            </Button>
+          </div>
         </div>
       </div>
 
       {musics.length === 0 ? (
-        <p className="text-gray-500">No tracks yet — add one below.</p>
+        <p className="text-muted-foreground">No tracks yet — add one below.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {musics.map((track, i) => (
             <li
               key={track.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-500/20 p-3"
+              className="flex items-center gap-3 rounded-md p-2 hover:bg-secondary"
             >
+              <span className="w-6 text-right text-sm text-muted-foreground">
+                {i + 1}
+              </span>
               <div className="min-w-0 flex-1 font-semibold">{track.name}</div>
               <Button variant="secondary" onClick={() => playQueue(musics, i)}>
-                ▶ Play
+                <Play className="h-4 w-4" fill="currentColor" />
+                Play
               </Button>
             </li>
           ))}
@@ -83,11 +102,11 @@ export function PlaylistDetailPage() {
         }}
       >
         <label className="flex flex-1 flex-col gap-1">
-          <span className="text-sm font-semibold text-gray-500">
+          <span className="text-sm font-semibold text-muted-foreground">
             Add a track
           </span>
           <select
-            className="w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-gray-600"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
           >

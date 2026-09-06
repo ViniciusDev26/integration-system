@@ -1,5 +1,19 @@
+import {
+  ListMusic,
+  Music,
+  Pause,
+  Play,
+  Repeat,
+  Repeat1,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "../../store/player";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Slider } from "../ui/slider";
 
 function formatTime(seconds: number): string {
@@ -11,10 +25,10 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const REPEAT_LABEL: Record<string, { icon: string; active: boolean }> = {
-  off: { icon: "🔁", active: false },
-  all: { icon: "🔁", active: true },
-  one: { icon: "🔂", active: true },
+const REPEAT_ICON: Record<string, { icon: typeof Repeat; active: boolean }> = {
+  off: { icon: Repeat, active: false },
+  all: { icon: Repeat, active: true },
+  one: { icon: Repeat1, active: true },
 };
 
 /**
@@ -105,10 +119,12 @@ export function Player() {
     setCurrentTime(value);
   }
 
-  const repeatUi = REPEAT_LABEL[repeat] ?? REPEAT_LABEL.off;
+  const RepeatIcon = (REPEAT_ICON[repeat] ?? REPEAT_ICON.off).icon;
+  const repeatActive = (REPEAT_ICON[repeat] ?? REPEAT_ICON.off).active;
+  const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 border-t border-gray-500/20 bg-white/95 backdrop-blur dark:bg-[#0d1117]/95">
+    <div className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 backdrop-blur">
       {/* biome-ignore lint/a11y/useMediaCaption: user-uploaded audio has no captions */}
       <audio
         ref={audioRef}
@@ -118,19 +134,19 @@ export function Player() {
       />
 
       {showQueue && (
-        <div className="mx-auto max-h-64 max-w-5xl overflow-auto border-b border-gray-500/20 px-6 py-2">
-          <div className="mb-1 text-xs font-semibold text-gray-500 uppercase">
+        <div className="mx-auto max-h-64 max-w-5xl overflow-auto border-b border-border px-6 py-2">
+          <div className="mb-1 text-xs font-semibold text-muted-foreground uppercase">
             Queue ({queue.length})
           </div>
           {queue.length === 0 ? (
-            <p className="text-sm text-gray-500">Queue is empty.</p>
+            <p className="text-sm text-muted-foreground">Queue is empty.</p>
           ) : (
             <ul className="space-y-1">
               {queue.map((track, i) => (
                 <li
                   key={track.id}
                   className={`flex items-center gap-2 rounded px-2 py-1 ${
-                    i === index ? "bg-[#1db954]/10" : ""
+                    i === index ? "bg-primary/10" : ""
                   }`}
                 >
                   <button
@@ -145,9 +161,9 @@ export function Player() {
                     type="button"
                     onClick={() => removeFromQueue(i)}
                     aria-label={`Remove ${track.name} from queue`}
-                    className="text-gray-500 hover:text-red-500"
+                    className="text-muted-foreground hover:text-destructive"
                   >
-                    ✕
+                    <X className="h-4 w-4" />
                   </button>
                 </li>
               ))}
@@ -158,55 +174,68 @@ export function Player() {
 
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          {current.thumbnailUrl ? (
-            <img
-              src={current.thumbnailUrl}
+          <Avatar className="h-12 w-12 rounded" size="lg">
+            <AvatarImage
+              src={current.thumbnailUrl ?? undefined}
               alt=""
-              className="h-12 w-12 rounded object-cover"
+              className="rounded"
             />
-          ) : (
-            <div className="grid h-12 w-12 place-items-center rounded bg-gray-500/10">
-              🎵
-            </div>
-          )}
+            <AvatarFallback className="rounded bg-muted">
+              <Music className="h-5 w-5 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0">
             <div className="truncate font-semibold">{current.name}</div>
-            <div className="truncate text-xs text-gray-500 uppercase">
+            <div className="truncate text-xs text-muted-foreground uppercase">
               {current.genres.join(" · ")}
             </div>
           </div>
         </div>
 
         <div className="flex flex-[2] flex-col items-center gap-1">
-          <div className="flex items-center gap-4 text-lg">
+          <div className="flex items-center gap-5">
             <button
               type="button"
               onClick={handlePrevious}
               aria-label="Previous"
+              className="text-muted-foreground hover:text-foreground"
             >
-              ⏮️
+              <SkipBack className="h-4 w-4" fill="currentColor" />
             </button>
             <button
               type="button"
               onClick={toggle}
               aria-label={isPlaying ? "Pause" : "Play"}
-              className="text-2xl"
+              className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-background transition hover:scale-105"
             >
-              {isPlaying ? "⏸️" : "▶️"}
+              {isPlaying ? (
+                <Pause className="h-4 w-4" fill="currentColor" />
+              ) : (
+                <Play className="h-4 w-4 translate-x-px" fill="currentColor" />
+              )}
             </button>
-            <button type="button" onClick={next} aria-label="Next">
-              ⏭️
+            <button
+              type="button"
+              onClick={next}
+              aria-label="Next"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <SkipForward className="h-4 w-4" fill="currentColor" />
             </button>
             <button
               type="button"
               onClick={cycleRepeat}
               aria-label={`Repeat: ${repeat}`}
-              className={repeatUi?.active ? "opacity-100" : "opacity-40"}
+              className={
+                repeatActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
             >
-              {repeatUi?.icon}
+              <RepeatIcon className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex w-full items-center gap-2 text-xs text-gray-500">
+          <div className="flex w-full items-center gap-2 text-xs text-muted-foreground">
             <span className="w-9 text-right tabular-nums">
               {formatTime(currentTime)}
             </span>
@@ -227,11 +256,18 @@ export function Player() {
             type="button"
             onClick={() => setShowQueue((v) => !v)}
             aria-label="Toggle queue"
-            className={`text-lg ${showQueue ? "opacity-100" : "opacity-60"}`}
+            className={
+              showQueue
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }
           >
-            ☰
+            <ListMusic className="h-4 w-4" />
           </button>
-          <span aria-hidden="true">🔊</span>
+          <VolumeIcon
+            className="h-4 w-4 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Slider
             className="w-24"
             min={0}

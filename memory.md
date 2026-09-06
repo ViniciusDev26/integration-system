@@ -53,6 +53,14 @@ Pending work is tracked in [`tasks.md`](tasks.md).
   shadcn/Radix Slider, repeat off/all/one). Playback **only via the player** (no
   inline audio). **Open follow-up:** presigned playback URLs expire (~1h) — add a
   `musics.playbackUrl` procedure to refresh on demand.
+- **Spotify-style visual redesign done** (2026-09-06, ADRs 0012–0015): always-dark
+  theme via Tailwind v4 tokens, a left-`Sidebar` shell replacing the old top-nav,
+  `lucide-react` icons replacing emoji everywhere, and the shadcn CLI actually
+  adopted (`components.json`) with `avatar`/`dropdown-menu`/`card`/`scroll-area`/
+  `separator`/`badge` added. All 7 pages + `Player`/`Layout` restyled on top of the
+  existing tRPC/Zustand data flow (no logic changes). Verified: `typecheck`,
+  `lint`, `build` all pass; `/login` visually confirmed dark-themed via a headless
+  Chromium screenshot (no console errors beyond the expected anonymous 401).
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
   (playlists) still needs applying** before playlists work against a live DB.
 
@@ -90,6 +98,13 @@ this seam cheap) and supersede ADR 0018 with a new architecture ADR. Tracked in
 
 ## Open questions / follow-ups
 
+- **Redesign not manually verified against a real authenticated session** — the
+  headless-browser check only covered `/login` (no GitHub OAuth credentials
+  available in this environment to reach the sidebar/authenticated pages). A
+  human pass through `/`, `/musics`, `/playlists/:id`, and the player controls
+  while logged in is recommended before considering the redesign fully done.
+- Sidebar has **no responsive/mobile layout** — fixed `w-60`, no collapse below
+  narrow viewports (ADR 0013 notes this as deliberately out of scope for now).
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - Validate the GitHub callback `iss` param (RFC 9207) instead of stripping it.
 - Docker **container build not re-validated** after the monorepo change — a

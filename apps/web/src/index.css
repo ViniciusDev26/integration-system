@@ -1,20 +1,82 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Single always-dark palette (ADR 0012) — no light theme, no `.dark` class
+ * variable swap. `<html class="dark">` (index.html) keeps any `dark:`-prefixed
+ * utility refinements inside generated shadcn/Radix components active; the
+ * variables below don't change based on that class, there's only one set.
+ */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
+  --background: #121212;
+  --foreground: #ffffff;
+  --card: #181818;
+  --card-foreground: #ffffff;
+  --popover: #181818;
+  --popover-foreground: #ffffff;
+  --primary: #1db954;
+  --primary-foreground: #000000;
+  --secondary: #282828;
+  --secondary-foreground: #ffffff;
+  --muted: #282828;
+  --muted-foreground: #b3b3b3;
+  --accent: #282828;
+  --accent-foreground: #ffffff;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #1db954;
+  --radius: 0.625rem;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: #f6f7f9;
-  color: #1a1a1a;
 }
 
-@media (prefers-color-scheme: dark) {
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
   body {
-    background: #0d1117;
-    color: #e6edf3;
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }

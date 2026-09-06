@@ -1,3 +1,4 @@
+import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -8,6 +9,11 @@ const API_TARGET = "http://localhost:3000";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+    },
+  },
   server: {
     proxy: {
       "/trpc": { target: API_TARGET, changeOrigin: true },
