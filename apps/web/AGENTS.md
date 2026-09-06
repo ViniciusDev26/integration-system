@@ -7,9 +7,8 @@ dependency policy, and the definition of done are repo-wide and apply here too.
 ## What this app is
 
 A **Vite + React + TypeScript** SPA (ADR 0001) that consumes the API (`apps/api`)
-over **tRPC** and hosts a persistent, cross-page audio player. The code is still
-the trimmed Vite scaffold — the stack below is **decided** (ADRs) but mostly not
-implemented yet; add each dependency in the same change as its first use.
+over **tRPC** and will host a persistent, cross-page audio player. The foundation
++ screens are implemented (see below); the player is the remaining piece.
 
 ## Stack (decided — see [`docs/adrs/`](./docs/adrs/))
 
@@ -27,10 +26,14 @@ implemented yet; add each dependency in the same change as its first use.
   `/auth`); no SSR. Identity via `auth.me`; login via `auth.startLogin` (navigate
   to the returned GitHub URL); the OAuth callback is REST at
   `/auth/github/callback` (0007).
+- **Routing:** React Router (0009) — a persistent layout route (`<Outlet/>`) +
+  child routes; the shell is where the player will live.
 - **Uploads:** presigned direct-to-R2 (api ADR 0038) — `musics.prepareUpload` →
   `PUT` to the URL → `musics.create`.
 
-Introduce anything beyond these (routing lib, testing setup) only with a new ADR.
+Structure: `src/api/` (tRPC client + Providers), `src/pages/` (routed screens),
+`src/components/` (Layout + `ui/`), `src/hooks/`, `src/lib/`. Introduce anything
+new (e.g. a testing setup) only with a new ADR.
 
 ## Conventions in force now
 

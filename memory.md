@@ -42,10 +42,14 @@ Pending work is tracked in [`tasks.md`](tasks.md).
 - **SSR removed** (ADR 0030 superseded by 0036) and **multer removed** (0032
   superseded by 0038): no `web` module / Handlebars / `requireAuth` middleware.
   The app serves `apps/web/dist` same-origin (guarded — inert until built).
-- **`apps/web`** is the trimmed Vite React+TS scaffold; front-end stack decided
-  (`apps/web/docs/adrs/` 0001–0008: tRPC client + TanStack Query).
-- **Next:** build the `apps/web` SPA — `src/api/` tRPC client importing
-  `AppRouter`, screens, and the persistent player (see `tasks.md` §5).
+- **`apps/web` SPA is built** (Fase 2): Vite + React + TS, Tailwind v4, React
+  Router (ADR 0009), tRPC client + TanStack Query (`src/api/`, importing
+  `AppRouter` from `@integration-system/api/trpc`, `credentials: "include"`), forms
+  with react-hook-form + Zod. Screens: home/login, musics list, upload (presigned
+  direct-to-R2), playlists list/new/detail. The API serves `apps/web/dist`
+  same-origin (verified: `/` + deep links 200, `/trpc/auth.me` anon → 401).
+- **Next:** the **persistent audio player** (plan with the user) — Zustand store
+  (ADR 0005) + a component in the app shell that survives navigation.
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
   (playlists) still needs applying** before playlists work against a live DB.
 

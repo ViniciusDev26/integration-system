@@ -10,11 +10,12 @@ Front-end decisions for `apps/web` (the Vite SPA).
 - [0006](./0006-api-client-axios-isolated.md) — Backend access via axios in an isolated API client *(superseded by 0008)*
 - [0007](./0007-auth-httponly-cookie-same-origin.md) — httpOnly session cookie, SPA served same-origin (no SSR)
 - [0008](./0008-trpc-client-and-tanstack-query.md) — Backend access via the tRPC client + TanStack Query
+- [0009](./0009-react-router.md) — Client-side routing with React Router
 
 Repo-wide decisions live in [`/docs/adrs`](../../../../docs/adrs/) (monorepo,
-shared Biome config). These records capture *decisions already made*; most are not
-yet implemented in code — implementation follows (adding each dependency happens
-in the same change as its use, per the root `AGENTS.md` dependency rule).
+shared Biome config). The SPA foundation + screens are implemented (tRPC client,
+React Query, router, Tailwind, forms); shadcn components are added incrementally
+as needed (Tailwind + `cn` in place).
 
 ## Conventions
 

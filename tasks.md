@@ -239,16 +239,20 @@ React SPA so the audio player can persist across navigation.
       `ObjectStorage.getUploadUrl`. **SSR removed** (ADR 0036, supersedes 0030):
       no `web` module / Handlebars / `requireAuth`. OAuth stays REST at `/auth/*`;
       guarded same-origin serving of `apps/web/dist`. Tests via `createCaller`.
-- [ ] **Web foundation:** Tailwind + shadcn/ui init; `src/api/` tRPC client
-      (`@trpc/client` + `@trpc/react-query`, `httpBatchLink` → `/trpc`,
-      `credentials: "include"`) importing `AppRouter`; Zustand store; routing; auth
-      via `auth.me`, login via `auth.startLogin` (navigate to the returned URL),
-      callback at `/auth/github/callback`. Vite dev proxy `/trpc` + `/auth` → API.
-- [ ] **Screens:** login, musics list + upload (prepareUpload → PUT to R2 →
-      create; react-hook-form), playlists list/detail + create/add.
-- [ ] **Persistent player:** Zustand player store + a player component in the app
-      shell (survives route changes); play a track, then a playlist/queue
-      (play/pause, next/previous, seek), streaming presigned URLs (API ADR 0031).
+- [x] **Web foundation:** Tailwind (v4) + `cn` (shadcn-style); `src/api/` tRPC
+      client (`@trpc/client` + `@trpc/react-query`, `httpBatchLink` → `/trpc`,
+      `credentials: "include"`) importing `AppRouter`; TanStack Query provider;
+      React Router (ADR 0009) with a persistent layout; `useAuth` (`auth.me`),
+      login via `auth.startLogin` → navigate, logout via `auth.logout`. Vite dev
+      proxy `/trpc` + `/auth` → API. (shadcn components added as needed.)
+- [x] **Screens:** home/login, musics list (players + thumbnails + genres), upload
+      (react-hook-form + Zod; prepareUpload → PUT to R2 → create), playlists list,
+      playlist new, playlist detail (tracks + add-track). Typecheck/lint/build
+      green; boot smoke: SPA served same-origin, deep links, `/trpc` 401 anon.
+- [ ] **Persistent player** (plan with the user): a player component in the app
+      shell (survives route changes) backed by a **Zustand** store (ADR 0005);
+      play a track, then a playlist/queue (play/pause, next/previous, seek),
+      streaming presigned URLs (API ADR 0031).
 
 ### Later
 
