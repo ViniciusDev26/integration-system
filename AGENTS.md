@@ -65,13 +65,17 @@ This repo is a **Turborepo + npm-workspaces monorepo** (see `docs/adrs/0001`):
 
 ## 3. How documentation should be maintained
 
-The project has three documentation surfaces, each with a distinct role:
+The project has these documentation surfaces, each with a distinct role. In the
+monorepo, architecture + ADRs are **per app** (the API's live under `apps/api/`);
+repo-wide ADRs and the working memory stay at the root:
 
-| File / dir              | Role                                                        | Stability |
-| ----------------------- | ----------------------------------------------------------- | --------- |
-| `docs/architecture.md`  | How the system is structured, as it emerges                 | Stable    |
-| `docs/adrs/`            | Records of individual significant decisions                 | Immutable once accepted |
-| `memory.md`             | Evolving working memory: state, discoveries, open questions | Volatile  |
+| File / dir                      | Role                                                        | Stability |
+| ------------------------------- | ----------------------------------------------------------- | --------- |
+| `apps/<app>/docs/architecture.md` | How that app is structured, as it emerges                 | Stable    |
+| `apps/<app>/docs/adrs/`         | App-specific decisions (e.g. the API's 0001–00NN)           | Immutable once accepted |
+| `docs/adrs/` (root)             | Repo-wide decisions (monorepo, tooling)                     | Immutable once accepted |
+| `memory.md` (root)              | Evolving working memory: state, discoveries, open questions | Volatile  |
+| `AGENTS.md` per app             | App-specific operating notes (this file is repo-wide)       | Stable    |
 
 Rules:
 
@@ -196,8 +200,11 @@ proper place (architecture doc or ADR) and remove it from `memory.md`. Keep
 
 ## 8. Project rules (technology-specific)
 
-These rules apply now that the stack has been decided. They are backed by ADRs
-in `docs/adrs/` — consult the ADR for the full reasoning.
+These rules apply to the **API app** (`apps/api`) now that its stack is decided.
+They are backed by ADRs in `apps/api/docs/adrs/` — consult the ADR for the full
+reasoning. (The web app is a fresh Vite scaffold; its conventions/ADRs are
+pending — see `apps/web/AGENTS.md`.) The general discipline in §§1–7 and §9 is
+repo-wide.
 
 ### Type safety (ADR 0009) — mandatory
 
@@ -247,8 +254,10 @@ then refactor under the green suite.
 
 ### Commands (verification)
 
-Run these from the repo root. §9 requires the checks to pass before a task is
-done — these are the exact commands.
+Run these from the repo root — they fan out across the workspace via Turbo
+(§1b). To target one app, append `-w @integration-system/api` (or `/web`), e.g.
+`npm run test -w @integration-system/api`. App-only commands (`start`, `db:*`)
+run against `apps/api`. §9 requires the checks to pass before a task is done.
 
 | Purpose            | Command             |
 | ------------------ | ------------------- |
