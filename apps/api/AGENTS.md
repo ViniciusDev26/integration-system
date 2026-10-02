@@ -28,8 +28,8 @@ wired in a manual composition root (`src/container.ts`); the tRPC layer is in
   publish, and map outcomes to typed errors. The test is *"can it be decided
   from the data in hand plus a timestamp, without awaiting anything?"* — if yes
   it is domain. Modules without such a rule (`media/`, `users/`) stay flat; an
-  empty domain layer is worse than none. Done: `invite/`. Reference for the
-  shape: `room/room.playback.ts`.
+  empty domain layer is worse than none. Done: `invite/`, `room/`. The clearest
+  example of the shape is `room/domain/room.playback.ts`.
 - Decisions: [`docs/adrs/`](./docs/adrs/) (0001–00NN). Architecture:
   [`docs/architecture.md`](./docs/architecture.md).
 - DB migrations: `drizzle/` (schema in `src/shared/db/schema/`).

@@ -14,13 +14,13 @@ import { createPlaylistResourceMembership } from "./modules/playlist/playlist.re
 import { createPostgresPlaylistRepository } from "./modules/playlist/repository/playlist.repository.postgres.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
 import type { PlaylistService } from "./modules/playlist/service/playlist.service.types.js";
+import { createRoomService } from "./modules/room/application/room.service.js";
+import type { RoomService } from "./modules/room/application/room.service.types.js";
 import { createPostgresRoomRepository } from "./modules/room/repository/room.repository.postgres.js";
 import type { RoomMessageSummary } from "./modules/room/repository/room-message.repository.js";
 import { createPostgresRoomMessageRepository } from "./modules/room/repository/room-message.repository.postgres.js";
 import type { RoomEvent } from "./modules/room/room.events.js";
 import { createRoomResourceMembership } from "./modules/room/room.resource-membership.js";
-import { createRoomService } from "./modules/room/service/room.service.js";
-import type { RoomService } from "./modules/room/service/room.service.types.js";
 import { createPostgresSessionRepository } from "./modules/sessions/repository/session.repository.postgres.js";
 import { createSessionService } from "./modules/sessions/service/session.service.js";
 import type { SessionService } from "./modules/sessions/service/session.service.types.js";

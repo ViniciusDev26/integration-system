@@ -6,8 +6,8 @@ import { createMusicRouter } from "../modules/music/music.router.js";
 import type { MusicService } from "../modules/music/service/music.service.types.js";
 import { createPlaylistRouter } from "../modules/playlist/playlist.router.js";
 import type { PlaylistService } from "../modules/playlist/service/playlist.service.types.js";
+import type { RoomService } from "../modules/room/application/room.service.types.js";
 import { createRoomRouter } from "../modules/room/room.router.js";
-import type { RoomService } from "../modules/room/service/room.service.types.js";
 import type { SessionService } from "../modules/sessions/service/session.service.types.js";
 import { router } from "./trpc.js";
 

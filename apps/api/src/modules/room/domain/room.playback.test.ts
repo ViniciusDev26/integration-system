@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PlaybackAnchor } from "../../shared/db/schema/rooms.js";
+import type { PlaybackAnchor } from "../../../shared/db/schema/rooms.js";
 import { applyPlaybackCommand, livePositionMs } from "./room.playback.js";
 
 const T0 = new Date("2026-10-02T12:00:00.000Z");

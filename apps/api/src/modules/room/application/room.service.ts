@@ -3,10 +3,11 @@ import {
   mediaCoverPath,
   mediaPlaybackPath,
 } from "../../media/media.constants.js";
+import { applyPlaybackCommand } from "../domain/room.playback.js";
+import { validateCommandAgainstQueue } from "../domain/room.queue.js";
 import type { RoomMessageSummary } from "../repository/room-message.repository.js";
 import type { RoomEvent } from "../room.events.js";
 import { roomChatTopic, roomTopic } from "../room.events.js";
-import { applyPlaybackCommand } from "../room.playback.js";
 import {
   DEFAULT_HISTORY_LIMIT,
   MAX_BACKFILL,
@@ -115,11 +116,15 @@ export function createRoomService(options: RoomServiceOptions): RoomService {
     async commandPlayback({ roomId, requesterId, command }) {
       const room = await requireMembership(roomId, requesterId);
 
-      // Picking a track only makes sense for one that is actually queued —
-      // otherwise a client could point the room at anything in the catalogue.
+      // Only a command that names a track needs the queue loaded — deciding
+      // *whether to fetch* is orchestration; judging the result is the domain's.
       if (command.type === "SELECT_TRACK") {
         const queued = await roomRepository.listMusics(roomId);
-        if (!queued.some((track) => track.id === command.musicId)) {
+        const validity = validateCommandAgainstQueue(
+          queued.map((track) => track.id),
+          command,
+        );
+        if (validity === "not-queued") {
           throw new RoomMusicNotFoundError(command.musicId);
         }
       }

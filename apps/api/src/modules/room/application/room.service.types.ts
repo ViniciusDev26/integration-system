@@ -4,6 +4,7 @@ import type { RoomRegistry } from "../../../shared/realtime/room-registry.js";
 import type { ObjectStorage } from "../../../shared/storage/object-storage.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import type { MusicListItem } from "../../music/service/music.service.types.js";
+import type { PlaybackCommand } from "../domain/room.playback.js";
 import type {
   RoomMemberSummary,
   RoomRepository,
@@ -17,7 +18,6 @@ import type {
   RoomEvent,
   RoomEventBus,
 } from "../room.events.js";
-import type { PlaybackCommand } from "../room.playback.js";
 
 export interface CreateRoomForUserInput {
   name: string;

@@ -1,4 +1,4 @@
-import type { PlaybackAnchor } from "../../shared/db/schema/rooms.js";
+import type { PlaybackAnchor } from "../../../shared/db/schema/rooms.js";
 
 /**
  * What someone asked the room's playback to do. Deliberately coarse — these are

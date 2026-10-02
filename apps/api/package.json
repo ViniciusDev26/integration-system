@@ -6,7 +6,7 @@
   "type": "module",
   "exports": {
     "./trpc": "./src/trpc/router.ts",
-    "./playback": "./src/modules/room/room.playback.ts"
+    "./playback": "./src/modules/room/domain/room.playback.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

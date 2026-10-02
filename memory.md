@@ -184,13 +184,15 @@ code is which.
 
 - The test: *can it be decided from the data in hand plus a timestamp, without
   awaiting anything?* Yes → `domain/`.
-- **Done:** `invite/` (`domain/invite.ts` — redeemability, expiry, revocation;
-  the service now only translates outcomes to errors). Its domain tests use no
-  fakes, which is the signal.
-- **Reference shape:** `room/room.playback.ts` was already a pure domain module
-  before it was called one.
-- **Next, cheapest:** `room/` needs only the folder move. Then playlist/room
-  membership rules (OWNER cannot be demoted) and the auth linking rule.
+- **Done:** `invite/` (`domain/invite.ts` — redeemability, expiry, revocation)
+  and `room/` (`domain/room.playback.ts` — the anchor rules, moved from the
+  module root; `domain/room.queue.ts` — "a room plays from its own queue").
+  Both services became `application/` and now translate outcomes to errors
+  instead of deciding. Domain tests use no fakes, which is the signal.
+- **Note:** the `@integration-system/api/playback` package export (the web
+  imports `livePositionMs` from it) points at the new `room/domain/` path.
+- **Next:** playlist/room membership rules (OWNER cannot be demoted) and the
+  asymmetric account-linking rule from ADR 0043.
 - **Deliberately excluded:** `media/`, `users/`, `sessions/` — guards, not
   invariants. An empty domain layer is worse than none.
 

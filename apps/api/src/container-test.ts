@@ -18,12 +18,12 @@ import { createPlaylistResourceMembership } from "./modules/playlist/playlist.re
 import { createInMemoryPlaylistRepository } from "./modules/playlist/repository/playlist.repository.in-memory.js";
 import type { PlaylistRepository } from "./modules/playlist/repository/playlist.repository.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
+import { createRoomService } from "./modules/room/application/room.service.js";
 import { createInMemoryRoomRepository } from "./modules/room/repository/room.repository.in-memory.js";
 import { createInMemoryRoomMessageRepository } from "./modules/room/repository/room-message.repository.in-memory.js";
 import type { RoomMessageSummary } from "./modules/room/repository/room-message.repository.js";
 import type { RoomEvent } from "./modules/room/room.events.js";
 import { createRoomResourceMembership } from "./modules/room/room.resource-membership.js";
-import { createRoomService } from "./modules/room/service/room.service.js";
 import { createInMemorySessionRepository } from "./modules/sessions/repository/session.repository.in-memory.js";
 import { createSessionService } from "./modules/sessions/service/session.service.js";
 import { createInMemoryUserRepository } from "./modules/users/user.repository.in-memory.js";

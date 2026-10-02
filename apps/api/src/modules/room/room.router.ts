@@ -2,14 +2,14 @@ import { TRPCError, tracked } from "@trpc/server";
 import { z } from "zod";
 import { MESSAGE_MAX_LENGTH } from "../../shared/db/schema/room-messages.js";
 import { protectedProcedure, router } from "../../trpc/trpc.js";
-import type { RoomMessageSummary } from "./repository/room-message.repository.js";
-import type { RoomEvent } from "./room.events.js";
 import {
   RoomForbiddenError,
   RoomMusicNotFoundError,
   RoomNotFoundError,
-} from "./service/room.service.errors.js";
-import type { RoomService } from "./service/room.service.types.js";
+} from "./application/room.service.errors.js";
+import type { RoomService } from "./application/room.service.types.js";
+import type { RoomMessageSummary } from "./repository/room-message.repository.js";
+import type { RoomEvent } from "./room.events.js";
 
 /** Maps a {@link RoomService} domain error to a tRPC error, else rethrows. */
 function rethrowAsTRPC(err: unknown): never {
