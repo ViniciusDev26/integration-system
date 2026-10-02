@@ -176,13 +176,23 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
 
 ## DDD migration plan (intent)
 
-The user wants to practice **DDD** on this project. Agreed plan: keep the
-pragmatic feature-modular/layered architecture (ADR 0018) while the domain is
-CRUD-ish; when **playlists** gain real invariants (shared/collaborative), revisit
-and migrate toward **hexagonal + DDD** per module (repository ports already make
-this seam cheap) and supersede ADR 0018 with a new architecture ADR. Tracked in
-`tasks.md` → "Later"; the trigger is the AV3 epic in [`roadmap.md`](roadmap.md)
-(shared playlists and rooms).
+**The trigger fired and the first step is done (2026-10-02).** AV3 gave the
+domain real invariants, so **ADR 0046** now splits `domain/` from `application/`
+inside a module that has them. It **extends** ADR 0018 rather than superseding
+it — vertical slices stay; what changes is that such a module says which of its
+code is which.
+
+- The test: *can it be decided from the data in hand plus a timestamp, without
+  awaiting anything?* Yes → `domain/`.
+- **Done:** `invite/` (`domain/invite.ts` — redeemability, expiry, revocation;
+  the service now only translates outcomes to errors). Its domain tests use no
+  fakes, which is the signal.
+- **Reference shape:** `room/room.playback.ts` was already a pure domain module
+  before it was called one.
+- **Next, cheapest:** `room/` needs only the folder move. Then playlist/room
+  membership rules (OWNER cannot be demoted) and the auth linking rule.
+- **Deliberately excluded:** `media/`, `users/`, `sessions/` — guards, not
+  invariants. An empty domain layer is worse than none.
 
 ## Important discoveries (still operationally relevant)
 

@@ -21,6 +21,15 @@ wired in a manual composition root (`src/container.ts`); the tRPC layer is in
 - Code: `src/` (modules in `src/modules/`, shared in `src/shared/`). Modules with
   more than one concern group files into responsibility sub-modules — `oauth/`,
   `service/`, `repository/`, `http/` (ADR 0018).
+- **A module with real invariants splits `domain/` from `application/`**
+  (ADR 0046). `domain/` is pure: no `await` on a port, no framework or ORM
+  types, and `now` arrives as an argument — so its tests use no fakes at all.
+  `application/` orchestrates: load through ports, ask the domain, write,
+  publish, and map outcomes to typed errors. The test is *"can it be decided
+  from the data in hand plus a timestamp, without awaiting anything?"* — if yes
+  it is domain. Modules without such a rule (`media/`, `users/`) stay flat; an
+  empty domain layer is worse than none. Done: `invite/`. Reference for the
+  shape: `room/room.playback.ts`.
 - Decisions: [`docs/adrs/`](./docs/adrs/) (0001–00NN). Architecture:
   [`docs/architecture.md`](./docs/architecture.md).
 - DB migrations: `drizzle/` (schema in `src/shared/db/schema/`).

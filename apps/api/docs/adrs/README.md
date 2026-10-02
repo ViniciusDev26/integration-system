@@ -33,7 +33,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0015](./0015-testcontainers-repository-integration-tests.md) | Use Testcontainers for repository-layer integration tests | Accepted |
 | [0016](./0016-session-httponly-cookie-auth.md) | Use server-side sessions with an httpOnly cookie (not JWT) | Accepted |
 | [0017](./0017-esm-module-system.md) | Use ESM as the module system | Accepted |
-| [0018](./0018-feature-modular-architecture.md) | Feature-modular (vertical slice) layered architecture | Accepted |
+| [0018](./0018-feature-modular-architecture.md) | Feature-modular (vertical slice) layered architecture | Accepted, extended by [0046](./0046-domain-and-application-layers-inside-a-module.md) |
 | [0019](./0019-sessions-persisted-in-postgresql.md) | Persist server-side sessions in PostgreSQL | Accepted |
 | [0020](./0020-manual-github-oauth.md) | Implement GitHub OAuth manually (fetch + Zod), no auth library | Accepted |
 | [0021](./0021-docker-compose-local-database.md) | Run the local database with Docker Compose | Accepted |
@@ -61,6 +61,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0043](./0043-email-password-authentication-with-argon2id.md) | Email/password authentication, hashed with argon2id | Accepted |
 | [0044](./0044-room-chat-with-durable-replay.md) | Room chat, with durable replay | Accepted |
 | [0045](./0045-media-redirect-endpoint-for-playback-urls.md) | A media redirect endpoint, instead of presigned URLs that expire | Accepted |
+| [0046](./0046-domain-and-application-layers-inside-a-module.md) | Domain and application layers inside a module | Accepted |
 
 ## Conventions
 

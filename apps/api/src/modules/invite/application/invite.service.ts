@@ -1,5 +1,10 @@
 import { randomBytes } from "node:crypto";
 import type { Invite } from "../../../shared/db/schema/invites.js";
+import {
+  expiresAtFrom,
+  redeemabilityOf,
+  revocationFor,
+} from "../domain/invite.js";
 import type { ResourceMembership } from "../resource-membership.js";
 import {
   DEFAULT_INVITE_TTL_MS,
@@ -18,10 +23,16 @@ import type {
 } from "./invite.service.types.js";
 
 /**
- * Invite links (ADR 0040). Every authorization question and every membership
- * write is delegated to the {@link ResourceMembership} adapter registered for
- * the invite's resource type, which is what keeps this service from knowing
- * whether it is inviting to a playlist or a room.
+ * Invite links (ADR 0040) — the **application** layer (ADR 0046).
+ *
+ * What is left here is orchestration: load through ports, ask the domain, write,
+ * and turn an outcome into a typed error. The rules themselves — when an invite
+ * can still be redeemed, what its expiry is, whether revoking does anything —
+ * live in `../domain/invite.ts` and need no fakes to test.
+ *
+ * Every authorization question and every membership write is delegated to the
+ * {@link ResourceMembership} adapter registered for the invite's resource type,
+ * which keeps this from knowing whether it is inviting to a playlist or a room.
  */
 export function createInviteService(
   options: InviteServiceOptions,
@@ -77,7 +88,7 @@ export function createInviteService(
         resourceType,
         resourceId,
         createdBy: inviterId,
-        expiresAt: new Date(now().getTime() + ttlMs),
+        expiresAt: expiresAtFrom(now(), ttlMs),
       });
     },
 
@@ -86,11 +97,12 @@ export function createInviteService(
       if (invite === null) {
         throw new InviteNotFoundError("no invite bears this token");
       }
-      if (invite.revokedAt !== null) {
+      // The domain decides; this layer only translates the outcome.
+      const redeemability = redeemabilityOf(invite, now());
+      if (redeemability === "revoked") {
         throw new InviteRevokedError(`invite revoked: ${invite.id}`);
       }
-      // The expiry instant itself counts as expired, matching session validation.
-      if (invite.expiresAt.getTime() <= now().getTime()) {
+      if (redeemability === "expired") {
         throw new InviteExpiredError(`invite expired: ${invite.id}`);
       }
 
@@ -118,7 +130,10 @@ export function createInviteService(
         requesterId,
       );
 
-      await inviteRepository.revoke(invite.id, now());
+      const revokedAt = revocationFor(invite, now());
+      if (revokedAt !== null) {
+        await inviteRepository.revoke(invite.id, revokedAt);
+      }
     },
 
     async listForResource({ resourceType, resourceId, requesterId }) {

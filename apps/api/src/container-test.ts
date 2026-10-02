@@ -8,8 +8,8 @@ import { createFakeGitHubOAuthClient } from "./modules/auth/oauth/github-oauth.c
 import type { GitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.js";
 import { createFakePasswordHasher } from "./modules/auth/password/password-hasher.fake.js";
 import { createAuthService } from "./modules/auth/service/auth.service.js";
+import { createInviteService } from "./modules/invite/application/invite.service.js";
 import { createInMemoryInviteRepository } from "./modules/invite/repository/invite.repository.in-memory.js";
-import { createInviteService } from "./modules/invite/service/invite.service.js";
 import { createInMemoryMusicRepository } from "./modules/music/repository/music.repository.in-memory.js";
 import type { MusicRepository } from "./modules/music/repository/music.repository.js";
 import { createMusicService } from "./modules/music/service/music.service.js";

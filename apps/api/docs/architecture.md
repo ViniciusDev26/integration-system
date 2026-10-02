@@ -183,6 +183,12 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
   and a `RoomRegistry` port for presence, each with an in-memory adapter.
   The registry is a container singleton; an `EventBus` is created per
   feature, typed to that feature's events.
+- A module with **real invariants** separates **`domain/`** (pure rules — no
+  port calls, no framework types, `now` as an argument) from **`application/`**
+  (orchestration, and turning outcomes into typed errors) — ADR 0046. The
+  signal it landed: domain tests use no fakes. Done for `invite/`;
+  `room/room.playback.ts` is the reference shape; `media/` is deliberately
+  excluded, having guards rather than invariants.
 - Modules are split into **responsibility sub-modules** (ADR 0018): a module with
   more than one concern groups its files under `oauth/`, `service/`,
   `repository/`, `http/` rather than leaving them flat.

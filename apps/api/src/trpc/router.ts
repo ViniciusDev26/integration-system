@@ -1,7 +1,7 @@
 import { createAuthRouter } from "../modules/auth/http/auth.router.js";
 import type { AuthService } from "../modules/auth/service/auth.service.types.js";
+import type { InviteService } from "../modules/invite/application/invite.service.types.js";
 import { createInviteRouter } from "../modules/invite/invite.router.js";
-import type { InviteService } from "../modules/invite/service/invite.service.types.js";
 import { createMusicRouter } from "../modules/music/music.router.js";
 import type { MusicService } from "../modules/music/service/music.service.types.js";
 import { createPlaylistRouter } from "../modules/playlist/playlist.router.js";

@@ -2,9 +2,9 @@ import { createGitHubOAuthClient } from "./modules/auth/oauth/github-oauth.clien
 import { createArgon2PasswordHasher } from "./modules/auth/password/password-hasher.argon2.js";
 import { createAuthService } from "./modules/auth/service/auth.service.js";
 import type { AuthService } from "./modules/auth/service/auth.service.types.js";
+import { createInviteService } from "./modules/invite/application/invite.service.js";
+import type { InviteService } from "./modules/invite/application/invite.service.types.js";
 import { createPostgresInviteRepository } from "./modules/invite/repository/invite.repository.postgres.js";
-import { createInviteService } from "./modules/invite/service/invite.service.js";
-import type { InviteService } from "./modules/invite/service/invite.service.types.js";
 import type { MusicRepository } from "./modules/music/repository/music.repository.js";
 import { createPostgresMusicRepository } from "./modules/music/repository/music.repository.postgres.js";
 import { createMusicService } from "./modules/music/service/music.service.js";

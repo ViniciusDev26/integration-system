@@ -8,8 +8,8 @@ import {
   InviteNotFoundError,
   InviteResourceNotFoundError,
   InviteRevokedError,
-} from "./service/invite.service.errors.js";
-import type { InviteService } from "./service/invite.service.types.js";
+} from "./application/invite.service.errors.js";
+import type { InviteService } from "./application/invite.service.types.js";
 
 /** Maps an {@link InviteService} domain error to a tRPC error, else rethrows. */
 function rethrowAsTRPC(err: unknown): never {

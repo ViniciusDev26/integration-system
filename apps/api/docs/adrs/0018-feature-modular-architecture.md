@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-05
+- Extended by: [0046](./0046-domain-and-application-layers-inside-a-module.md) — the planned DDD revisit below, now carried out
 
 ## Context
 
