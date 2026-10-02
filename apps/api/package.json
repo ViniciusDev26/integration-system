@@ -5,7 +5,8 @@
   "description": "Sample music API (Spotify-like)",
   "type": "module",
   "exports": {
-    "./trpc": "./src/trpc/router.ts"
+    "./trpc": "./src/trpc/router.ts",
+    "./playback": "./src/modules/room/room.playback.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -29,6 +30,7 @@
     "express": "5.2.1",
     "express-zod-safe": "3.2.1",
     "postgres": "3.4.9",
+    "superjson": "2.2.6",
     "ws": "8.22.0",
     "zod": "4.5.4"
   },

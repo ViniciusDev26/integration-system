@@ -1,4 +1,5 @@
 import { createWSClient, httpBatchLink, splitLink, wsLink } from "@trpc/client";
+import superjson from "superjson";
 
 /** Close an idle socket after this long with no messages and no subscriptions. */
 const WS_IDLE_CLOSE_MS = 10_000;
@@ -40,13 +41,18 @@ function getWSClient() {
  * Two transports, one router (ADR 0039): subscriptions go over the WebSocket,
  * while queries and mutations keep using same-origin `/trpc` over HTTP with
  * credentials, so the httpOnly session cookie rides along (web ADR 0007).
+ *
+ * **Both** links carry the superjson transformer (api ADR 0042) — it has to
+ * match the server's, and in tRPC v11 it is configured per link, not on the
+ * client. A link left without it silently receives raw JSON.
  */
 export function apiLinks() {
   return [
     splitLink({
       condition: (op) => op.type === "subscription",
-      true: wsLink({ client: getWSClient() }),
+      true: wsLink({ client: getWSClient(), transformer: superjson }),
       false: httpBatchLink({
+        transformer: superjson,
         url: "/trpc",
         fetch(url, options) {
           return fetch(url, { ...options, credentials: "include" });
