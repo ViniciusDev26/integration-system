@@ -8,7 +8,15 @@ import type {
   RoomMemberSummary,
   RoomRepository,
 } from "../repository/room.repository.js";
-import type { RoomEvent, RoomEventBus } from "../room.events.js";
+import type {
+  RoomMessageRepository,
+  RoomMessageSummary,
+} from "../repository/room-message.repository.js";
+import type {
+  RoomChatEventBus,
+  RoomEvent,
+  RoomEventBus,
+} from "../room.events.js";
 import type { PlaybackCommand } from "../room.playback.js";
 
 export interface CreateRoomForUserInput {
@@ -50,14 +58,36 @@ export interface RoomSnapshot {
   serverNow: Date;
 }
 
+export interface SendMessageInput extends RoomScopedInput {
+  body: string;
+}
+
+export interface ListMessagesInput extends RoomScopedInput {
+  limit?: number;
+}
+
+export interface WatchMessagesInput extends RoomScopedInput {
+  /**
+   * The id of the last message the client already has. tRPC supplies this on a
+   * reconnect, from `tracked()` (ADR 0039 correction, ADR 0044). Absent on a
+   * first subscribe, when history came from `listMessages` instead.
+   */
+  lastEventId?: string;
+  signal?: AbortSignal;
+}
+
 export interface RoomServiceOptions {
   roomRepository: RoomRepository;
+  /** Chat persistence (ADR 0044). */
+  roomMessageRepository: RoomMessageRepository;
   /** Used to validate a track exists before queueing it. */
   musicRepository: MusicRepository;
   /** Used to presign playback/thumbnail URLs. */
   objectStorage: ObjectStorage;
   /** Where room changes are announced (ADR 0039). */
   eventBus: RoomEventBus;
+  /** Where chat messages are announced — a separate topic (ADR 0044). */
+  chatEventBus: RoomChatEventBus;
   /** Who is present right now (ADR 0039) — this is its first consumer. */
   roomRegistry: RoomRegistry;
   /** Injectable clock, so playback arithmetic is testable. */
@@ -86,4 +116,20 @@ export interface RoomService {
   watch(input: WatchRoomInput): Promise<AsyncIterable<RoomEvent>>;
   /** The room's queued tracks, resolved. Used internally and by the router. */
   listMusics(input: RoomScopedInput): Promise<Music[]>;
+
+  /** Posts a message to the room and announces it (ADR 0044). */
+  sendMessage(input: SendMessageInput): Promise<RoomMessageSummary>;
+  /** The recent history a client sees on arrival, oldest first. */
+  listMessages(input: ListMessagesInput): Promise<RoomMessageSummary[]>;
+  /**
+   * Messages missed since `lastEventId`, then the live stream.
+   *
+   * The order inside matters and is the whole point of ADR 0044: subscribing
+   * **before** querying the backfill is what prevents a message published in
+   * between from falling through the gap, and skipping already-yielded ids is
+   * what stops the resulting overlap being delivered twice.
+   */
+  watchMessages(
+    input: WatchMessagesInput,
+  ): Promise<AsyncIterable<RoomMessageSummary>>;
 }

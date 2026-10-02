@@ -5,6 +5,11 @@ import { createInMemoryObjectStorage } from "../../../shared/storage/object-stor
 import { createInMemoryMusicRepository } from "../../music/repository/music.repository.in-memory.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import { createInMemoryRoomRepository } from "../repository/room.repository.in-memory.js";
+import { createInMemoryRoomMessageRepository } from "../repository/room-message.repository.in-memory.js";
+import type {
+  RoomMessageRepository,
+  RoomMessageSummary,
+} from "../repository/room-message.repository.js";
 import type { RoomEvent } from "../room.events.js";
 import { roomTopic } from "../room.events.js";
 import {
@@ -25,22 +30,43 @@ function setup() {
     resolveMusic: (id) => musicRepository.findById(id),
   });
   const eventBus = createInMemoryEventBus<RoomEvent>();
+  const chatEventBus = createInMemoryEventBus<RoomMessageSummary>();
   const roomRegistry = createInMemoryRoomRegistry();
+  const baseMessages = createInMemoryRoomMessageRepository();
+  /** Lets a test hold `listAfter` open, to reproduce the backfill race. */
+  let pauseListAfter: Promise<void> | null = null;
+  const roomMessageRepository: RoomMessageRepository = {
+    create: (input) => baseMessages.create(input),
+    listRecent: (roomId, limit) => baseMessages.listRecent(roomId, limit),
+    listAfter: async (input) => {
+      if (pauseListAfter !== null) {
+        await pauseListAfter;
+      }
+      return baseMessages.listAfter(input);
+    },
+  };
   let clock = T0;
   const service = createRoomService({
     roomRepository,
+    roomMessageRepository,
     musicRepository,
     objectStorage: createInMemoryObjectStorage(),
     eventBus,
+    chatEventBus,
     roomRegistry,
     now: () => clock,
   });
   return {
     service,
     roomRepository,
+    roomMessageRepository,
     musicRepository,
     eventBus,
+    chatEventBus,
     roomRegistry,
+    holdBackfill: (gate: Promise<void>) => {
+      pauseListAfter = gate;
+    },
     advance: (ms: number) => {
       clock = new Date(clock.getTime() + ms);
     },
@@ -335,5 +361,241 @@ describe("RoomService", () => {
       expect(during.present).toEqual([GUEST]);
       controller.abort();
     });
+  });
+});
+
+describe("RoomService chat (ADR 0044)", () => {
+  let ctx: ReturnType<typeof setup>;
+  let service: RoomService;
+
+  beforeEach(() => {
+    ctx = setup();
+    service = ctx.service;
+  });
+
+  async function roomWithGuest() {
+    const room = await service.createForUser({
+      name: "Friday",
+      ownerId: OWNER,
+    });
+    await ctx.roomRepository.addMember({
+      roomId: room.id,
+      userId: GUEST,
+      type: "MEMBER",
+    });
+    return room;
+  }
+
+  /** Reads `count` messages from a stream, then stops. */
+  async function take(
+    stream: AsyncIterable<RoomMessageSummary>,
+    count: number,
+  ): Promise<string[]> {
+    const bodies: string[] = [];
+    for await (const message of stream) {
+      bodies.push(message.body);
+      if (bodies.length === count) {
+        break;
+      }
+    }
+    return bodies;
+  }
+
+  it("stores a message and hands it back with the author", async () => {
+    const room = await roomWithGuest();
+
+    const message = await service.sendMessage({
+      roomId: room.id,
+      requesterId: GUEST,
+      body: "hello room",
+    });
+
+    expect(message.body).toBe("hello room");
+    expect(message.userId).toBe(GUEST);
+  });
+
+  it("refuses to send or read for a non-member", async () => {
+    const room = await roomWithGuest();
+    const input = { roomId: room.id, requesterId: "stranger" };
+
+    await expect(
+      service.sendMessage({ ...input, body: "let me in" }),
+    ).rejects.toBeInstanceOf(RoomForbiddenError);
+    await expect(service.listMessages(input)).rejects.toBeInstanceOf(
+      RoomForbiddenError,
+    );
+    await expect(service.watchMessages(input)).rejects.toBeInstanceOf(
+      RoomForbiddenError,
+    );
+  });
+
+  it("returns history oldest first", async () => {
+    const room = await roomWithGuest();
+    for (const body of ["one", "two", "three"]) {
+      await service.sendMessage({
+        roomId: room.id,
+        requesterId: OWNER,
+        body,
+      });
+    }
+
+    const history = await service.listMessages({
+      roomId: room.id,
+      requesterId: GUEST,
+    });
+
+    expect(history.map((m) => m.body)).toEqual(["one", "two", "three"]);
+  });
+
+  it("streams live messages when there is no cursor", async () => {
+    const room = await roomWithGuest();
+    const stream = await service.watchMessages({
+      roomId: room.id,
+      requesterId: GUEST,
+    });
+    const received = take(stream, 1);
+
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "live one",
+    });
+
+    await expect(received).resolves.toEqual(["live one"]);
+  });
+
+  it("replays what was missed, then continues live", async () => {
+    const room = await roomWithGuest();
+    const seen = await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "already seen",
+    });
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "missed while away",
+    });
+
+    const stream = await service.watchMessages({
+      roomId: room.id,
+      requesterId: GUEST,
+      lastEventId: seen.id,
+    });
+    const received = take(stream, 2);
+
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "after reconnect",
+    });
+
+    // The one already seen is not repeated.
+    await expect(received).resolves.toEqual([
+      "missed while away",
+      "after reconnect",
+    ]);
+  });
+
+  it("loses nothing published while the backfill query is in flight", async () => {
+    const room = await roomWithGuest();
+    const seen = await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "already seen",
+    });
+
+    // Hold `listAfter` open so a message can land in the window that a
+    // query-then-subscribe order would leave unguarded (ADR 0044).
+    let openTheGate = () => {};
+    ctx.holdBackfill(
+      new Promise<void>((resolve) => {
+        openTheGate = resolve;
+      }),
+    );
+
+    const stream = await service.watchMessages({
+      roomId: room.id,
+      requesterId: GUEST,
+      lastEventId: seen.id,
+    });
+    const received = take(stream, 1);
+
+    // Published *during* the backfill: in the buffer and in the query result.
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "sent mid-backfill",
+    });
+    openTheGate();
+
+    await expect(received).resolves.toEqual(["sent mid-backfill"]);
+  });
+
+  it("delivers a message caught by both paths exactly once", async () => {
+    const room = await roomWithGuest();
+    const seen = await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "already seen",
+    });
+
+    let openTheGate = () => {};
+    ctx.holdBackfill(
+      new Promise<void>((resolve) => {
+        openTheGate = resolve;
+      }),
+    );
+
+    const stream = await service.watchMessages({
+      roomId: room.id,
+      requesterId: GUEST,
+      lastEventId: seen.id,
+    });
+    const received = take(stream, 2);
+
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "overlapping",
+    });
+    openTheGate();
+    // If the overlap were delivered twice, the second item would be
+    // "overlapping" again rather than this.
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "the one after",
+    });
+
+    await expect(received).resolves.toEqual(["overlapping", "the one after"]);
+  });
+
+  it("does not wake a chat stream on a playback command", async () => {
+    const room = await roomWithGuest();
+    const musicId = await seedMusic(ctx.musicRepository, "track");
+    await service.queueMusic({
+      roomId: room.id,
+      musicId,
+      requesterId: OWNER,
+    });
+    const stream = await service.watchMessages({
+      roomId: room.id,
+      requesterId: GUEST,
+    });
+    const received = take(stream, 1);
+
+    await service.commandPlayback({
+      roomId: room.id,
+      requesterId: OWNER,
+      command: { type: "SELECT_TRACK", musicId },
+    });
+    await service.sendMessage({
+      roomId: room.id,
+      requesterId: OWNER,
+      body: "only this",
+    });
+
+    await expect(received).resolves.toEqual(["only this"]);
   });
 });

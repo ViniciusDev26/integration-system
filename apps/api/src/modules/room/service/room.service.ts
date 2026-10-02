@@ -1,7 +1,12 @@
 import type { Room } from "../../../shared/db/schema/rooms.js";
+import type { RoomMessageSummary } from "../repository/room-message.repository.js";
 import type { RoomEvent } from "../room.events.js";
-import { roomTopic } from "../room.events.js";
+import { roomChatTopic, roomTopic } from "../room.events.js";
 import { applyPlaybackCommand } from "../room.playback.js";
+import {
+  DEFAULT_HISTORY_LIMIT,
+  MAX_BACKFILL,
+} from "./room.service.constants.js";
 import {
   RoomForbiddenError,
   RoomMusicNotFoundError,
@@ -12,9 +17,11 @@ import type { RoomService, RoomServiceOptions } from "./room.service.types.js";
 export function createRoomService(options: RoomServiceOptions): RoomService {
   const {
     roomRepository,
+    roomMessageRepository,
     musicRepository,
     objectStorage,
     eventBus,
+    chatEventBus,
     roomRegistry,
   } = options;
   const now = options.now ?? (() => new Date());
@@ -131,6 +138,69 @@ export function createRoomService(options: RoomServiceOptions): RoomService {
       });
 
       return updated;
+    },
+
+    async sendMessage({ roomId, requesterId, body }) {
+      await requireMembership(roomId, requesterId);
+
+      const message = await roomMessageRepository.create({
+        roomId,
+        userId: requesterId,
+        body,
+      });
+
+      chatEventBus.publish(roomChatTopic(roomId), message);
+      return message;
+    },
+
+    async listMessages({ roomId, requesterId, limit }) {
+      await requireMembership(roomId, requesterId);
+      return roomMessageRepository.listRecent(
+        roomId,
+        Math.min(limit ?? DEFAULT_HISTORY_LIMIT, MAX_BACKFILL),
+      );
+    },
+
+    async watchMessages({ roomId, requesterId, lastEventId, signal }) {
+      await requireMembership(roomId, requesterId);
+
+      // Step 1 — subscribe *before* querying. The bus registers a subscriber
+      // eagerly and buffers from this instant (ADR 0039), so a message
+      // published while step 2 runs is waiting here rather than lost.
+      const live = chatEventBus.subscribe(roomChatTopic(roomId), { signal });
+
+      async function* backfillThenLive(): AsyncGenerator<RoomMessageSummary> {
+        // Everything sorts after the empty string, so with no cursor nothing
+        // is skipped.
+        let lastYielded = lastEventId ?? "";
+
+        // Step 2/3 — what the client missed while it was away.
+        if (lastEventId !== undefined) {
+          const missed = await roomMessageRepository.listAfter({
+            roomId,
+            afterId: lastEventId,
+            limit: MAX_BACKFILL,
+          });
+          for (const message of missed) {
+            lastYielded = message.id;
+            yield message;
+          }
+        }
+
+        // Step 4 — live, minus the overlap. A message published during step 2
+        // is legitimately in both the query and the buffer; ids are
+        // time-ordered (ADR 0044), so comparing against the high-water mark
+        // delivers it exactly once.
+        for await (const message of live) {
+          if (message.id <= lastYielded) {
+            continue;
+          }
+          lastYielded = message.id;
+          yield message;
+        }
+      }
+
+      return backfillThenLive();
     },
 
     async watch({ roomId, requesterId, signal }) {

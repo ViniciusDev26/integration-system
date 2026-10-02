@@ -14,6 +14,8 @@ import { createPostgresPlaylistRepository } from "./modules/playlist/repository/
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
 import type { PlaylistService } from "./modules/playlist/service/playlist.service.types.js";
 import { createPostgresRoomRepository } from "./modules/room/repository/room.repository.postgres.js";
+import type { RoomMessageSummary } from "./modules/room/repository/room-message.repository.js";
+import { createPostgresRoomMessageRepository } from "./modules/room/repository/room-message.repository.postgres.js";
 import type { RoomEvent } from "./modules/room/room.events.js";
 import { createRoomResourceMembership } from "./modules/room/room.resource-membership.js";
 import { createRoomService } from "./modules/room/service/room.service.js";
@@ -104,12 +106,17 @@ export function createContainer(): Container {
   // One membership adapter per invitable resource type (ADR 0040). Rooms will
   // add a key here; the invite module itself does not change.
   const roomEventBus = createInMemoryEventBus<RoomEvent>();
+  // Chat gets its own bus and topic: messages are the data, room events are
+  // signals, and a chat stream should not wake on a playback command (ADR 0044).
+  const roomChatEventBus = createInMemoryEventBus<RoomMessageSummary>();
   const roomRepository = createPostgresRoomRepository(db);
   const roomService = createRoomService({
     roomRepository,
+    roomMessageRepository: createPostgresRoomMessageRepository(db),
     musicRepository,
     objectStorage,
     eventBus: roomEventBus,
+    chatEventBus: roomChatEventBus,
     roomRegistry,
   });
 

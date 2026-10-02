@@ -1,6 +1,8 @@
+import { isTrackedEnvelope } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 import { createTestContainer, type TestContainer } from "../container-test.js";
 import { OAUTH_STATE_COOKIE } from "../modules/auth/http/auth.controller.constants.js";
+import type { RoomMessageSummary } from "../modules/room/repository/room-message.repository.js";
 import type { User } from "../shared/db/schema/users.js";
 import type { Context } from "./context.js";
 import { createAppRouter } from "./router.js";
@@ -702,6 +704,128 @@ describe("trpc auth — email/password", () => {
         password: "hunter2-hunter2",
         name: null,
       }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+describe("trpc rooms.onMessage — chat with replay", () => {
+  async function chatRoom(container: TestContainer) {
+    const owner = await seedUser(container, "owner");
+    const guest = await seedUser(container, "guest");
+    const room = await container.roomService.createForUser({
+      name: "Friday",
+      ownerId: owner.id,
+    });
+    const { token } = await callerFor(container, owner).invites.create({
+      resourceType: "ROOM",
+      resourceId: room.id,
+    });
+    await callerFor(container, guest).invites.redeem({ token });
+    return { owner, guest, room };
+  }
+
+  it("sends a message and lists it in the history", async () => {
+    const container = createTestContainer();
+    const { guest, room } = await chatRoom(container);
+    const caller = callerFor(container, guest);
+
+    await caller.rooms.sendMessage({ roomId: room.id, body: "hello room" });
+
+    const history = await caller.rooms.messages({ roomId: room.id });
+    expect(history.map((m) => m.body)).toEqual(["hello room"]);
+    expect(history[0]?.userId).toBe(guest.id);
+  });
+
+  it("wraps each message so the client can resume from its id", async () => {
+    const container = createTestContainer();
+    const { owner, guest, room } = await chatRoom(container);
+
+    const stream = await callerFor(container, guest).rooms.onMessage({
+      roomId: room.id,
+    });
+    const first = (async () => {
+      for await (const event of stream) {
+        return event;
+      }
+      return null;
+    })();
+
+    await callerFor(container, owner).rooms.sendMessage({
+      roomId: room.id,
+      body: "tracked one",
+    });
+
+    const yielded = await first;
+    // `tracked()` yields the raw envelope `[id, data, symbol]`; tRPC converts
+    // it to `{ id, data }` on the wire. `createCaller` has no wire, so the
+    // tuple arrives even though the inferred type describes the converted
+    // shape — narrowed here with tRPC's own guard rather than a cast (ADR 0009).
+    expect(isTrackedEnvelope(yielded)).toBe(true);
+    if (isTrackedEnvelope<RoomMessageSummary>(yielded)) {
+      const [cursor, message] = yielded;
+      expect(message.body).toBe("tracked one");
+      // The cursor *is* the message id — what the replay query consumes.
+      expect(cursor).toBe(message.id);
+    }
+  });
+
+  it("replays what was missed when resuming from a cursor", async () => {
+    const container = createTestContainer();
+    const { owner, guest, room } = await chatRoom(container);
+    const ownerCaller = callerFor(container, owner);
+
+    const seen = await ownerCaller.rooms.sendMessage({
+      roomId: room.id,
+      body: "already seen",
+    });
+    await ownerCaller.rooms.sendMessage({
+      roomId: room.id,
+      body: "missed while away",
+    });
+
+    // Reconnecting: tRPC supplies the last id the client recorded.
+    const stream = await callerFor(container, guest).rooms.onMessage({
+      roomId: room.id,
+      lastEventId: seen.id,
+    });
+    const replayed = (async () => {
+      for await (const event of stream) {
+        return event;
+      }
+      return null;
+    })();
+
+    const yielded = await replayed;
+    expect(isTrackedEnvelope(yielded)).toBe(true);
+    if (isTrackedEnvelope<RoomMessageSummary>(yielded)) {
+      expect(yielded[1].body).toBe("missed while away");
+    }
+  });
+
+  it("refuses chat to a non-member", async () => {
+    const container = createTestContainer();
+    const { room } = await chatRoom(container);
+    const stranger = await seedUser(container, "stranger");
+    const caller = callerFor(container, stranger);
+
+    await expect(
+      caller.rooms.sendMessage({ roomId: room.id, body: "let me in" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      caller.rooms.messages({ roomId: room.id }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("rejects an empty message and one past the maximum", async () => {
+    const container = createTestContainer();
+    const { guest, room } = await chatRoom(container);
+    const caller = callerFor(container, guest);
+
+    await expect(
+      caller.rooms.sendMessage({ roomId: room.id, body: "   " }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      caller.rooms.sendMessage({ roomId: room.id, body: "x".repeat(2001) }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

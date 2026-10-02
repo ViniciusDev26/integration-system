@@ -78,6 +78,20 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
+- **Room chat with durable replay (2026-10-02, ADR 0044)** — AV3 block 3 done,
+  migration **`0009`** (`room_messages`). Messages are **the data, not a
+  signal**, so this is the one subscription with replay: `tracked(id, …)` plus
+  `lastEventId`, backfilled from Postgres. **The id is the cursor** — UUIDv7
+  sorts by time, so no sequence column. **Ordering inside the resolver is
+  load-bearing:** subscribe *first* (the bus buffers eagerly, ADR 0039), *then*
+  query the backfill, then skip already-yielded ids — query-then-subscribe
+  would drop a message published in between, and no skip would double it. Two
+  tests hold `listAfter` open to force exactly that race. Chat runs on its own
+  bus/topic (`room-chat:<id>`) so a playback command does not wake it.
+  **Gotcha:** `tracked()` yields the raw envelope `[id, data, symbol]`, and
+  tRPC converts it to `{id, data}` **only on the wire** — through
+  `createCaller` the tuple arrives while the inferred type describes the
+  converted shape. Narrow with tRPC's exported `isTrackedEnvelope`, not a cast.
 - **Email/password auth (2026-10-02, ADR 0043)** — migration **`0008`**:
   `password_hash` added, `github_id` made **nullable**, plus a check constraint
   `github_id is not null or password_hash is not null` so a credential-less
@@ -146,7 +160,7 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   shared playlist shows up for the guest. Procedures: `invites.create`/`redeem`/
   `list`/`revoke`.
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005` (playlists), `0006`
-  (invites), `0007` (rooms) and `0008` (password auth) still need applying** before playlists or
+  (invites), `0007` (rooms), `0008` (password auth) and `0009` (chat) still need applying** before playlists or
   invites work against a live DB.
 
 ## DDD migration plan (intent)

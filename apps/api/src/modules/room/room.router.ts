@@ -1,6 +1,8 @@
-import { TRPCError } from "@trpc/server";
+import { TRPCError, tracked } from "@trpc/server";
 import { z } from "zod";
+import { MESSAGE_MAX_LENGTH } from "../../shared/db/schema/room-messages.js";
 import { protectedProcedure, router } from "../../trpc/trpc.js";
+import type { RoomMessageSummary } from "./repository/room-message.repository.js";
 import type { RoomEvent } from "./room.events.js";
 import {
   RoomForbiddenError,
@@ -104,6 +106,71 @@ export function createRoomRouter(roomService: RoomService) {
           });
         } catch (err) {
           rethrowAsTRPC(err);
+        }
+      }),
+
+    sendMessage: protectedProcedure
+      .input(
+        roomIdSchema.extend({
+          body: z.string().trim().min(1).max(MESSAGE_MAX_LENGTH),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await roomService.sendMessage({
+            roomId: input.roomId,
+            requesterId: ctx.user.id,
+            body: input.body,
+          });
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+      }),
+
+    messages: protectedProcedure
+      .input(roomIdSchema)
+      .query(async ({ ctx, input }) => {
+        try {
+          return await roomService.listMessages({
+            roomId: input.roomId,
+            requesterId: ctx.user.id,
+          });
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+      }),
+
+    /**
+     * Live chat, with **durable replay** (ADR 0044) — the one subscription here
+     * that needs it, because messages are the data rather than a signal.
+     *
+     * Each message is wrapped in `tracked(id, …)`, so the client records that id
+     * and tRPC hands it back as `lastEventId` on reconnect; the service then
+     * replays from PostgreSQL. The cursor is the message id itself, which is a
+     * UUIDv7 and therefore already time-ordered.
+     */
+    onMessage: protectedProcedure
+      .input(
+        roomIdSchema.extend({
+          // Supplied by tRPC on a reconnect, not by the client's own code.
+          lastEventId: z.string().min(1).optional(),
+        }),
+      )
+      .subscription(async function* ({ ctx, input, signal }) {
+        let stream: AsyncIterable<RoomMessageSummary>;
+        try {
+          stream = await roomService.watchMessages({
+            roomId: input.roomId,
+            requesterId: ctx.user.id,
+            lastEventId: input.lastEventId,
+            signal,
+          });
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+
+        for await (const message of stream) {
+          yield tracked(message.id, message);
         }
       }),
 

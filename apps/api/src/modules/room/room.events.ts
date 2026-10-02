@@ -1,5 +1,6 @@
 import type { PlaybackAnchor } from "../../shared/db/schema/rooms.js";
 import type { EventBus } from "../../shared/realtime/event-bus.js";
+import type { RoomMessageSummary } from "./repository/room-message.repository.js";
 
 /**
  * What happened in a room, pushed to whoever is present (ADR 0039/0041).
@@ -48,3 +49,15 @@ export type RoomEventBus = EventBus<RoomEvent>;
 export function roomTopic(roomId: string): string {
   return `room:${roomId}`;
 }
+
+/**
+ * Chat rides a **separate** topic and a separate bus (ADR 0044). Room events
+ * are signals; messages are the data, and keeping them apart means a chat
+ * subscription is not woken by a playback command, and the replay logic has
+ * only one kind of thing to reason about.
+ */
+export function roomChatTopic(roomId: string): string {
+  return `room-chat:${roomId}`;
+}
+
+export type RoomChatEventBus = EventBus<RoomMessageSummary>;

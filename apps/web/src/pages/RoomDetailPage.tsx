@@ -2,6 +2,7 @@ import { ChevronLeft, Pause, Play, Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../api/trpc";
+import { RoomChat } from "../components/room/RoomChat";
 import {
   type RoomAnchorLike,
   useRoomPlaybackSync,
@@ -177,6 +178,8 @@ export function RoomDetailPage() {
           ))}
         </ul>
       )}
+
+      <RoomChat roomId={roomId} />
 
       <SharePanel
         resourceType="ROOM"

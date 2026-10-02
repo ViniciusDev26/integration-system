@@ -19,6 +19,8 @@ import { createInMemoryPlaylistRepository } from "./modules/playlist/repository/
 import type { PlaylistRepository } from "./modules/playlist/repository/playlist.repository.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
 import { createInMemoryRoomRepository } from "./modules/room/repository/room.repository.in-memory.js";
+import { createInMemoryRoomMessageRepository } from "./modules/room/repository/room-message.repository.in-memory.js";
+import type { RoomMessageSummary } from "./modules/room/repository/room-message.repository.js";
 import type { RoomEvent } from "./modules/room/room.events.js";
 import { createRoomResourceMembership } from "./modules/room/room.resource-membership.js";
 import { createRoomService } from "./modules/room/service/room.service.js";
@@ -95,14 +97,19 @@ export function createTestContainer(
   });
 
   const roomEventBus = createInMemoryEventBus<RoomEvent>();
+  // Chat gets its own bus and topic: messages are the data, room events are
+  // signals, and a chat stream should not wake on a playback command (ADR 0044).
+  const roomChatEventBus = createInMemoryEventBus<RoomMessageSummary>();
   const roomRepository = createInMemoryRoomRepository({
     resolveMusic: (id) => musicRepository.findById(id),
   });
   const roomService = createRoomService({
     roomRepository,
+    roomMessageRepository: createInMemoryRoomMessageRepository(),
     musicRepository,
     objectStorage,
     eventBus: roomEventBus,
+    chatEventBus: roomChatEventBus,
     roomRegistry,
   });
 

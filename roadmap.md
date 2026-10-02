@@ -79,7 +79,7 @@ tracked).
 
 ## Epic AV3 — Realtime: shared playlists, rooms, and chat
 
-**Status: in progress** · foundation and shared playlists delivered 2026-10-02; rooms and chat to come
+**Status: delivered** · foundation, shared playlists, rooms and chat — all 2026-10-02
 
 ### Goal
 
@@ -226,9 +226,25 @@ elsewhere, and its accepted cost is structure duplicated from playlists.
 
 ### 3. Chat
 
-- [ ] Messages exchanged between participants of a room while music plays.
-- [ ] Sending is an ordinary mutation; receiving is a subscription.
-- [ ] Decide whether history is persisted or ephemeral — undecided.
+Designed in **ADR 0044**. This is the feature the whole realtime foundation was
+pointed at: messages are **the data, not a signal**, so a missed one is content
+lost and no refetch recovers it.
+
+- [x] **Messages persisted** in `room_messages` (migration `0009`), so replay is
+      durable, has no time window and survives a restart.
+- [x] **The id is the cursor** — UUIDv7 is time-ordered, so `tracked(id, …)` on
+      the wire and `where id > $lastEventId` in Postgres agree, with no separate
+      sequence column.
+- [x] **Subscribe before querying** — the resolver opens the subscription first
+      and skips already-yielded ids, so a message published during the backfill
+      is delivered exactly once rather than lost or doubled. Both halves have
+      tests that hold the query open to force the race.
+- [x] **Sending is a mutation, receiving a subscription**, as planned; chat runs
+      on its own topic so a playback command does not wake it.
+- [x] **Web UI** — history and live messages merged by id, in one room panel.
+
+Still open: no retention policy (conversations are kept indefinitely), no
+deletion, and no rate limiting.
 
 ### Risks and open questions
 
