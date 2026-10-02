@@ -1,15 +1,13 @@
 import { randomBytes } from "node:crypto";
-import type { Invite } from "../../../shared/db/schema/invites.js";
+import type { Invite } from "../domain/invite.js";
 import {
   expiresAtFrom,
   redeemabilityOf,
   revocationFor,
 } from "../domain/invite.js";
+import { INVITE_TOKEN_BYTES } from "../domain/invite-token.js";
 import type { ResourceMembership } from "../resource-membership.js";
-import {
-  DEFAULT_INVITE_TTL_MS,
-  INVITE_TOKEN_BYTES,
-} from "./invite.service.constants.js";
+import { DEFAULT_INVITE_TTL_MS } from "./invite.service.constants.js";
 import {
   InviteExpiredError,
   InviteForbiddenError,
@@ -45,10 +43,8 @@ export function createInviteService(
     (() => randomBytes(INVITE_TOKEN_BYTES).toString("base64url"));
 
   /** The adapter for an invite's resource type. */
-  function membershipFor(invite: {
-    resourceType: keyof typeof resourceMembership;
-  }): ResourceMembership {
-    return resourceMembership[invite.resourceType];
+  function membershipFor(invite: Invite): ResourceMembership {
+    return resourceMembership[invite.resource.resourceType];
   }
 
   /** Throws unless the resource is still there and the user may invite to it. */
@@ -107,26 +103,23 @@ export function createInviteService(
       }
 
       const membership = membershipFor(invite);
-      if (!(await membership.exists(invite.resourceId))) {
+      if (!(await membership.exists(invite.resource.resourceId))) {
         throw new InviteResourceNotFoundError(
-          `resource not found: ${invite.resourceId}`,
+          `resource not found: ${invite.resource.resourceId}`,
         );
       }
 
       // Idempotent by contract, so redeeming an already-joined link is fine.
-      await membership.grant(invite.resourceId, userId);
+      await membership.grant(invite.resource.resourceId, userId);
 
-      return {
-        resourceType: invite.resourceType,
-        resourceId: invite.resourceId,
-      };
+      return invite.resource;
     },
 
     async revoke({ inviteId, requesterId }) {
       const invite = await requireInvite(inviteId);
       await assertMayManage(
         membershipFor(invite),
-        invite.resourceId,
+        invite.resource.resourceId,
         requesterId,
       );
 

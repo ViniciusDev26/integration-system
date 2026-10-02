@@ -1,10 +1,11 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Database } from "../../../shared/db/database.js";
 import { invites } from "../../../shared/db/schema/invites.js";
+import type { ResourceRef } from "../domain/resource.js";
+import { toDomain } from "./invite.mapper.js";
 import type {
   CreateInviteInput,
   InviteRepository,
-  ResourceRef,
 } from "./invite.repository.js";
 
 /**
@@ -21,7 +22,7 @@ export function createPostgresInviteRepository(db: Database): InviteRepository {
         throw new Error("create: expected a returned invite row");
       }
 
-      return invite;
+      return toDomain(invite);
     },
 
     async findById(id) {
@@ -31,7 +32,7 @@ export function createPostgresInviteRepository(db: Database): InviteRepository {
         .where(eq(invites.id, id))
         .limit(1);
 
-      return invite ?? null;
+      return invite === undefined ? null : toDomain(invite);
     },
 
     async findByToken(token) {
@@ -41,11 +42,11 @@ export function createPostgresInviteRepository(db: Database): InviteRepository {
         .where(eq(invites.token, token))
         .limit(1);
 
-      return invite ?? null;
+      return invite === undefined ? null : toDomain(invite);
     },
 
     async listForResource(ref: ResourceRef) {
-      return db
+      const rows = await db
         .select()
         .from(invites)
         .where(
@@ -55,6 +56,8 @@ export function createPostgresInviteRepository(db: Database): InviteRepository {
           ),
         )
         .orderBy(desc(invites.createdAt), desc(invites.id));
+
+      return rows.map(toDomain);
     },
 
     async revoke(id, revokedAt) {

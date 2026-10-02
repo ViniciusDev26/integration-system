@@ -1,7 +1,5 @@
-import type {
-  Invite,
-  InviteResourceType,
-} from "../../../shared/db/schema/invites.js";
+import type { Invite } from "../domain/invite.js";
+import type { InviteResourceType } from "../domain/resource.js";
 import type { InviteRepository } from "../repository/invite.repository.js";
 import type { ResourceMembershipRegistry } from "../resource-membership.js";
 

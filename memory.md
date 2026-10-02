@@ -191,8 +191,26 @@ code is which.
   instead of deciding. Domain tests use no fakes, which is the signal.
 - **Note:** the `@integration-system/api/playback` package export (the web
   imports `livePositionMs` from it) points at the new `room/domain/` path.
-- **Next:** playlist/room membership rules (OWNER cannot be demoted) and the
-  asymmetric account-linking rule from ADR 0043.
+- **ADR 0047 (2026-10-02) takes it further, piloted on `invite/`:** the domain
+  model is no longer the Drizzle row. `Invite` has one `resource` value where
+  the table has two columns, and `token` is an `InviteToken` **value object**
+  (branded type + validating constructor). `repository/invite.mapper.ts` is the
+  only crossing point; the router returns DTOs from `application/invite.dto.ts`.
+  - **Brands are type-level only**, so value objects survive serialization —
+    that is what keeps `room/domain/room.playback.ts` importable and callable by
+    the web client. Classes or closures would have broken it.
+  - The `INVITE_RESOURCE_TYPES` union moved **into the domain**; the Drizzle
+    schema imports it and derives the CHECK from it, so persistence depends on
+    the model rather than the reverse.
+  - Shared expiry rule extracted to `shared/domain/expiry.ts` — invites and
+    sessions both treat the expiry instant as expired, and previously did so by
+    coincidence of two implementations.
+  - **Gotcha:** the web build compiles API source (package exports point at
+    `.ts`), so an unused import in `shared/db/schema` fails the *web* build.
+- **Next:** apply 0046+0047 to `auth/` (asymmetric linking is a real domain
+  rule) and `sessions/` (expiry — my earlier note excluding it was wrong; it is
+  a rule, not a guard). `playlist/` is marginal: its only candidate is a single
+  role comparison duplicated in two adapters.
 - **Deliberately excluded:** `media/`, `users/`, `sessions/` — guards, not
   invariants. An empty domain layer is worse than none.
 

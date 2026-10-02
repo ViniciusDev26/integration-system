@@ -7,16 +7,19 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import {
+  INVITE_RESOURCE_TYPES,
+  type InviteResourceType,
+} from "../../../modules/invite/domain/resource.js";
 import { users } from "./users.js";
 
-/**
- * Kinds of resource an invite can address (ADR 0040). `ROOM` was added in
- * ADR 0041 by doing exactly what this note predicted: extending this union and
- * the check constraint, and registering a second `ResourceMembership` adapter.
- * The invite module did not change.
- */
-export const INVITE_RESOURCE_TYPES = ["PLAYLIST", "ROOM"] as const;
-export type InviteResourceType = (typeof INVITE_RESOURCE_TYPES)[number];
+// The resource-type union is owned by the invite domain (ADR 0047): the table
+// takes its shape from the model, not the other way round. Re-exported so
+// existing persistence-side imports keep working.
+export {
+  INVITE_RESOURCE_TYPES,
+  type InviteResourceType,
+} from "../../../modules/invite/domain/resource.js";
 
 /**
  * Invite links (ADR 0040). An invite is an opaque `token` addressing a
@@ -55,7 +58,11 @@ export const invites = pgTable(
     index("invites_resource_idx").on(table.resourceType, table.resourceId),
     check(
       "invites_resource_type_check",
-      sql`${table.resourceType} in ('PLAYLIST', 'ROOM')`,
+      // Derived from the domain union, so adding a resource type cannot leave
+      // the constraint behind (ADR 0047).
+      sql`${table.resourceType} in (${sql.raw(
+        INVITE_RESOURCE_TYPES.map((type) => `'${type}'`).join(", "),
+      )})`,
     ),
   ],
 );

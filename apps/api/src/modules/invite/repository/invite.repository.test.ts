@@ -16,6 +16,13 @@ const UUID_V7 =
 const PLAYLIST_ID = "0192f1a0-0000-7000-8000-000000000001";
 const OTHER_RESOURCE_ID = "0192f1a0-0000-7000-8000-000000000002";
 
+/**
+ * Tokens must look like what the generator produces: the value object
+ * validates them on the way out of the repository now (ADR 0047).
+ */
+function tokenNamed(name: string): string {
+  return name.padEnd(43, "x").slice(0, 43);
+}
 function hourFromNow(): Date {
   return new Date(Date.now() + 60 * 60 * 1000);
 }
@@ -56,7 +63,7 @@ describe("InviteRepository", () => {
     const expiresAt = hourFromNow();
 
     const invite = await repository.create({
-      token: "tok-1",
+      token: tokenNamed("tok-1"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
@@ -64,9 +71,11 @@ describe("InviteRepository", () => {
     });
 
     expect(invite.id).toMatch(UUID_V7);
-    expect(invite.token).toBe("tok-1");
-    expect(invite.resourceType).toBe("PLAYLIST");
-    expect(invite.resourceId).toBe(PLAYLIST_ID);
+    expect(invite.token).toBe(tokenNamed("tok-1"));
+    expect(invite.resource).toEqual({
+      resourceType: "PLAYLIST",
+      resourceId: PLAYLIST_ID,
+    });
     expect(invite.createdBy).toBe(inviterId);
     expect(invite.expiresAt.getTime()).toBe(expiresAt.getTime());
     expect(invite.revokedAt).toBeNull();
@@ -74,14 +83,14 @@ describe("InviteRepository", () => {
 
   it("finds an invite by its token", async () => {
     const created = await repository.create({
-      token: "tok-find",
+      token: tokenNamed("tok-find"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
       expiresAt: hourFromNow(),
     });
 
-    const found = await repository.findByToken("tok-find");
+    const found = await repository.findByToken(tokenNamed("tok-find"));
 
     expect(found?.id).toBe(created.id);
   });
@@ -92,14 +101,16 @@ describe("InviteRepository", () => {
 
   it("finds an invite by id", async () => {
     const created = await repository.create({
-      token: "tok-by-id",
+      token: tokenNamed("tok-by-id"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
       expiresAt: hourFromNow(),
     });
 
-    expect((await repository.findById(created.id))?.token).toBe("tok-by-id");
+    expect((await repository.findById(created.id))?.token).toBe(
+      tokenNamed("tok-by-id"),
+    );
   });
 
   it("returns null for an unknown id", async () => {
@@ -110,7 +121,7 @@ describe("InviteRepository", () => {
 
   it("rejects a duplicate token", async () => {
     await repository.create({
-      token: "tok-dup",
+      token: tokenNamed("tok-dup"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
@@ -119,7 +130,7 @@ describe("InviteRepository", () => {
 
     await expect(
       repository.create({
-        token: "tok-dup",
+        token: tokenNamed("tok-dup"),
         resourceType: "PLAYLIST",
         resourceId: OTHER_RESOURCE_ID,
         createdBy: inviterId,
@@ -130,14 +141,14 @@ describe("InviteRepository", () => {
 
   it("accepts ROOM, the second resource type (ADR 0041)", async () => {
     const invite = await repository.create({
-      token: "tok-room",
+      token: tokenNamed("tok-room"),
       resourceType: "ROOM",
       resourceId: OTHER_RESOURCE_ID,
       createdBy: inviterId,
       expiresAt: hourFromNow(),
     });
 
-    expect(invite.resourceType).toBe("ROOM");
+    expect(invite.resource.resourceType).toBe("ROOM");
   });
 
   it("rejects a resource type that is not in the check constraint", async () => {
@@ -151,14 +162,14 @@ describe("InviteRepository", () => {
 
   it("keeps resources of different types apart when listing", async () => {
     await repository.create({
-      token: "tok-as-playlist",
+      token: tokenNamed("tok-as-playlist"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
       expiresAt: hourFromNow(),
     });
     await repository.create({
-      token: "tok-as-room",
+      token: tokenNamed("tok-as-room"),
       resourceType: "ROOM",
       // Same id, different kind of thing — the pair is what identifies it.
       resourceId: PLAYLIST_ID,
@@ -171,26 +182,28 @@ describe("InviteRepository", () => {
       resourceId: PLAYLIST_ID,
     });
 
-    expect(asRoom.map((invite) => invite.token)).toEqual(["tok-as-room"]);
+    expect(asRoom.map((invite) => invite.token)).toEqual([
+      tokenNamed("tok-as-room"),
+    ]);
   });
 
   it("lists a resource's invites newest first, and only that resource's", async () => {
     await repository.create({
-      token: "tok-older",
+      token: tokenNamed("tok-older"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
       expiresAt: hourFromNow(),
     });
     await repository.create({
-      token: "tok-newer",
+      token: tokenNamed("tok-newer"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
       expiresAt: hourFromNow(),
     });
     await repository.create({
-      token: "tok-elsewhere",
+      token: tokenNamed("tok-elsewhere"),
       resourceType: "PLAYLIST",
       resourceId: OTHER_RESOURCE_ID,
       createdBy: inviterId,
@@ -203,8 +216,8 @@ describe("InviteRepository", () => {
     });
 
     expect(listed.map((invite) => invite.token)).toEqual([
-      "tok-newer",
-      "tok-older",
+      tokenNamed("tok-newer"),
+      tokenNamed("tok-older"),
     ]);
   });
 
@@ -219,7 +232,7 @@ describe("InviteRepository", () => {
 
   it("stamps revokedAt when revoking", async () => {
     const created = await repository.create({
-      token: "tok-revoke",
+      token: tokenNamed("tok-revoke"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
@@ -235,7 +248,7 @@ describe("InviteRepository", () => {
 
   it("keeps the first revocation timestamp when revoked twice", async () => {
     const created = await repository.create({
-      token: "tok-revoke-twice",
+      token: tokenNamed("tok-revoke-twice"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
@@ -258,7 +271,7 @@ describe("InviteRepository", () => {
 
   it("deletes a user's invites along with the user", async () => {
     await repository.create({
-      token: "tok-cascade",
+      token: tokenNamed("tok-cascade"),
       resourceType: "PLAYLIST",
       resourceId: PLAYLIST_ID,
       createdBy: inviterId,
@@ -267,6 +280,6 @@ describe("InviteRepository", () => {
 
     await db.execute(sql`delete from users where id = ${inviterId}`);
 
-    expect(await repository.findByToken("tok-cascade")).toBeNull();
+    expect(await repository.findByToken(tokenNamed("tok-cascade"))).toBeNull();
   });
 });

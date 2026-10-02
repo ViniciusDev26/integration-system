@@ -4,5 +4,5 @@
  */
 export const DEFAULT_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Invite token size in bytes (256 bits), matching session ids (ADR 0016). */
-export const INVITE_TOKEN_BYTES = 32;
+// INVITE_TOKEN_BYTES moved to ../domain/invite-token.ts — the size is a property
+// of the token, not of the service that happens to generate one (ADR 0047).

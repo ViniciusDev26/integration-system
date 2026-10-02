@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { Invite } from "../../../shared/db/schema/invites.js";
+import type { Invite } from "../domain/invite.js";
+import { inviteTokenFrom } from "../domain/invite-token.js";
+import type { ResourceRef } from "../domain/resource.js";
 import type {
   CreateInviteInput,
   InviteRepository,
-  ResourceRef,
 } from "./invite.repository.js";
 
 /**
@@ -23,13 +24,15 @@ export function createInMemoryInviteRepository(): InviteRepository {
 
       const invite: Invite = {
         id: randomUUID(),
-        token: input.token,
-        resourceType: input.resourceType,
-        resourceId: input.resourceId,
+        token: inviteTokenFrom(input.token),
+        resource: {
+          resourceType: input.resourceType,
+          resourceId: input.resourceId,
+        },
         createdBy: input.createdBy,
+        createdAt: new Date(),
         expiresAt: input.expiresAt,
         revokedAt: null,
-        createdAt: new Date(),
       };
       rows.push(invite);
       return invite;
@@ -47,18 +50,20 @@ export function createInMemoryInviteRepository(): InviteRepository {
       return rows
         .filter(
           (row) =>
-            row.resourceType === ref.resourceType &&
-            row.resourceId === ref.resourceId,
+            row.resource.resourceType === ref.resourceType &&
+            row.resource.resourceId === ref.resourceId,
         )
         .reverse();
     },
 
     async revoke(id, revokedAt) {
-      const invite = rows.find((row) => row.id === id);
+      const index = rows.findIndex((row) => row.id === id);
+      const invite = rows[index];
       if (invite === undefined || invite.revokedAt !== null) {
         return;
       }
-      invite.revokedAt = revokedAt;
+      // The entity is readonly, so revoking replaces it rather than mutating.
+      rows[index] = { ...invite, revokedAt };
     },
   };
 }

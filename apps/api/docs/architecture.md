@@ -190,6 +190,12 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
   (`room/domain/room.playback.ts` is the clearest example — the playback anchor
   rules, plus `room.queue.ts` for "a room plays from its own queue"); `media/`
   is deliberately excluded, having guards rather than invariants.
+- Taken further in `invite/` (ADR 0047): the **domain model is not the table**.
+  `Invite` is defined by the domain (one `resource` value where the table has
+  two columns; `token` as a value object), `repository/invite.mapper.ts` is the
+  only place the two shapes meet, and the router returns DTOs. Value objects are
+  **branded types** — the brand erases at runtime, so they cross Drizzle and
+  tRPC unchanged, which is what keeps `room/domain` callable by the web client.
 - Modules are split into **responsibility sub-modules** (ADR 0018): a module with
   more than one concern groups its files under `oauth/`, `service/`,
   `repository/`, `http/` rather than leaving them flat.

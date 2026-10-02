@@ -62,6 +62,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0044](./0044-room-chat-with-durable-replay.md) | Room chat, with durable replay | Accepted |
 | [0045](./0045-media-redirect-endpoint-for-playback-urls.md) | A media redirect endpoint, instead of presigned URLs that expire | Accepted |
 | [0046](./0046-domain-and-application-layers-inside-a-module.md) | Domain and application layers inside a module | Accepted |
+| [0047](./0047-domain-model-separate-from-persistence.md) | A domain model separate from persistence, with value objects | Accepted |
 
 ## Conventions
 

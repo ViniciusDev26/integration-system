@@ -1,7 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { INVITE_RESOURCE_TYPES } from "../../shared/db/schema/invites.js";
 import { protectedProcedure, router } from "../../trpc/trpc.js";
+import {
+  toInviteSummaryDto,
+  toIssuedInviteDto,
+} from "./application/invite.dto.js";
 import {
   InviteExpiredError,
   InviteForbiddenError,
@@ -10,6 +13,7 @@ import {
   InviteRevokedError,
 } from "./application/invite.service.errors.js";
 import type { InviteService } from "./application/invite.service.types.js";
+import { INVITE_RESOURCE_TYPES } from "./domain/resource.js";
 
 /** Maps an {@link InviteService} domain error to a tRPC error, else rethrows. */
 function rethrowAsTRPC(err: unknown): never {
@@ -54,9 +58,7 @@ export function createInviteRouter(inviteService: InviteService) {
             resourceId: input.resourceId,
             inviterId: ctx.user.id,
           });
-          // Only the token and its lifetime: the row's internals are not the
-          // client's business.
-          return { token: invite.token, expiresAt: invite.expiresAt };
+          return toIssuedInviteDto(invite);
         } catch (err) {
           rethrowAsTRPC(err);
         }
@@ -84,13 +86,7 @@ export function createInviteRouter(inviteService: InviteService) {
             resourceId: input.resourceId,
             requesterId: ctx.user.id,
           });
-          return invites.map((invite) => ({
-            id: invite.id,
-            token: invite.token,
-            expiresAt: invite.expiresAt,
-            revokedAt: invite.revokedAt,
-            createdAt: invite.createdAt,
-          }));
+          return invites.map(toInviteSummaryDto);
         } catch (err) {
           rethrowAsTRPC(err);
         }

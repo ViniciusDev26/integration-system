@@ -30,6 +30,13 @@ wired in a manual composition root (`src/container.ts`); the tRPC layer is in
   it is domain. Modules without such a rule (`media/`, `users/`) stay flat; an
   empty domain layer is worse than none. Done: `invite/`, `room/`. The clearest
   example of the shape is `room/domain/room.playback.ts`.
+- **In a module taken further (ADR 0047), the domain model is not the table.**
+  Value objects are branded types with a validating constructor — the brand is
+  type-level only, so they cross Drizzle and tRPC unchanged, which is what lets
+  the web import and call `room/domain` on wire data. The repository maps
+  row ↔ entity, and the router returns a DTO. A **rule** returns an outcome; a
+  **constructor** throws, because invalid data means corruption. Done:
+  `invite/` (entity, `InviteToken`, mapper, DTOs).
 - Decisions: [`docs/adrs/`](./docs/adrs/) (0001–00NN). Architecture:
   [`docs/architecture.md`](./docs/architecture.md).
 - DB migrations: `drizzle/` (schema in `src/shared/db/schema/`).

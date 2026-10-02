@@ -13,6 +13,9 @@ import {
 import { createInviteService } from "./invite.service.js";
 import type { InviteService } from "./invite.service.types.js";
 
+const TOKEN_1 = "a".repeat(43);
+const TOKEN_2 = "b".repeat(43);
+const TOKEN_3 = "c".repeat(43);
 const PLAYLIST_ID = "playlist-1";
 const OWNER_ID = "user-owner";
 const GUEST_ID = "user-guest";
@@ -56,12 +59,14 @@ describe("InviteService", () => {
     membership = createFakeMembership();
     roomMembership = createFakeMembership();
     now = new Date("2026-10-02T12:00:00.000Z");
-    tokens = ["tok-1", "tok-2", "tok-3"];
+    // Long enough to be a real token: the value object validates them now,
+    // which is the invariant doing its job (ADR 0047).
+    tokens = [TOKEN_1, TOKEN_2, TOKEN_3];
     service = createInviteService({
       inviteRepository: repository,
       resourceMembership: { PLAYLIST: membership, ROOM: roomMembership },
       now: () => now,
-      generateToken: () => tokens.shift() ?? "tok-exhausted",
+      generateToken: () => tokens.shift() ?? `${"z".repeat(43)}`,
     });
   });
 
@@ -77,9 +82,11 @@ describe("InviteService", () => {
     it("issues a token that expires after the default TTL", async () => {
       const invite = await createInvite();
 
-      expect(invite.token).toBe("tok-1");
-      expect(invite.resourceType).toBe("PLAYLIST");
-      expect(invite.resourceId).toBe(PLAYLIST_ID);
+      expect(invite.token).toBe(TOKEN_1);
+      expect(invite.resource).toEqual({
+        resourceType: "PLAYLIST",
+        resourceId: PLAYLIST_ID,
+      });
       expect(invite.createdBy).toBe(OWNER_ID);
       expect(invite.expiresAt.getTime()).toBe(
         now.getTime() + DEFAULT_INVITE_TTL_MS,
@@ -92,7 +99,7 @@ describe("InviteService", () => {
         resourceMembership: { PLAYLIST: membership, ROOM: roomMembership },
         ttlMs: 60_000,
         now: () => now,
-        generateToken: () => "tok-short",
+        generateToken: () => TOKEN_1,
       });
 
       const invite = await shortLived.createForResource({
@@ -236,7 +243,7 @@ describe("InviteService", () => {
         requesterId: OWNER_ID,
       });
 
-      expect(listed.map((invite) => invite.token)).toEqual(["tok-2", "tok-1"]);
+      expect(listed.map((invite) => invite.token)).toEqual([TOKEN_2, TOKEN_1]);
     });
 
     it("refuses someone who may not manage the resource", async () => {
