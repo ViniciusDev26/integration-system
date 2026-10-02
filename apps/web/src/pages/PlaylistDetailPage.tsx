@@ -2,7 +2,7 @@ import { ChevronLeft, ListMusic, Play } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../api/trpc";
-import { PlaylistShare } from "../components/playlist/PlaylistShare";
+import { SharePanel } from "../components/share/SharePanel";
 import { Button } from "../components/ui/button";
 import { usePlayerStore } from "../store/player";
 
@@ -17,6 +17,10 @@ export function PlaylistDetailPage() {
     { enabled: playlistId.length > 0 },
   );
   const allMusics = trpc.musics.list.useQuery();
+  const members = trpc.playlists.members.useQuery(
+    { playlistId },
+    { enabled: playlistId.length > 0 },
+  );
   const addMusic = trpc.playlists.addMusic.useMutation({
     onSuccess: () => utils.playlists.get.invalidate({ id: playlistId }),
   });
@@ -111,7 +115,11 @@ export function PlaylistDetailPage() {
         </ul>
       )}
 
-      <PlaylistShare playlistId={playlistId} />
+      <SharePanel
+        resourceType="PLAYLIST"
+        resourceId={playlistId}
+        members={members.data ?? []}
+      />
 
       <form
         className="flex items-end gap-2"

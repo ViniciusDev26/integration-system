@@ -87,6 +87,7 @@ UUIDv7 (ADR 0025) unless noted.
 | Runtime / Language | Node.js 24 / TypeScript | [0001](./adrs/0001-nodejs-24-and-typescript.md) |
 | HTTP framework | Express (adapter host for tRPC + OAuth) | [0002](./adrs/0002-express-http-framework.md) |
 | **API transport** | **tRPC** (end-to-end types, no codegen) | [0037](./adrs/0037-trpc-api-and-end-to-end-types.md) |
+| **Wire format** | **superjson** transformer (so `Date` is a `Date`) | [0042](./adrs/0042-superjson-transformer-for-trpc.md) |
 | **Realtime transport** | **WebSocket** (`ws`) carrying tRPC subscriptions | [0039](./adrs/0039-realtime-via-trpc-subscriptions-over-websocket.md) |
 | **Invites** | Opaque-token links over a resource-agnostic port | [0040](./adrs/0040-resource-agnostic-invite-links.md) |
 | **Rooms / sync playback** | Independent resource; anchored, server-authoritative | [0041](./adrs/0041-rooms-as-independent-resources-with-server-authoritative-playback.md) |

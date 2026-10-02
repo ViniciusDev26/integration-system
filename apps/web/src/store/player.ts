@@ -18,6 +18,13 @@ interface PlayerState {
   volume: number; // 0..1
   currentTime: number;
   duration: number;
+  /**
+   * A seek the store is asking the audio element to perform. The element is the
+   * only thing that can actually seek, so a command from outside the player —
+   * a room anchor, say — lands here and `Player` applies it. The counter makes
+   * two seeks to the same position distinguishable.
+   */
+  pendingSeek: { toSeconds: number; nonce: number } | null;
   repeat: RepeatMode;
 
   /** Play a single track (queue of one). */
@@ -43,6 +50,10 @@ interface PlayerState {
 
   setVolume: (volume: number) => void;
   setCurrentTime: (time: number) => void;
+  /** Asks the audio element to seek. Used to follow a room's shared position. */
+  seekTo: (seconds: number) => void;
+  /** Clears a seek once the element has performed it. */
+  seekApplied: (nonce: number) => void;
   setDuration: (duration: number) => void;
   cycleRepeat: () => void;
 }
@@ -58,6 +69,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   volume: 0.8,
   currentTime: 0,
   duration: 0,
+  pendingSeek: null,
   repeat: "off",
 
   playTrack(track) {
@@ -171,6 +183,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   setCurrentTime(time) {
     set({ currentTime: time });
+  },
+  seekTo(seconds) {
+    const target = Math.max(0, seconds);
+    set((state) => ({
+      currentTime: target,
+      pendingSeek: {
+        toSeconds: target,
+        nonce: (state.pendingSeek?.nonce ?? 0) + 1,
+      },
+    }));
+  },
+  seekApplied(nonce) {
+    set((state) =>
+      state.pendingSeek?.nonce === nonce ? { pendingSeek: null } : {},
+    );
   },
   setDuration(duration) {
     set({ duration });

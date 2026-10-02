@@ -1,4 +1,4 @@
-import { Home, ListMusic, LogOut, Music } from "lucide-react";
+import { Home, ListMusic, LogOut, Music, Radio } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/musics", label: "Tracks", icon: Music, end: false },
   { to: "/playlists", label: "Playlists", icon: ListMusic, end: false },
+  { to: "/rooms", label: "Rooms", icon: Radio, end: false },
 ] as const;
 
 /** Persistent left navigation (ADR 0013) — brand, primary nav, user menu. */

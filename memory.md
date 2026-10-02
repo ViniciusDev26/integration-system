@@ -78,7 +78,15 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
-- **Rooms: API done, no UI yet (2026-10-02, ADR 0041)** — migration **`0007`**
+- **superjson is the tRPC transformer (2026-10-02, ADR 0042)** — set on the
+  server *and on every client link* (`httpBatchLink` + `wsLink`); in tRPC v11 the
+  transformer lives on the links, and the client-level option is only a type
+  error pointing that out. Before this, `Date` crossed as a string while the
+  inferred type said `Date` — the types lied, contradicting ADR 0009. **The 238
+  router tests could not catch it**, because `createCaller` never serializes;
+  `src/trpc/transformer.wire.test.ts` makes real supertest requests and is the
+  only thing that fails if the transformer is removed.
+- **Rooms are complete, API + UI (2026-10-02, ADR 0041)** — migration **`0007`**
   adds `rooms`/`room_members`/`room_musics` and widens the `invites` check to
   allow `ROOM`. A room is independent of playlists (own membership + queue),
   chosen over "live session over a playlist"; the duplication is the accepted
@@ -91,6 +99,12 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   playback, not just the owner. Making rooms invitable cost **one adapter**;
   the typechecker forced every registry to supply `ROOM` because
   `ResourceMembershipRegistry` is `Record<InviteResourceType, …>`.
+  Web: `useRoomPlaybackSync` imports `livePositionMs` **from the API workspace**
+  (`@integration-system/api/playback`, a second package export) so client and
+  server cannot disagree; the player store gained `seekTo`/`pendingSeek`, since
+  only the `<audio>` element can seek and the command comes from outside it.
+  **Known gap:** the global player's own transport buttons still act locally, so
+  using them inside a room desyncs you until the next command re-anchors.
 - **Shared playlists are live (2026-10-02)** — AV3 block 1 done. The playlist
   module owns an `EventBus<PlaylistEvent>`; `playlists.onChanged` streams
   `MUSIC_ADDED`/`MEMBER_JOINED` to members, `playlists.members` lists who

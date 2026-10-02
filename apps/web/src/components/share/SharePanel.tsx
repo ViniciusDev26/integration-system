@@ -6,6 +6,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
+/** What a membership row looks like, the same for every invitable resource. */
+export interface ShareMember {
+  userId: string;
+  type: "OWNER" | "MEMBER";
+  name: string | null;
+  imageUrl: string | null;
+}
+
+export interface SharePanelProps {
+  /** Mirrors the API's invite resource types (api ADR 0040/0041). */
+  resourceType: "PLAYLIST" | "ROOM";
+  resourceId: string;
+  members: ShareMember[];
+  /** `users.id` of everyone present right now — rooms only (api ADR 0041). */
+  present?: readonly string[];
+}
+
 /** Turns a token into the link a person actually pastes to someone else. */
 function inviteUrl(token: string): string {
   return `${window.location.origin}/invite/${token}`;
@@ -17,25 +34,30 @@ function initialsOf(name: string | null): string {
 }
 
 /**
- * Who belongs to a playlist, and — for its owner — the links that let more
- * people in (api ADR 0040). Only the owner may invite, so everyone else sees
- * the member list alone.
+ * Members of a resource and — for its owner — the links that let more people
+ * in. Resource-agnostic, like the invite module behind it: a playlist and a
+ * room differ only in the `resourceType` passed in.
+ *
+ * When `present` is given, a dot marks who is listening right now, which is a
+ * different question from who belongs.
  */
-export function PlaylistShare({ playlistId }: { playlistId: string }) {
+export function SharePanel({
+  resourceType,
+  resourceId,
+  members,
+  present,
+}: SharePanelProps) {
   const currentUser = useAuthStore((s) => s.user);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  const members = trpc.playlists.members.useQuery({ playlistId });
-  const isOwner =
-    members.data?.some(
-      (member) => member.userId === currentUser?.id && member.type === "OWNER",
-    ) ?? false;
-
-  const inviteList = trpc.invites.list.useQuery(
-    { resourceType: "PLAYLIST", resourceId: playlistId },
-    { enabled: isOwner },
+  const isOwner = members.some(
+    (member) => member.userId === currentUser?.id && member.type === "OWNER",
   );
 
+  const inviteList = trpc.invites.list.useQuery(
+    { resourceType, resourceId },
+    { enabled: isOwner },
+  );
   const createInvite = trpc.invites.create.useMutation({
     onSuccess: () => inviteList.refetch(),
   });
@@ -54,13 +76,8 @@ export function PlaylistShare({ playlistId }: { playlistId: string }) {
     }
   }
 
-  if (members.isLoading) {
-    return null;
-  }
-
   const live = (inviteList.data ?? []).filter(
-    (invite) =>
-      invite.revokedAt === null && new Date(invite.expiresAt) > new Date(),
+    (invite) => invite.revokedAt === null && invite.expiresAt > new Date(),
   );
 
   return (
@@ -69,7 +86,7 @@ export function PlaylistShare({ playlistId }: { playlistId: string }) {
         <h2 className="text-sm font-semibold">
           Members
           <span className="pl-2 font-normal text-muted-foreground">
-            {members.data?.length ?? 0}
+            {members.length}
           </span>
         </h2>
         {isOwner && (
@@ -77,12 +94,7 @@ export function PlaylistShare({ playlistId }: { playlistId: string }) {
             variant="secondary"
             size="sm"
             disabled={createInvite.isPending}
-            onClick={() =>
-              createInvite.mutate({
-                resourceType: "PLAYLIST",
-                resourceId: playlistId,
-              })
-            }
+            onClick={() => createInvite.mutate({ resourceType, resourceId })}
           >
             <UserPlus className="h-4 w-4" />
             Create invite link
@@ -91,23 +103,34 @@ export function PlaylistShare({ playlistId }: { playlistId: string }) {
       </div>
 
       <ul className="flex flex-wrap gap-3">
-        {(members.data ?? []).map((member) => (
-          <li key={member.userId} className="flex items-center gap-2">
-            <Avatar size="sm">
-              {member.imageUrl !== null && (
-                <AvatarImage src={member.imageUrl} alt="" />
+        {members.map((member) => {
+          const here = present?.includes(member.userId) ?? false;
+          return (
+            <li key={member.userId} className="flex items-center gap-2">
+              <span className="relative">
+                <Avatar size="sm">
+                  {member.imageUrl !== null && (
+                    <AvatarImage src={member.imageUrl} alt="" />
+                  )}
+                  <AvatarFallback>{initialsOf(member.name)}</AvatarFallback>
+                </Avatar>
+                {here && (
+                  <span
+                    className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background"
+                    title="Listening now"
+                  />
+                )}
+              </span>
+              <span className="text-sm">
+                {member.name ?? "Unnamed"}
+                {member.userId === currentUser?.id && " (you)"}
+              </span>
+              {member.type === "OWNER" && (
+                <Badge variant="secondary">owner</Badge>
               )}
-              <AvatarFallback>{initialsOf(member.name)}</AvatarFallback>
-            </Avatar>
-            <span className="text-sm">
-              {member.name ?? "Unnamed"}
-              {member.userId === currentUser?.id && " (you)"}
-            </span>
-            {member.type === "OWNER" && (
-              <Badge variant="secondary">owner</Badge>
-            )}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       {isOwner && live.length > 0 && (
@@ -147,8 +170,8 @@ export function PlaylistShare({ playlistId }: { playlistId: string }) {
             ))}
           </ul>
           <p className="text-xs text-muted-foreground">
-            Anyone signed in who opens a link joins this playlist. Revoke one to
-            stop it working.
+            Anyone signed in who opens a link joins. Revoke one to stop it
+            working.
           </p>
         </div>
       )}

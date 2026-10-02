@@ -46,6 +46,7 @@ export function Player() {
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
   const repeat = usePlayerStore((s) => s.repeat);
+  const pendingSeek = usePlayerStore((s) => s.pendingSeek);
 
   const toggle = usePlayerStore((s) => s.toggle);
   const next = usePlayerStore((s) => s.next);
@@ -57,6 +58,7 @@ export function Player() {
   const cycleRepeat = usePlayerStore((s) => s.cycleRepeat);
   const playAt = usePlayerStore((s) => s.playAt);
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
+  const seekApplied = usePlayerStore((s) => s.seekApplied);
 
   const [showQueue, setShowQueue] = useState(false);
 
@@ -78,6 +80,17 @@ export function Player() {
       audio.pause();
     }
   }, [isPlaying, src]);
+
+  // Apply a seek asked for from outside the player — following a room's shared
+  // position, for instance. Only the element can actually seek.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio === null || pendingSeek === null) {
+      return;
+    }
+    audio.currentTime = pendingSeek.toSeconds;
+    seekApplied(pendingSeek.nonce);
+  }, [pendingSeek, seekApplied]);
 
   // Keep the element volume in sync.
   useEffect(() => {

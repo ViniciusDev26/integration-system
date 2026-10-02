@@ -185,14 +185,30 @@ elsewhere, and its accepted cost is structure duplicated from playlists.
       `RoomRegistry` built in block 0; this is its first consumer. Membership is
       who *may* enter, presence is who *is here*.
 
+**Web — done:**
+
+- [x] **Rooms UI** — list and create rooms, queue tracks, see who is listening
+      (a dot on the avatar marks presence, which is not the same as membership),
+      and transport controls that issue **server** commands rather than driving
+      the local player.
+- [x] **Following the anchor** — `useRoomPlaybackSync` imports `livePositionMs`
+      from the API workspace rather than reimplementing it, so the two sides
+      cannot disagree about where the room is. Clock skew is measured against
+      the server's `now` and subtracted; between anchors a 5 s check nudges a
+      drifting listener back.
+- [x] **Share panel is resource-agnostic** too — one component serves playlists
+      and rooms, mirroring the invite module behind it.
+
 **Still to do:**
 
-- [ ] Web UI: create and open a room, queue tracks, see who is listening, and
-      drive the shared player from the anchor.
-- [ ] Clock-skew correction on the client — events carry the server's `now` for
-      exactly this, but nothing uses it yet.
+- [ ] **The global player's own transport buttons act locally.** Press pause on
+      the bottom bar while in a room and you leave the room's position until the
+      next command re-anchors you. The room page's controls are the correct ones;
+      making the shared player aware of room mode is the real fix.
 - [ ] A room outliving a presigned URL (~1 h) is now a real failure, not a
       papercut: `musics.playbackUrl` is the missing piece.
+- [ ] Nothing stops a room from advancing to the next track when one ends —
+      playback simply stops at the end of a track.
 
 ### 3. Chat
 

@@ -9,6 +9,8 @@ import { MusicUploadPage } from "./pages/MusicUploadPage";
 import { PlaylistDetailPage } from "./pages/PlaylistDetailPage";
 import { PlaylistNewPage } from "./pages/PlaylistNewPage";
 import { PlaylistsPage } from "./pages/PlaylistsPage";
+import { RoomDetailPage } from "./pages/RoomDetailPage";
+import { RoomsPage } from "./pages/RoomsPage";
 import { useAuthStore } from "./store/auth";
 
 export function App() {
@@ -27,6 +29,8 @@ export function App() {
         <Route path="playlists" element={<PlaylistsPage />} />
         <Route path="playlists/new" element={<PlaylistNewPage />} />
         <Route path="playlists/:id" element={<PlaylistDetailPage />} />
+        <Route path="rooms" element={<RoomsPage />} />
+        <Route path="rooms/:id" element={<RoomDetailPage />} />
         <Route path="invite/:token" element={<JoinPlaylistPage />} />
       </Route>
     </Routes>
