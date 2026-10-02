@@ -34,8 +34,8 @@ export function createPlaylistService(
       return playlistRepository.create({ name, ownerId });
     },
 
-    async listForUser(ownerId) {
-      return playlistRepository.listByOwner(ownerId);
+    async listForUser(userId) {
+      return playlistRepository.listForMember(userId);
     },
 
     async addMusic({ playlistId, musicId, requesterId }) {

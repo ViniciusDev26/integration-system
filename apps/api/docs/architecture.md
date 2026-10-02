@@ -42,7 +42,15 @@ A sample music service (Spotify-like) with authenticated users:
   the row from the returned keys (ADR 0038).
 - **Playlists** — create (creator becomes OWNER), view with tracks, add tracks.
   **Membership is relational** (`playlist_members`, `type` OWNER|MEMBER), enforced
-  in the service; owner-scoped listing.
+  in the service. Listing is **membership-scoped**, so a playlist you were
+  invited into appears beside the ones you created (ADR 0040).
+- **Invites** — a link is an opaque token addressing a
+  `(resource_type, resource_id)` pair (ADR 0040). `invites.create` (owner only)
+  issues one, `invites.redeem` grants MEMBER, `invites.list`/`invites.revoke`
+  manage them. The module is **resource-agnostic**: it depends on a
+  `ResourceMembership` port (`exists`/`canInvite`/`grant`) with one adapter per
+  resource type registered in the composition root, so rooms will reuse it
+  without the module changing.
 
 ### Data model
 
@@ -67,6 +75,7 @@ UUIDv7 (ADR 0025) unless noted.
 | HTTP framework | Express (adapter host for tRPC + OAuth) | [0002](./adrs/0002-express-http-framework.md) |
 | **API transport** | **tRPC** (end-to-end types, no codegen) | [0037](./adrs/0037-trpc-api-and-end-to-end-types.md) |
 | **Realtime transport** | **WebSocket** (`ws`) carrying tRPC subscriptions | [0039](./adrs/0039-realtime-via-trpc-subscriptions-over-websocket.md) |
+| **Invites** | Opaque-token links over a resource-agnostic port | [0040](./adrs/0040-resource-agnostic-invite-links.md) |
 | Runtime validation | Zod (tRPC `.input`, boundaries) | [0011](./adrs/0011-zod-runtime-validation.md) |
 | OAuth callback validation | `express-zod-safe` (that one REST route) | [0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
 | Object storage | Cloudflare R2 (S3-compatible) | [0007](./adrs/0007-r2-object-storage-for-audio-files.md) |

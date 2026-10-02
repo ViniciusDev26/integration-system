@@ -89,14 +89,49 @@ describe("PlaylistRepository", () => {
     ).toBeNull();
   });
 
-  it("lists only playlists the user owns, newest first", async () => {
+  it("lists playlists the user belongs to, newest first", async () => {
     const first = await repository.create({ name: "First", ownerId });
     const second = await repository.create({ name: "Second", ownerId });
     await repository.create({ name: "Theirs", ownerId: otherId });
 
-    const owned = await repository.listByOwner(ownerId);
+    const mine = await repository.listForMember(ownerId);
 
-    expect(owned.map((p) => p.id)).toEqual([second.id, first.id]);
+    expect(mine.map((p) => p.id)).toEqual([second.id, first.id]);
+  });
+
+  it("includes a playlist the user was added to as MEMBER", async () => {
+    const shared = await repository.create({ name: "Shared", ownerId });
+
+    await repository.addMember({
+      playlistId: shared.id,
+      userId: otherId,
+      type: "MEMBER",
+    });
+
+    expect((await repository.listForMember(otherId)).map((p) => p.id)).toEqual([
+      shared.id,
+    ]);
+    expect(await repository.getMemberType(shared.id, otherId)).toBe("MEMBER");
+  });
+
+  it("lists nothing for a user who belongs to no playlist", async () => {
+    await repository.create({ name: "Theirs", ownerId: otherId });
+
+    expect(await repository.listForMember(ownerId)).toEqual([]);
+  });
+
+  it("adding an existing member is a no-op that keeps the original role", async () => {
+    const playlist = await repository.create({ name: "Mine", ownerId });
+
+    await repository.addMember({
+      playlistId: playlist.id,
+      userId: ownerId,
+      type: "MEMBER",
+    });
+
+    // The OWNER must not be demoted by a redeemed invite.
+    expect(await repository.getMemberType(playlist.id, ownerId)).toBe("OWNER");
+    expect(await repository.listForMember(ownerId)).toHaveLength(1);
   });
 
   it("adds tracks (in order) and ignores duplicates", async () => {

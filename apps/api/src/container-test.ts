@@ -7,9 +7,12 @@ import type { FakeGitHubOAuthClientOptions } from "./modules/auth/oauth/github-o
 import { createFakeGitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.fake.js";
 import type { GitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.js";
 import { createAuthService } from "./modules/auth/service/auth.service.js";
+import { createInMemoryInviteRepository } from "./modules/invite/repository/invite.repository.in-memory.js";
+import { createInviteService } from "./modules/invite/service/invite.service.js";
 import { createInMemoryMusicRepository } from "./modules/music/repository/music.repository.in-memory.js";
 import type { MusicRepository } from "./modules/music/repository/music.repository.js";
 import { createMusicService } from "./modules/music/service/music.service.js";
+import { createPlaylistResourceMembership } from "./modules/playlist/playlist.resource-membership.js";
 import { createInMemoryPlaylistRepository } from "./modules/playlist/repository/playlist.repository.in-memory.js";
 import type { PlaylistRepository } from "./modules/playlist/repository/playlist.repository.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
@@ -79,12 +82,20 @@ export function createTestContainer(
     objectStorage,
   });
 
+  const inviteService = createInviteService({
+    inviteRepository: createInMemoryInviteRepository(),
+    resourceMembership: {
+      PLAYLIST: createPlaylistResourceMembership(playlistRepository),
+    },
+  });
+
   return {
     authService,
     sessionService,
     objectStorage,
     musicService,
     playlistService,
+    inviteService,
     roomRegistry,
     userRepository,
     musicRepository,

@@ -135,12 +135,22 @@ Nothing below ships without this.
 
 ### 1. Shared playlists
 
+- [x] **Invite flow, resource-agnostic** (ADR 0040) — an invite is an opaque
+      token addressing a `(resource_type, resource_id)` pair. The module depends
+      on a `ResourceMembership` port and never learns what a playlist is; rooms
+      will register a second adapter rather than need a second module.
+      Procedures: `invites.create` / `redeem` / `list` / `revoke`. Migration
+      `0006` adds the `invites` table.
+- [x] **`MEMBER` promoted from reserved to used** — `PlaylistRepository` gained
+      `addMember` (idempotent, so an OWNER redeeming their own link is not
+      demoted), and owner-scoped listing became membership-scoped, so an invited
+      playlist shows up for the guest.
 - [ ] More than one user editing the same playlist, with one user's change
-      reaching the others without a page reload.
-- [ ] Promote `playlist_members.type` from reserved to used: `MEMBER` already
-      exists in the schema for exactly this, so **no migration is required**.
-- [ ] Invite or join flow so a second member can exist at all.
-- [ ] Subscription publishing playlist mutations to current members.
+      reaching the others **without a page reload** — the realtime half, still
+      to do.
+- [ ] Subscription publishing playlist mutations to current members, emitting
+      through `tracked()` so a reconnect backfills.
+- [ ] Web UI: share a link, open one, see who belongs.
 
 ### 2. Rooms
 

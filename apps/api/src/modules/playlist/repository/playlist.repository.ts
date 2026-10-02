@@ -14,6 +14,13 @@ export interface AddMusicInput {
   musicId: string;
 }
 
+/** Data to add a membership row. */
+export interface AddMemberInput {
+  playlistId: string;
+  userId: string;
+  type: PlaylistMemberType;
+}
+
 /**
  * Port for playlist persistence (ADR 0014, ADR 0027). Ownership/membership is a
  * relation (`playlist_members`), so `create` also inserts the OWNER row and
@@ -25,8 +32,16 @@ export interface PlaylistRepository {
   /** Creates the playlist and its OWNER membership atomically. */
   create(input: CreatePlaylistInput): Promise<Playlist>;
   findById(id: string): Promise<Playlist | null>;
-  /** Playlists the user OWNs, newest first. */
-  listByOwner(ownerId: string): Promise<Playlist[]>;
+  /**
+   * Playlists the user belongs to in any role, newest first — so a playlist
+   * they were invited into appears beside the ones they created (ADR 0040).
+   */
+  listForMember(userId: string): Promise<Playlist[]>;
+  /**
+   * Adds a membership row. A no-op if the user already belongs, which keeps an
+   * OWNER from being demoted when they redeem their own invite link.
+   */
+  addMember(input: AddMemberInput): Promise<void>;
   /** The user's role in the playlist, or `null` if they are not a member. */
   getMemberType(
     playlistId: string,

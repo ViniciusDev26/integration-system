@@ -78,8 +78,23 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
+- **Invite links built (2026-10-02, ADR 0040)** — the API half of shared
+  playlists; **no UI and no realtime yet**. An invite is an opaque token
+  (`randomBytes(32).base64url`, like a session) addressing a
+  `(resource_type, resource_id)` pair; migration **`0006`** adds `invites`.
+  `src/modules/invite/` is **resource-agnostic**: it depends on a
+  `ResourceMembership` port (`exists`/`canInvite`/`grant`), and
+  `createPlaylistResourceMembership` is the whole coupling to playlists — rooms
+  register a second adapter plus a second `INVITE_RESOURCE_TYPES` member and a
+  wider CHECK, and the module itself does not change. Only an OWNER may invite;
+  redeeming grants MEMBER; links are reusable, expire (7 d) and are revocable.
+  `PlaylistRepository` gained `addMember` (idempotent — an OWNER redeeming their
+  own link is not demoted) and `listByOwner` became **`listForMember`**, so a
+  shared playlist shows up for the guest. Procedures: `invites.create`/`redeem`/
+  `list`/`revoke`.
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
-  (playlists) still needs applying** before playlists work against a live DB.
+  (playlists) and now `0006` (invites) still need applying** before playlists or
+  invites work against a live DB.
 
 ## DDD migration plan (intent)
 

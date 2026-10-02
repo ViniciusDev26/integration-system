@@ -11,8 +11,13 @@ import { createAppRouter } from "./trpc/router.js";
 import { TRPC_ENDPOINT } from "./trpc/trpc.constants.js";
 import { attachTRPCWebSocketServer } from "./trpc/ws-server.js";
 
-const { authService, sessionService, musicService, playlistService } =
-  createContainer();
+const {
+  authService,
+  sessionService,
+  musicService,
+  playlistService,
+  inviteService,
+} = createContainer();
 
 const secureCookies = env.NODE_ENV === "production";
 
@@ -23,6 +28,7 @@ const trpcRouter = createAppRouter({
   sessionService,
   musicService,
   playlistService,
+  inviteService,
   secureCookies,
 });
 const createContext = createContextFactory(authService);

@@ -47,7 +47,7 @@ export function createPostgresPlaylistRepository(
       return playlist ?? null;
     },
 
-    async listByOwner(ownerId) {
+    async listForMember(userId) {
       const rows = await db
         .select()
         .from(playlists)
@@ -55,12 +55,7 @@ export function createPostgresPlaylistRepository(
           playlistMembers,
           eq(playlistMembers.playlistId, playlists.id),
         )
-        .where(
-          and(
-            eq(playlistMembers.userId, ownerId),
-            eq(playlistMembers.type, "OWNER"),
-          ),
-        )
+        .where(and(eq(playlistMembers.userId, userId)))
         .orderBy(desc(playlists.createdAt));
 
       return rows.map((row) => row.playlists);
@@ -79,6 +74,12 @@ export function createPostgresPlaylistRepository(
         .limit(1);
 
       return row?.type ?? null;
+    },
+
+    async addMember(input) {
+      // The composite PK makes this idempotent; `doNothing` preserves the
+      // existing role rather than overwriting it.
+      await db.insert(playlistMembers).values(input).onConflictDoNothing();
     },
 
     async addMusic(input) {

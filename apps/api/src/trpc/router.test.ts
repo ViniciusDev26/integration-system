@@ -11,6 +11,7 @@ function appRouterFor(container: TestContainer) {
     sessionService: container.sessionService,
     musicService: container.musicService,
     playlistService: container.playlistService,
+    inviteService: container.inviteService,
     secureCookies: false,
   });
 }
@@ -160,5 +161,147 @@ describe("trpc playlists", () => {
     await expect(
       callerFor(container, owner).playlists.get({ id: "nope" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("trpc invites", () => {
+  async function playlistOwnedBy(container: TestContainer, user: User) {
+    return container.playlistService.createForUser({
+      name: "Shared",
+      ownerId: user.id,
+    });
+  }
+
+  it("issues a link the owner can share", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const playlist = await playlistOwnedBy(container, owner);
+
+    const invite = await callerFor(container, owner).invites.create({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+
+    expect(invite.token).toEqual(expect.any(String));
+    expect(invite.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("refuses to issue a link for someone else's playlist", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const stranger = await seedUser(container, "stranger");
+    const playlist = await playlistOwnedBy(container, owner);
+
+    await expect(
+      callerFor(container, stranger).invites.create({
+        resourceType: "PLAYLIST",
+        resourceId: playlist.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lets a guest redeem the link and then see the playlist", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const guest = await seedUser(container, "guest");
+    const playlist = await playlistOwnedBy(container, owner);
+    const { token } = await callerFor(container, owner).invites.create({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+
+    const guestCaller = callerFor(container, guest);
+    expect(await guestCaller.playlists.list()).toEqual([]);
+
+    const redeemed = await guestCaller.invites.redeem({ token });
+
+    expect(redeemed).toEqual({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+    expect((await guestCaller.playlists.list()).map((p) => p.id)).toEqual([
+      playlist.id,
+    ]);
+  });
+
+  it("lets the redeemed guest add a track, as a member", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const guest = await seedUser(container, "guest");
+    const playlist = await playlistOwnedBy(container, owner);
+    const { token } = await callerFor(container, owner).invites.create({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+    const music = await container.musicRepository.create({
+      name: "Track",
+      genres: ["rock"],
+      objectKey: "musics/x.mp3",
+      thumbnailObjectKey: null,
+      uploadedBy: owner.id,
+    });
+
+    const guestCaller = callerFor(container, guest);
+    await guestCaller.invites.redeem({ token });
+
+    await expect(
+      guestCaller.playlists.addMusic({
+        playlistId: playlist.id,
+        musicId: music.id,
+      }),
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it("rejects an unknown token", async () => {
+    const container = createTestContainer();
+    const guest = await seedUser(container, "guest");
+
+    await expect(
+      callerFor(container, guest).invites.redeem({ token: "nope" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("rejects a revoked token, and says why", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const guest = await seedUser(container, "guest");
+    const playlist = await playlistOwnedBy(container, owner);
+    const ownerCaller = callerFor(container, owner);
+    const { token } = await ownerCaller.invites.create({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+    const [listed] = await ownerCaller.invites.list({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+
+    await ownerCaller.invites.revoke({ inviteId: listed?.id ?? "" });
+
+    await expect(
+      callerFor(container, guest).invites.redeem({ token }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST", message: "invite_revoked" });
+  });
+
+  it("refuses to list invites to a non-owner", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const stranger = await seedUser(container, "stranger");
+    const playlist = await playlistOwnedBy(container, owner);
+
+    await expect(
+      callerFor(container, stranger).invites.list({
+        resourceType: "PLAYLIST",
+        resourceId: playlist.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("requires authentication", async () => {
+    const container = createTestContainer();
+
+    await expect(
+      callerFor(container, null).invites.redeem({ token: "whatever" }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

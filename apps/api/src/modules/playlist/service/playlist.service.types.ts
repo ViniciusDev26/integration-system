@@ -46,7 +46,10 @@ export interface PlaylistServiceOptions {
 export interface PlaylistService {
   createForUser(input: CreatePlaylistForUserInput): Promise<Playlist>;
   addMusic(input: AddMusicToPlaylistInput): Promise<void>;
-  /** Playlists the user owns, newest first. */
-  listForUser(ownerId: string): Promise<Playlist[]>;
+  /**
+   * Playlists the user belongs to in any role, newest first — those they
+   * created and those they were invited into (ADR 0040).
+   */
+  listForUser(userId: string): Promise<Playlist[]>;
   getWithMusics(input: GetPlaylistInput): Promise<PlaylistWithMusics>;
 }

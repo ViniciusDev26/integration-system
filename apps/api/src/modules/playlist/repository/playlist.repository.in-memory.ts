@@ -17,7 +17,7 @@ export interface InMemoryPlaylistRepositoryOptions {
 
 /**
  * In-memory fake of {@link PlaylistRepository} for unit-testing services
- * (ADR 0022/0027). Tracks creation order so `listByOwner` can return newest-first
+ * (ADR 0022/0027). Tracks creation order so `listForMember` can return newest-first
  * without relying on identical timestamps. Not shipped in the build.
  */
 export function createInMemoryPlaylistRepository(
@@ -60,14 +60,13 @@ export function createInMemoryPlaylistRepository(
       return playlistsById.get(id) ?? null;
     },
 
-    async listByOwner(ownerId) {
-      const owned = new Set(
-        members
-          .filter((m) => m.userId === ownerId && m.type === "OWNER")
-          .map((m) => m.playlistId),
+    async listForMember(userId) {
+      // Any role counts, so an invited MEMBER sees the playlist too.
+      const belongsTo = new Set(
+        members.filter((m) => m.userId === userId).map((m) => m.playlistId),
       );
       return creationOrder
-        .filter((id) => owned.has(id))
+        .filter((id) => belongsTo.has(id))
         .map((id) => playlistsById.get(id))
         .filter((p): p is Playlist => p !== undefined)
         .reverse();
@@ -78,6 +77,16 @@ export function createInMemoryPlaylistRepository(
         (m) => m.playlistId === playlistId && m.userId === userId,
       );
       return member?.type ?? null;
+    },
+
+    async addMember(input) {
+      const already = members.some(
+        (m) => m.playlistId === input.playlistId && m.userId === input.userId,
+      );
+      if (already) {
+        return;
+      }
+      members.push(input);
     },
 
     async addMusic(input) {

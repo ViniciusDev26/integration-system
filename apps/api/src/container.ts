@@ -1,9 +1,13 @@
 import { createGitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.http.js";
 import { createAuthService } from "./modules/auth/service/auth.service.js";
 import type { AuthService } from "./modules/auth/service/auth.service.types.js";
+import { createPostgresInviteRepository } from "./modules/invite/repository/invite.repository.postgres.js";
+import { createInviteService } from "./modules/invite/service/invite.service.js";
+import type { InviteService } from "./modules/invite/service/invite.service.types.js";
 import { createPostgresMusicRepository } from "./modules/music/repository/music.repository.postgres.js";
 import { createMusicService } from "./modules/music/service/music.service.js";
 import type { MusicService } from "./modules/music/service/music.service.types.js";
+import { createPlaylistResourceMembership } from "./modules/playlist/playlist.resource-membership.js";
 import { createPostgresPlaylistRepository } from "./modules/playlist/repository/playlist.repository.postgres.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
 import type { PlaylistService } from "./modules/playlist/service/playlist.service.types.js";
@@ -29,6 +33,7 @@ export interface Container {
   objectStorage: ObjectStorage;
   musicService: MusicService;
   playlistService: PlaylistService;
+  inviteService: InviteService;
   /**
    * Who is present in which room (ADR 0039). A single instance, shared by
    * every subscription, because presence is one fact about the process. The
@@ -82,12 +87,22 @@ export function createContainer(): Container {
     objectStorage,
   });
 
+  // One membership adapter per invitable resource type (ADR 0040). Rooms will
+  // add a key here; the invite module itself does not change.
+  const inviteService = createInviteService({
+    inviteRepository: createPostgresInviteRepository(db),
+    resourceMembership: {
+      PLAYLIST: createPlaylistResourceMembership(playlistRepository),
+    },
+  });
+
   return {
     authService,
     sessionService,
     objectStorage,
     musicService,
     playlistService,
+    inviteService,
     roomRegistry,
   };
 }
