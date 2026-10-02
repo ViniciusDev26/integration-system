@@ -56,6 +56,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0038](./0038-presigned-direct-r2-upload.md) | Presigned direct-to-R2 uploads (no server multipart) | Accepted |
 | [0039](./0039-realtime-via-trpc-subscriptions-over-websocket.md) | Realtime via tRPC subscriptions over WebSocket | Accepted |
 | [0040](./0040-resource-agnostic-invite-links.md) | Resource-agnostic invite links | Accepted |
+| [0041](./0041-rooms-as-independent-resources-with-server-authoritative-playback.md) | Rooms as independent resources, with server-authoritative playback | Accepted |
 
 ## Conventions
 

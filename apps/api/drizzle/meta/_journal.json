@@ -50,6 +50,13 @@
       "when": 1790923084837,
       "tag": "0006_brave_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790966509730,
+      "tag": "0007_mushy_mongu",
+      "breakpoints": true
     }
   ]
 }

@@ -47,6 +47,16 @@ A sample music service (Spotify-like) with authenticated users:
   lists who belongs, and `playlists.onChanged` streams a playlist's changes to
   its members over the WebSocket (ADR 0039) — the events are *signals*, so a
   client reacts by refetching and a missed one is harmless.
+- **Rooms** — a listening room is its **own** resource (ADR 0041): its own
+  membership (`room_members`) and its own queue (`room_musics`), not a view onto
+  a playlist. Playback is **server-authoritative and anchored, not ticked**: the
+  room stores `current_music_id / position_ms / is_playing / playback_updated_at`
+  and clients derive the live position as
+  `isPlaying ? positionMs + (now - playbackUpdatedAt) : positionMs`, so the
+  server writes only when someone plays, pauses, seeks or changes track. Any
+  member may command playback. **Presence is the lifetime of the
+  `rooms.onChanged` subscription** — the resolver joins the `RoomRegistry` and
+  leaves in `finally`, so a dropped socket cleans itself up.
 - **Invites** — a link is an opaque token addressing a
   `(resource_type, resource_id)` pair (ADR 0040). `invites.create` (owner only)
   issues one, `invites.redeem` grants MEMBER, `invites.list`/`invites.revoke`
@@ -79,6 +89,7 @@ UUIDv7 (ADR 0025) unless noted.
 | **API transport** | **tRPC** (end-to-end types, no codegen) | [0037](./adrs/0037-trpc-api-and-end-to-end-types.md) |
 | **Realtime transport** | **WebSocket** (`ws`) carrying tRPC subscriptions | [0039](./adrs/0039-realtime-via-trpc-subscriptions-over-websocket.md) |
 | **Invites** | Opaque-token links over a resource-agnostic port | [0040](./adrs/0040-resource-agnostic-invite-links.md) |
+| **Rooms / sync playback** | Independent resource; anchored, server-authoritative | [0041](./adrs/0041-rooms-as-independent-resources-with-server-authoritative-playback.md) |
 | Runtime validation | Zod (tRPC `.input`, boundaries) | [0011](./adrs/0011-zod-runtime-validation.md) |
 | OAuth callback validation | `express-zod-safe` (that one REST route) | [0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
 | Object storage | Cloudflare R2 (S3-compatible) | [0007](./adrs/0007-r2-object-storage-for-audio-files.md) |
