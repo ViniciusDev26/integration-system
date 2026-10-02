@@ -27,3 +27,6 @@ coverage/
 
 # Scripts directory
 scripts/
+
+# Personal Files
+report/
