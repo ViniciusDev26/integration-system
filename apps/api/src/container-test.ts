@@ -19,6 +19,7 @@ import { createInMemoryUserRepository } from "./modules/users/user.repository.in
 import type { UserRepository } from "./modules/users/user.repository.js";
 import type { Database } from "./shared/db/database.js";
 import * as schema from "./shared/db/schema/index.js";
+import { createInMemoryRoomRegistry } from "./shared/realtime/room-registry.in-memory.js";
 import type { InMemoryObjectStorage } from "./shared/storage/object-storage.in-memory.js";
 import { createInMemoryObjectStorage } from "./shared/storage/object-storage.in-memory.js";
 
@@ -53,6 +54,7 @@ export interface TestContainer extends Container {
 export function createTestContainer(
   options: TestContainerOptions = {},
 ): TestContainer {
+  const roomRegistry = createInMemoryRoomRegistry();
   const userRepository = createInMemoryUserRepository();
   const sessionRepository = createInMemorySessionRepository();
 
@@ -83,6 +85,7 @@ export function createTestContainer(
     objectStorage,
     musicService,
     playlistService,
+    roomRegistry,
     userRepository,
     musicRepository,
     playlistRepository,

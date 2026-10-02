@@ -13,6 +13,8 @@ import type { SessionService } from "./modules/sessions/service/session.service.
 import { createPostgresUserRepository } from "./modules/users/user.repository.postgres.js";
 import { getDb } from "./shared/db/index.js";
 import { env } from "./shared/env.js";
+import { createInMemoryRoomRegistry } from "./shared/realtime/room-registry.in-memory.js";
+import type { RoomRegistry } from "./shared/realtime/room-registry.js";
 import type { ObjectStorage } from "./shared/storage/object-storage.js";
 import { createR2ObjectStorage } from "./shared/storage/object-storage.r2.js";
 
@@ -27,6 +29,13 @@ export interface Container {
   objectStorage: ObjectStorage;
   musicService: MusicService;
   playlistService: PlaylistService;
+  /**
+   * Who is present in which room (ADR 0039). A single instance, shared by
+   * every subscription, because presence is one fact about the process. The
+   * `EventBus` is deliberately *not* here: each feature owns one typed to its
+   * own events, rather than a single bus with a union of everything.
+   */
+  roomRegistry: RoomRegistry;
 }
 
 /**
@@ -36,6 +45,8 @@ export interface Container {
  */
 export function createContainer(): Container {
   const db = getDb();
+
+  const roomRegistry = createInMemoryRoomRegistry();
 
   const userRepository = createPostgresUserRepository(db);
   const sessionRepository = createPostgresSessionRepository(db);
@@ -77,5 +88,6 @@ export function createContainer(): Container {
     objectStorage,
     musicService,
     playlistService,
+    roomRegistry,
   };
 }
