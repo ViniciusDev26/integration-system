@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
+import { JoinPlaylistPage } from "./pages/JoinPlaylistPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MusicsPage } from "./pages/MusicsPage";
 import { MusicUploadPage } from "./pages/MusicUploadPage";
@@ -26,6 +27,7 @@ export function App() {
         <Route path="playlists" element={<PlaylistsPage />} />
         <Route path="playlists/new" element={<PlaylistNewPage />} />
         <Route path="playlists/:id" element={<PlaylistDetailPage />} />
+        <Route path="invite/:token" element={<JoinPlaylistPage />} />
       </Route>
     </Routes>
   );

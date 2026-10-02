@@ -78,6 +78,18 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
+- **Shared playlists are live (2026-10-02)** — AV3 block 1 done. The playlist
+  module owns an `EventBus<PlaylistEvent>`; `playlists.onChanged` streams
+  `MUSIC_ADDED`/`MEMBER_JOINED` to members, `playlists.members` lists who
+  belongs. **One bus instance is shared** by `PlaylistService` and
+  `createPlaylistResourceMembership` in both composition roots — otherwise an
+  invite-driven join would not reach anyone already watching. Events are
+  **signals, not state**: the web client refetches on receipt, so a missed event
+  is harmless and `tracked()` replay is not needed here (chat will need it).
+  Gotcha found: a tRPC **subscription resolver does not run until the stream is
+  first pulled**, so a non-member's `FORBIDDEN` surfaces on iteration, not on
+  the call; and `createCaller` subscriptions take only the input, no options.
+  Web: share panel on the playlist page + `/invite/:token`.
 - **Invite links built (2026-10-02, ADR 0040)** — the API half of shared
   playlists; **no UI and no realtime yet**. An invite is an opaque token
   (`randomBytes(32).base64url`, like a session) addressing a

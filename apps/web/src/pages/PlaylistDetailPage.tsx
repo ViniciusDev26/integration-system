@@ -2,6 +2,7 @@ import { ChevronLeft, ListMusic, Play } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../api/trpc";
+import { PlaylistShare } from "../components/playlist/PlaylistShare";
 import { Button } from "../components/ui/button";
 import { usePlayerStore } from "../store/player";
 
@@ -21,6 +22,24 @@ export function PlaylistDetailPage() {
   });
 
   const [selected, setSelected] = useState("");
+
+  // Someone else's change arrives as a signal, not as state (api ADR 0039), so
+  // the response is simply to refetch what it affected. That also makes a
+  // missed event harmless: the next refetch is authoritative either way.
+  trpc.playlists.onChanged.useSubscription(
+    { playlistId },
+    {
+      enabled: playlistId.length > 0,
+      onData: (event) => {
+        if (event.type === "MUSIC_ADDED") {
+          utils.playlists.get.invalidate({ id: playlistId });
+        }
+        if (event.type === "MEMBER_JOINED") {
+          utils.playlists.members.invalidate({ playlistId });
+        }
+      },
+    },
+  );
 
   if (playlist.isLoading) {
     return <p className="text-muted-foreground">Loading…</p>;
@@ -91,6 +110,8 @@ export function PlaylistDetailPage() {
           ))}
         </ul>
       )}
+
+      <PlaylistShare playlistId={playlistId} />
 
       <form
         className="flex items-end gap-2"

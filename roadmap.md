@@ -79,7 +79,7 @@ tracked).
 
 ## Epic AV3 — Realtime: shared playlists, rooms, and chat
 
-**Status: in progress** · foundation (block 0) delivered 2026-10-02; no feature built yet
+**Status: in progress** · foundation and shared playlists delivered 2026-10-02; rooms and chat to come
 
 ### Goal
 
@@ -145,12 +145,22 @@ Nothing below ships without this.
       `addMember` (idempotent, so an OWNER redeeming their own link is not
       demoted), and owner-scoped listing became membership-scoped, so an invited
       playlist shows up for the guest.
-- [ ] More than one user editing the same playlist, with one user's change
-      reaching the others **without a page reload** — the realtime half, still
-      to do.
-- [ ] Subscription publishing playlist mutations to current members, emitting
-      through `tracked()` so a reconnect backfills.
-- [ ] Web UI: share a link, open one, see who belongs.
+- [x] **Live propagation** — `playlists.onChanged` streams a playlist's changes
+      to its members over the WebSocket. Membership is checked before anything
+      is yielded, so an outsider gets `FORBIDDEN` rather than a silent stream.
+      `MUSIC_ADDED` is published after the write lands; `MEMBER_JOINED` only on
+      a real join, so a repeated redeem does not announce an arrival twice.
+- [x] **Web UI** — a share panel on the playlist page (members with roles, and
+      for the owner: create, copy and revoke links), plus `/invite/:token`,
+      which redeems and lands the person on the playlist. The page refetches
+      when an event arrives.
+
+A design note, revising what this section used to say. These events are
+**signals, not state**: each says enough to know what to refetch, and the
+authoritative data stays one query away. That makes a missed event harmless and
+`tracked()` replay unnecessary *here* — a reconnecting client is correct simply
+by refetching. Chat will be the opposite case, because there the messages are
+the data, and that is where `tracked()` earns its place.
 
 ### 2. Rooms
 
@@ -175,7 +185,8 @@ latency. ADR 0039 explicitly leaves it out of scope.
 - **Replay has to be implemented per subscription.** The transport resumes and
   hands the resolver a `lastEventId`, but each subscription must emit through
   `tracked()` and backfill from that id, or a reconnect still loses events.
-  This matters most for chat.
+  Playlists sidestep this by emitting signals and refetching; **chat cannot**,
+  since there the messages are the data.
 - **Room state lives in process memory.** Scaling beyond one instance needs
   sticky routing or external pub/sub. Acceptable now, not forever.
 - **Expiring playback URLs** (carried from AV2) directly threaten a synchronized
