@@ -65,6 +65,14 @@ A sample music service (Spotify-like) with authenticated users:
   member may command playback. **Presence is the lifetime of the
   `rooms.onChanged` subscription** — the resolver joins the `RoomRegistry` and
   leaves in `finally`, so a dropped socket cleans itself up.
+- **Chat** — messages inside a room (ADR 0044), persisted in `room_messages`.
+  Unlike every other subscription here, this one has **durable replay**: a
+  message is the data, not a signal, so `rooms.onMessage` wraps each in
+  `tracked(id, …)` and resumes from the client's `lastEventId` by querying
+  PostgreSQL. The message id is the cursor — UUIDv7 is time-ordered, so no
+  separate sequence column exists. The resolver **subscribes before querying**
+  the backfill and skips already-yielded ids, which is what makes the handover
+  neither lossy nor duplicating.
 - **Invites** — a link is an opaque token addressing a
   `(resource_type, resource_id)` pair (ADR 0040). `invites.create` (owner only)
   issues one, `invites.redeem` grants MEMBER, `invites.list`/`invites.revoke`
@@ -100,6 +108,7 @@ UUIDv7 (ADR 0025) unless noted.
 | **Realtime transport** | **WebSocket** (`ws`) carrying tRPC subscriptions | [0039](./adrs/0039-realtime-via-trpc-subscriptions-over-websocket.md) |
 | **Invites** | Opaque-token links over a resource-agnostic port | [0040](./adrs/0040-resource-agnostic-invite-links.md) |
 | **Rooms / sync playback** | Independent resource; anchored, server-authoritative | [0041](./adrs/0041-rooms-as-independent-resources-with-server-authoritative-playback.md) |
+| **Chat** | Persisted messages, replayed from the id cursor | [0044](./adrs/0044-room-chat-with-durable-replay.md) |
 | Runtime validation | Zod (tRPC `.input`, boundaries) | [0011](./adrs/0011-zod-runtime-validation.md) |
 | OAuth callback validation | `express-zod-safe` (that one REST route) | [0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
 | Object storage | Cloudflare R2 (S3-compatible) | [0007](./adrs/0007-r2-object-storage-for-audio-files.md) |

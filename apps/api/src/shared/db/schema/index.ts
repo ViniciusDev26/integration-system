@@ -4,6 +4,7 @@ export * from "./playlist-members.js";
 export * from "./playlist-musics.js";
 export * from "./playlists.js";
 export * from "./room-members.js";
+export * from "./room-messages.js";
 export * from "./room-musics.js";
 export * from "./rooms.js";
 export * from "./sessions.js";
