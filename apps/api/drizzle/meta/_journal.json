@@ -57,6 +57,13 @@
       "when": 1790966509730,
       "tag": "0007_mushy_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790968198893,
+      "tag": "0008_mixed_menace",
+      "breakpoints": true
     }
   ]
 }

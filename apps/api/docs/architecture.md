@@ -30,7 +30,15 @@ wired by hand in a composition root. There is **no server-side rendering**
 
 A sample music service (Spotify-like) with authenticated users:
 
-- **Auth** — GitHub OAuth (ADR 0020); the session is an httpOnly cookie (ADR 0016)
+- **Auth** — two ways in, both ending at the same server-side session
+  (ADR 0016), so nothing downstream knows which was used: **email/password**
+  (ADR 0043, argon2id via `auth.register` / `auth.login`) and **GitHub OAuth**
+  (ADR 0020). `users.github_id` and `users.password_hash` are both nullable,
+  with a check constraint requiring at least one. A GitHub login landing on an
+  address that already has a password account **links** to it — GitHub only
+  supplies verified addresses — while password registration on an existing
+  address is refused, since nothing proves it is yours.
+- **Auth (OAuth detail)** — GitHub OAuth (ADR 0020); the session is an httpOnly cookie (ADR 0016)
   stored in PostgreSQL (ADR 0019). Login start, current user, and logout are tRPC
   (`auth.startLogin` → returns the GitHub URL + sets the CSRF `state` cookie;
   `auth.me`; `auth.logout`). Only the **OAuth callback** stays REST
@@ -86,6 +94,7 @@ UUIDv7 (ADR 0025) unless noted.
 | -------------- | ----------------- | --------------- |
 | Runtime / Language | Node.js 24 / TypeScript | [0001](./adrs/0001-nodejs-24-and-typescript.md) |
 | HTTP framework | Express (adapter host for tRPC + OAuth) | [0002](./adrs/0002-express-http-framework.md) |
+| Password hashing | argon2id via `@node-rs/argon2` (prebuilt, musl-safe) | [0043](./adrs/0043-email-password-authentication-with-argon2id.md) |
 | **API transport** | **tRPC** (end-to-end types, no codegen) | [0037](./adrs/0037-trpc-api-and-end-to-end-types.md) |
 | **Wire format** | **superjson** transformer (so `Date` is a `Date`) | [0042](./adrs/0042-superjson-transformer-for-trpc.md) |
 | **Realtime transport** | **WebSocket** (`ws`) carrying tRPC subscriptions | [0039](./adrs/0039-realtime-via-trpc-subscriptions-over-websocket.md) |
