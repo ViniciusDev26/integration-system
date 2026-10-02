@@ -164,15 +164,35 @@ the data, and that is where `tracked()` earns its place.
 
 ### 2. Rooms
 
-- [ ] Create a room and invite other users to it.
-- [ ] Participants build the room's playlist together.
-- [ ] Everyone listens **simultaneously**, with playback synchronized across
-      participants.
-- [ ] Presence: who is currently in the room.
+Designed in **ADR 0041**. A room is its **own** resource — own membership, own
+queue — rather than a live session over a playlist. That was a deliberate choice
+to keep a room's track list from being entangled with a playlist edited
+elsewhere, and its accepted cost is structure duplicated from playlists.
 
-Playback synchronization is the hard part of this epic and needs its own design:
-a single source of truth for position, and tolerance for per-participant
-latency. ADR 0039 explicitly leaves it out of scope.
+**API — done:**
+
+- [x] **Create a room and invite people** — `rooms.create`, and `ROOM` added to
+      the invite resource types. Making rooms invitable cost exactly one new
+      adapter (`createRoomResourceMembership`): the invite module from ADR 0040
+      was not touched, which is what it was built for. The typechecker enforced
+      it, since the registry is keyed by resource type.
+- [x] **Build the queue together** — `rooms.queueMusic`, announced to the room.
+- [x] **Synchronized playback** — server-authoritative and **anchored, not
+      ticked**: `{currentMusicId, positionMs, isPlaying, playbackUpdatedAt}` is
+      written only on a command, and clients extrapolate. Any member may drive.
+      The arithmetic lives in a pure module with its own tests.
+- [x] **Presence** — the lifetime of the `rooms.onChanged` subscription, via the
+      `RoomRegistry` built in block 0; this is its first consumer. Membership is
+      who *may* enter, presence is who *is here*.
+
+**Still to do:**
+
+- [ ] Web UI: create and open a room, queue tracks, see who is listening, and
+      drive the shared player from the anchor.
+- [ ] Clock-skew correction on the client — events carry the server's `now` for
+      exactly this, but nothing uses it yet.
+- [ ] A room outliving a presigned URL (~1 h) is now a real failure, not a
+      papercut: `musics.playbackUrl` is the missing piece.
 
 ### 3. Chat
 

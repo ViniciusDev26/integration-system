@@ -12,6 +12,7 @@ function appRouterFor(container: TestContainer) {
     musicService: container.musicService,
     playlistService: container.playlistService,
     inviteService: container.inviteService,
+    roomService: container.roomService,
     secureCookies: false,
   });
 }
@@ -419,6 +420,165 @@ describe("trpc playlists.onChanged", () => {
       callerFor(container, stranger).playlists.members({
         playlistId: playlist.id,
       }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("trpc rooms", () => {
+  async function roomWithTrack(container: TestContainer) {
+    const owner = await seedUser(container, "owner");
+    const room = await container.roomService.createForUser({
+      name: "Friday",
+      ownerId: owner.id,
+    });
+    const music = await container.musicRepository.create({
+      name: "Track",
+      genres: ["rock"],
+      objectKey: "musics/x.mp3",
+      thumbnailObjectKey: null,
+      uploadedBy: owner.id,
+    });
+    await callerFor(container, owner).rooms.queueMusic({
+      roomId: room.id,
+      musicId: music.id,
+    });
+    return { owner, room, music };
+  }
+
+  it("creates a room the owner can see, and nobody else", async () => {
+    const container = createTestContainer();
+    const owner = await seedUser(container, "owner");
+    const stranger = await seedUser(container, "stranger");
+
+    const room = await callerFor(container, owner).rooms.create({
+      name: "Friday",
+    });
+
+    expect(
+      (await callerFor(container, owner).rooms.list()).map((r) => r.id),
+    ).toEqual([room.id]);
+    expect(await callerFor(container, stranger).rooms.list()).toEqual([]);
+    await expect(
+      callerFor(container, stranger).rooms.get({ roomId: room.id }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lets a guest join a room through an invite link", async () => {
+    const container = createTestContainer();
+    const { owner, room } = await roomWithTrack(container);
+    const guest = await seedUser(container, "guest");
+
+    const { token } = await callerFor(container, owner).invites.create({
+      resourceType: "ROOM",
+      resourceId: room.id,
+    });
+    const redeemed = await callerFor(container, guest).invites.redeem({
+      token,
+    });
+
+    expect(redeemed).toEqual({ resourceType: "ROOM", resourceId: room.id });
+    expect(
+      (await callerFor(container, guest).rooms.list()).map((r) => r.id),
+    ).toEqual([room.id]);
+  });
+
+  it("refuses to issue a room invite to a non-owner", async () => {
+    const container = createTestContainer();
+    const { room } = await roomWithTrack(container);
+    const stranger = await seedUser(container, "stranger");
+
+    await expect(
+      callerFor(container, stranger).invites.create({
+        resourceType: "ROOM",
+        resourceId: room.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("anchors playback and reports it in the snapshot", async () => {
+    const container = createTestContainer();
+    const { owner, room, music } = await roomWithTrack(container);
+    const caller = callerFor(container, owner);
+
+    await caller.rooms.commandPlayback({
+      roomId: room.id,
+      command: { type: "SELECT_TRACK", musicId: music.id },
+    });
+
+    const snapshot = await caller.rooms.get({ roomId: room.id });
+    expect(snapshot.room.currentMusicId).toBe(music.id);
+    expect(snapshot.room.isPlaying).toBe(true);
+    expect(snapshot.serverNow).toBeInstanceOf(Date);
+  });
+
+  it("refuses to play a track that is not queued in the room", async () => {
+    const container = createTestContainer();
+    const { owner, room } = await roomWithTrack(container);
+    const elsewhere = await container.musicRepository.create({
+      name: "Elsewhere",
+      genres: [],
+      objectKey: "musics/y.mp3",
+      thumbnailObjectKey: null,
+      uploadedBy: owner.id,
+    });
+
+    await expect(
+      callerFor(container, owner).rooms.commandPlayback({
+        roomId: room.id,
+        command: { type: "SELECT_TRACK", musicId: elsewhere.id },
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("delivers a playback command to a listener, with the server's clock", async () => {
+    const container = createTestContainer();
+    const { owner, room, music } = await roomWithTrack(container);
+    const caller = callerFor(container, owner);
+
+    const stream = await caller.rooms.onChanged({ roomId: room.id });
+    const events: unknown[] = [];
+    const collecting = (async () => {
+      for await (const event of stream) {
+        events.push(event);
+        if (events.length === 2) {
+          break;
+        }
+      }
+    })();
+
+    await caller.rooms.commandPlayback({
+      roomId: room.id,
+      command: { type: "SELECT_TRACK", musicId: music.id },
+    });
+    await collecting;
+
+    // Opening the stream marks you present; then the command arrives.
+    expect(events[0]).toMatchObject({
+      type: "PRESENCE_CHANGED",
+      present: [owner.id],
+    });
+    expect(events[1]).toMatchObject({
+      type: "PLAYBACK_CHANGED",
+      actorId: owner.id,
+    });
+  });
+
+  it("refuses to stream to a non-member", async () => {
+    const container = createTestContainer();
+    const { room } = await roomWithTrack(container);
+    const stranger = await seedUser(container, "stranger");
+
+    const stream = await callerFor(container, stranger).rooms.onChanged({
+      roomId: room.id,
+    });
+
+    await expect(
+      (async () => {
+        for await (const event of stream) {
+          return event;
+        }
+        return null;
+      })(),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

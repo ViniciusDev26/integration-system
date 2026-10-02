@@ -17,6 +17,7 @@ const {
   musicService,
   playlistService,
   inviteService,
+  roomService,
 } = createContainer();
 
 const secureCookies = env.NODE_ENV === "production";
@@ -29,6 +30,7 @@ const trpcRouter = createAppRouter({
   musicService,
   playlistService,
   inviteService,
+  roomService,
   secureCookies,
 });
 const createContext = createContextFactory(authService);

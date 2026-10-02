@@ -46,6 +46,7 @@ function createFakeMembership(): ResourceMembership & {
 describe("InviteService", () => {
   let repository: InviteRepository;
   let membership: ReturnType<typeof createFakeMembership>;
+  let roomMembership: ReturnType<typeof createFakeMembership>;
   let now: Date;
   let tokens: string[];
   let service: InviteService;
@@ -53,11 +54,12 @@ describe("InviteService", () => {
   beforeEach(() => {
     repository = createInMemoryInviteRepository();
     membership = createFakeMembership();
+    roomMembership = createFakeMembership();
     now = new Date("2026-10-02T12:00:00.000Z");
     tokens = ["tok-1", "tok-2", "tok-3"];
     service = createInviteService({
       inviteRepository: repository,
-      resourceMembership: { PLAYLIST: membership },
+      resourceMembership: { PLAYLIST: membership, ROOM: roomMembership },
       now: () => now,
       generateToken: () => tokens.shift() ?? "tok-exhausted",
     });
@@ -87,7 +89,7 @@ describe("InviteService", () => {
     it("honours an overridden TTL", async () => {
       const shortLived = createInviteService({
         inviteRepository: repository,
-        resourceMembership: { PLAYLIST: membership },
+        resourceMembership: { PLAYLIST: membership, ROOM: roomMembership },
         ttlMs: 60_000,
         now: () => now,
         generateToken: () => "tok-short",
@@ -245,6 +247,24 @@ describe("InviteService", () => {
           requesterId: GUEST_ID,
         }),
       ).rejects.toBeInstanceOf(InviteForbiddenError);
+    });
+  });
+
+  describe("resource routing", () => {
+    it("uses the adapter registered for the invite's resource type", async () => {
+      const invite = await service.createForResource({
+        resourceType: "ROOM",
+        resourceId: PLAYLIST_ID,
+        inviterId: OWNER_ID,
+      });
+
+      await service.redeem({ token: invite.token, userId: GUEST_ID });
+
+      // The ROOM adapter got it; the PLAYLIST one was never touched.
+      expect(roomMembership.granted).toEqual([
+        { resourceId: PLAYLIST_ID, userId: GUEST_ID },
+      ]);
+      expect(membership.granted).toEqual([]);
     });
   });
 });

@@ -128,13 +128,50 @@ describe("InviteRepository", () => {
     ).rejects.toThrow();
   });
 
-  it("rejects an unknown resource type, via the check constraint", async () => {
+  it("accepts ROOM, the second resource type (ADR 0041)", async () => {
+    const invite = await repository.create({
+      token: "tok-room",
+      resourceType: "ROOM",
+      resourceId: OTHER_RESOURCE_ID,
+      createdBy: inviterId,
+      expiresAt: hourFromNow(),
+    });
+
+    expect(invite.resourceType).toBe("ROOM");
+  });
+
+  it("rejects a resource type that is not in the check constraint", async () => {
     await expect(
       db.execute(
         sql`insert into invites (token, resource_type, resource_id, created_by, expires_at)
-            values ('tok-bad', 'ROOM', ${PLAYLIST_ID}, ${inviterId}, now())`,
+            values ('tok-bad', 'ALBUM', ${PLAYLIST_ID}, ${inviterId}, now())`,
       ),
     ).rejects.toThrow();
+  });
+
+  it("keeps resources of different types apart when listing", async () => {
+    await repository.create({
+      token: "tok-as-playlist",
+      resourceType: "PLAYLIST",
+      resourceId: PLAYLIST_ID,
+      createdBy: inviterId,
+      expiresAt: hourFromNow(),
+    });
+    await repository.create({
+      token: "tok-as-room",
+      resourceType: "ROOM",
+      // Same id, different kind of thing — the pair is what identifies it.
+      resourceId: PLAYLIST_ID,
+      createdBy: inviterId,
+      expiresAt: hourFromNow(),
+    });
+
+    const asRoom = await repository.listForResource({
+      resourceType: "ROOM",
+      resourceId: PLAYLIST_ID,
+    });
+
+    expect(asRoom.map((invite) => invite.token)).toEqual(["tok-as-room"]);
   });
 
   it("lists a resource's invites newest first, and only that resource's", async () => {

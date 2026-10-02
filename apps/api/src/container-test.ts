@@ -17,6 +17,10 @@ import { createPlaylistResourceMembership } from "./modules/playlist/playlist.re
 import { createInMemoryPlaylistRepository } from "./modules/playlist/repository/playlist.repository.in-memory.js";
 import type { PlaylistRepository } from "./modules/playlist/repository/playlist.repository.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
+import { createInMemoryRoomRepository } from "./modules/room/repository/room.repository.in-memory.js";
+import type { RoomEvent } from "./modules/room/room.events.js";
+import { createRoomResourceMembership } from "./modules/room/room.resource-membership.js";
+import { createRoomService } from "./modules/room/service/room.service.js";
 import { createInMemorySessionRepository } from "./modules/sessions/repository/session.repository.in-memory.js";
 import { createSessionService } from "./modules/sessions/service/session.service.js";
 import { createInMemoryUserRepository } from "./modules/users/user.repository.in-memory.js";
@@ -88,12 +92,29 @@ export function createTestContainer(
     eventBus: playlistEventBus,
   });
 
+  const roomEventBus = createInMemoryEventBus<RoomEvent>();
+  const roomRepository = createInMemoryRoomRepository({
+    resolveMusic: (id) => musicRepository.findById(id),
+  });
+  const roomService = createRoomService({
+    roomRepository,
+    musicRepository,
+    objectStorage,
+    eventBus: roomEventBus,
+    roomRegistry,
+  });
+
   const inviteService = createInviteService({
     inviteRepository: createInMemoryInviteRepository(),
     resourceMembership: {
       PLAYLIST: createPlaylistResourceMembership({
         playlistRepository,
         eventBus: playlistEventBus,
+      }),
+      // Rooms became invitable by adding this one adapter (ADR 0040/0041).
+      ROOM: createRoomResourceMembership({
+        roomRepository,
+        eventBus: roomEventBus,
       }),
     },
   });
@@ -105,6 +126,7 @@ export function createTestContainer(
     musicService,
     playlistService,
     inviteService,
+    roomService,
     roomRegistry,
     userRepository,
     musicRepository,

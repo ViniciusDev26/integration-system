@@ -78,6 +78,19 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
+- **Rooms: API done, no UI yet (2026-10-02, ADR 0041)** — migration **`0007`**
+  adds `rooms`/`room_members`/`room_musics` and widens the `invites` check to
+  allow `ROOM`. A room is independent of playlists (own membership + queue),
+  chosen over "live session over a playlist"; the duplication is the accepted
+  cost. Playback is an **anchor, not a tick**: `{currentMusicId, positionMs,
+  isPlaying, playbackUpdatedAt}` written only on a command, clients extrapolate
+  `isPlaying ? positionMs + (now - playbackUpdatedAt) : positionMs`. The pure
+  arithmetic is `src/modules/room/room.playback.ts` (14 tests). **Presence =
+  the lifetime of `rooms.onChanged`** — joins the `RoomRegistry`, leaves in
+  `finally`; first consumer of the block-0 registry. Any member may drive
+  playback, not just the owner. Making rooms invitable cost **one adapter**;
+  the typechecker forced every registry to supply `ROOM` because
+  `ResourceMembershipRegistry` is `Record<InviteResourceType, …>`.
 - **Shared playlists are live (2026-10-02)** — AV3 block 1 done. The playlist
   module owns an `EventBus<PlaylistEvent>`; `playlists.onChanged` streams
   `MUSIC_ADDED`/`MEMBER_JOINED` to members, `playlists.members` lists who
@@ -104,8 +117,8 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   own link is not demoted) and `listByOwner` became **`listForMember`**, so a
   shared playlist shows up for the guest. Procedures: `invites.create`/`redeem`/
   `list`/`revoke`.
-- **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
-  (playlists) and now `0006` (invites) still need applying** before playlists or
+- **User's DB state:** compose Postgres is migrated through `0004`; **`0005` (playlists), `0006`
+  (invites) and `0007` (rooms) still need applying** before playlists or
   invites work against a live DB.
 
 ## DDD migration plan (intent)
@@ -167,8 +180,6 @@ this seam cheap) and supersede ADR 0018 with a new architecture ADR. Tracked in
   SSE again.
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - Validate the GitHub callback `iss` param (RFC 9207) instead of stripping it.
-- Docker **container build not re-validated** after the monorepo change — a
-  `docker compose up --build` pass is recommended.
 - Biome 2.5.12 `extends` is non-recursive and won't resolve package subpaths — the
   shared config is referenced by relative path (see `docs/adrs/0002`).
 

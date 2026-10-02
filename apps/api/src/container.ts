@@ -12,6 +12,11 @@ import { createPlaylistResourceMembership } from "./modules/playlist/playlist.re
 import { createPostgresPlaylistRepository } from "./modules/playlist/repository/playlist.repository.postgres.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
 import type { PlaylistService } from "./modules/playlist/service/playlist.service.types.js";
+import { createPostgresRoomRepository } from "./modules/room/repository/room.repository.postgres.js";
+import type { RoomEvent } from "./modules/room/room.events.js";
+import { createRoomResourceMembership } from "./modules/room/room.resource-membership.js";
+import { createRoomService } from "./modules/room/service/room.service.js";
+import type { RoomService } from "./modules/room/service/room.service.types.js";
 import { createPostgresSessionRepository } from "./modules/sessions/repository/session.repository.postgres.js";
 import { createSessionService } from "./modules/sessions/service/session.service.js";
 import type { SessionService } from "./modules/sessions/service/session.service.types.js";
@@ -36,6 +41,7 @@ export interface Container {
   musicService: MusicService;
   playlistService: PlaylistService;
   inviteService: InviteService;
+  roomService: RoomService;
   /**
    * Who is present in which room (ADR 0039). A single instance, shared by
    * every subscription, because presence is one fact about the process. The
@@ -95,12 +101,27 @@ export function createContainer(): Container {
 
   // One membership adapter per invitable resource type (ADR 0040). Rooms will
   // add a key here; the invite module itself does not change.
+  const roomEventBus = createInMemoryEventBus<RoomEvent>();
+  const roomRepository = createPostgresRoomRepository(db);
+  const roomService = createRoomService({
+    roomRepository,
+    musicRepository,
+    objectStorage,
+    eventBus: roomEventBus,
+    roomRegistry,
+  });
+
   const inviteService = createInviteService({
     inviteRepository: createPostgresInviteRepository(db),
     resourceMembership: {
       PLAYLIST: createPlaylistResourceMembership({
         playlistRepository,
         eventBus: playlistEventBus,
+      }),
+      // Rooms became invitable by adding this one adapter (ADR 0040/0041).
+      ROOM: createRoomResourceMembership({
+        roomRepository,
+        eventBus: roomEventBus,
       }),
     },
   });
@@ -112,6 +133,7 @@ export function createContainer(): Container {
     musicService,
     playlistService,
     inviteService,
+    roomService,
     roomRegistry,
   };
 }
