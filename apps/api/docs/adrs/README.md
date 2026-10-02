@@ -45,12 +45,16 @@ Keep this table in sync when adding or superseding an ADR.
 | [0027](./0027-di-ports-adapters-manual-composition-root.md) | Dependency injection: ports + adapters + manual composition root | Accepted |
 | [0028](./0028-axios-http-client.md) | Use axios for outbound HTTP requests | Accepted |
 | [0029](./0029-docker-compose-full-dev-environment.md) | Run the whole dev environment with Docker Compose (app + db) | Accepted |
-| [0030](./0030-server-side-rendered-ui-handlebars.md) | Server-side rendered UI with Handlebars (express-handlebars) | Accepted |
+| [0030](./0030-server-side-rendered-ui-handlebars.md) | Server-side rendered UI with Handlebars (express-handlebars) | Superseded by [0036](./0036-json-api-and-retire-ssr.md) |
 | [0031](./0031-aws-s3-sdk-object-storage-port.md) | Use the AWS S3 v3 SDK behind an ObjectStorage port for R2 | Accepted |
-| [0032](./0032-multer-multipart-upload-middleware.md) | Use multer (memory storage) for multipart audio uploads | Accepted |
+| [0032](./0032-multer-multipart-upload-middleware.md) | Use multer (memory storage) for multipart audio uploads | Superseded by [0038](./0038-presigned-direct-r2-upload.md) |
 | [0033](./0033-cookie-parser-request-cookies.md) | cookie-parser for reading request cookies | Accepted |
 | [0034](./0034-supertest-http-integration-testing.md) | supertest for HTTP-level controller/route testing | Accepted |
 | [0035](./0035-node-version-pinning-via-mise.md) | Pin the exact Node version with `.tool-versions` (mise) | Accepted |
+| [0036](./0036-json-api-and-retire-ssr.md) | Retire SSR; the app becomes an API for the SPA | Accepted |
+| [0037](./0037-trpc-api-and-end-to-end-types.md) | tRPC as the API transport, with end-to-end types | Accepted |
+| [0038](./0038-presigned-direct-r2-upload.md) | Presigned direct-to-R2 uploads (no server multipart) | Accepted |
+| [0039](./0039-realtime-via-trpc-subscriptions-over-websocket.md) | Realtime via tRPC subscriptions over WebSocket | Accepted |
 
 ## Conventions
 
