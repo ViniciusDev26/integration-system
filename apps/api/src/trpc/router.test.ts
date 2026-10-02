@@ -582,3 +582,126 @@ describe("trpc rooms", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
+
+describe("trpc auth — email/password", () => {
+  /** A caller that records the cookies the procedures set. */
+  function callerRecordingCookies(container: TestContainer) {
+    const cookies: Array<{ name: string; value: string }> = [];
+    const ctx: Context = {
+      req: { cookies: {} },
+      res: {
+        cookie: (name, value) => {
+          cookies.push({ name, value });
+        },
+        clearCookie: () => undefined,
+      },
+      user: null,
+    };
+    return { caller: appRouterFor(container).createCaller(ctx), cookies };
+  }
+
+  it("registers, sets the session cookie, and signs the user in", async () => {
+    const container = createTestContainer();
+    const { caller, cookies } = callerRecordingCookies(container);
+
+    await caller.auth.register({
+      email: "grace@example.com",
+      password: "hunter2-hunter2",
+      name: "Grace",
+    });
+
+    expect(cookies.map((c) => c.name)).toEqual(["session"]);
+    const user =
+      await container.userRepository.findByEmail("grace@example.com");
+    expect(user?.name).toBe("Grace");
+  });
+
+  it("normalizes the email, so case and padding do not create a second account", async () => {
+    const container = createTestContainer();
+
+    await callerRecordingCookies(container).caller.auth.register({
+      email: "  Grace@Example.COM ",
+      password: "hunter2-hunter2",
+      name: "Grace",
+    });
+
+    expect(
+      await container.userRepository.findByEmail("grace@example.com"),
+    ).not.toBeNull();
+    // And the same address in another casing logs in rather than registering.
+    await expect(
+      callerRecordingCookies(container).caller.auth.login({
+        email: "GRACE@example.com",
+        password: "hunter2-hunter2",
+      }),
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it("refuses a second registration on the same address", async () => {
+    const container = createTestContainer();
+    await callerRecordingCookies(container).caller.auth.register({
+      email: "grace@example.com",
+      password: "hunter2-hunter2",
+      name: "Grace",
+    });
+
+    await expect(
+      callerRecordingCookies(container).caller.auth.register({
+        email: "grace@example.com",
+        password: "another-password",
+        name: "Impostor",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT", message: "email_in_use" });
+  });
+
+  it("rejects a wrong password and an unknown address identically", async () => {
+    const container = createTestContainer();
+    await callerRecordingCookies(container).caller.auth.register({
+      email: "grace@example.com",
+      password: "hunter2-hunter2",
+      name: "Grace",
+    });
+
+    const wrong = callerRecordingCookies(container).caller.auth.login({
+      email: "grace@example.com",
+      password: "wrong-password",
+    });
+    const unknown = callerRecordingCookies(container).caller.auth.login({
+      email: "nobody@example.com",
+      password: "hunter2-hunter2",
+    });
+
+    await expect(wrong).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "invalid_credentials",
+    });
+    await expect(unknown).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "invalid_credentials",
+    });
+  });
+
+  it("rejects a password shorter than the minimum", async () => {
+    const container = createTestContainer();
+
+    await expect(
+      callerRecordingCookies(container).caller.auth.register({
+        email: "grace@example.com",
+        password: "short",
+        name: null,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects an address that is not an address", async () => {
+    const container = createTestContainer();
+
+    await expect(
+      callerRecordingCookies(container).caller.auth.register({
+        email: "not-an-email",
+        password: "hunter2-hunter2",
+        name: null,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});

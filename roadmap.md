@@ -210,6 +210,20 @@ elsewhere, and its accepted cost is structure duplicated from playlists.
 - [ ] Nothing stops a room from advancing to the next track when one ends —
       playback simply stops at the end of a track.
 
+### Along the way — email/password sign-in
+
+- [x] **Email and password** (ADR 0043), added before chat so the app is usable
+      without a GitHub account. argon2id via `@node-rs/argon2`; `github_id` and
+      `password_hash` are both nullable with a check constraint requiring at
+      least one. Migration `0008`.
+- [x] **Asymmetric account linking** — a GitHub login at an address that already
+      has a password account joins it, because GitHub supplies only verified
+      addresses; password registration at an existing address is refused,
+      because nothing proves it is yours.
+- [ ] **No email verification, no password reset, no rate limiting.** All three
+      are real gaps: registration therefore discloses whether an address is in
+      use, and a forgotten password is unrecoverable.
+
 ### 3. Chat
 
 - [ ] Messages exchanged between participants of a room while music plays.

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Database } from "../../shared/db/database.js";
 import { users } from "../../shared/db/schema/users.js";
 import type { UserRepository } from "./user.repository.js";
@@ -29,6 +29,54 @@ export function createPostgresUserRepository(db: Database): UserRepository {
         .limit(1);
 
       return user ?? null;
+    },
+
+    async findByEmail(email) {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      return user ?? null;
+    },
+
+    async createWithPassword(input) {
+      const [user] = await db
+        .insert(users)
+        .values({
+          email: input.email,
+          name: input.name,
+          passwordHash: input.passwordHash,
+        })
+        .returning();
+
+      if (user === undefined) {
+        throw new Error("createWithPassword: expected a returned user row");
+      }
+
+      return user;
+    },
+
+    async linkGithub(input) {
+      const [user] = await db
+        .update(users)
+        .set({
+          githubId: input.githubId,
+          // Only fill in what the account is missing; a name the person chose
+          // at registration should not be overwritten by their GitHub one.
+          name: sql`coalesce(${users.name}, ${input.name})`,
+          imageUrl: sql`coalesce(${users.imageUrl}, ${input.imageUrl})`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, input.userId))
+        .returning();
+
+      if (user === undefined) {
+        throw new Error("linkGithub: expected a returned user row");
+      }
+
+      return user;
     },
 
     async upsertByGithubId(input) {

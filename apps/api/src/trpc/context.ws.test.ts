@@ -7,6 +7,7 @@ const user: User = {
   githubId: "gh-1",
   name: "Ada",
   email: "ada@example.com",
+  passwordHash: null,
   imageUrl: null,
   createdAt: new Date(),
   updatedAt: new Date(),

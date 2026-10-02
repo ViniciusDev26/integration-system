@@ -6,6 +6,7 @@ import type { Container } from "./container.js";
 import type { FakeGitHubOAuthClientOptions } from "./modules/auth/oauth/github-oauth.client.fake.js";
 import { createFakeGitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.fake.js";
 import type { GitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.js";
+import { createFakePasswordHasher } from "./modules/auth/password/password-hasher.fake.js";
 import { createAuthService } from "./modules/auth/service/auth.service.js";
 import { createInMemoryInviteRepository } from "./modules/invite/repository/invite.repository.in-memory.js";
 import { createInviteService } from "./modules/invite/service/invite.service.js";
@@ -73,6 +74,7 @@ export function createTestContainer(
     githubClient,
     userRepository,
     sessionService,
+    passwordHasher: createFakePasswordHasher(),
     generateState: options.generateState,
   });
   const objectStorage = createInMemoryObjectStorage();

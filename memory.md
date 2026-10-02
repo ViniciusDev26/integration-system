@@ -78,6 +78,20 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
+- **Email/password auth (2026-10-02, ADR 0043)** — migration **`0008`**:
+  `password_hash` added, `github_id` made **nullable**, plus a check constraint
+  `github_id is not null or password_hash is not null` so a credential-less
+  account cannot exist. argon2id behind a `PasswordHasher` port (fake in unit
+  tests — argon2 is slow on purpose). **Linking is asymmetric on purpose:**
+  GitHub login at an existing password account's email links (GitHub gives only
+  `primary && verified`); password registration at an existing email is refused
+  (nothing proves it is yours). Failed logins return one error for every cause
+  and verify against a dummy hash when no user is found, so accounts are not
+  enumerable by response or timing. Zod gotcha found: `z.email().trim()`
+  validates **before** trimming — use
+  `z.string().trim().toLowerCase().pipe(z.email())`. **musl verified, not
+  assumed:** `npm ci` in the project's own Dockerfile `deps` stage installs
+  `@node-rs/argon2-linux-x64-musl` and it loads in the Alpine image.
 - **superjson is the tRPC transformer (2026-10-02, ADR 0042)** — set on the
   server *and on every client link* (`httpBatchLink` + `wsLink`); in tRPC v11 the
   transformer lives on the links, and the client-level option is only a type
@@ -132,7 +146,7 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   shared playlist shows up for the guest. Procedures: `invites.create`/`redeem`/
   `list`/`revoke`.
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005` (playlists), `0006`
-  (invites) and `0007` (rooms) still need applying** before playlists or
+  (invites), `0007` (rooms) and `0008` (password auth) still need applying** before playlists or
   invites work against a live DB.
 
 ## DDD migration plan (intent)

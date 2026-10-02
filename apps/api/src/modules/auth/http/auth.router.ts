@@ -1,4 +1,6 @@
+import { TRPCError } from "@trpc/server";
 import type { CookieOptions } from "express";
+import { z } from "zod";
 import { readCookie } from "../../../shared/http/cookies.js";
 import {
   protectedProcedure,
@@ -6,12 +8,45 @@ import {
   router,
 } from "../../../trpc/trpc.js";
 import type { SessionService } from "../../sessions/service/session.service.types.js";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "../service/auth.service.constants.js";
+import {
+  EmailAlreadyRegisteredError,
+  InvalidCredentialsError,
+} from "../service/auth.service.errors.js";
 import type { AuthService } from "../service/auth.service.types.js";
 import {
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE,
   STATE_COOKIE_MAX_AGE_MS,
 } from "./auth.controller.constants.js";
+
+/** Maps an {@link AuthService} credential error to a tRPC error, else rethrows. */
+function rethrowAsTRPC(err: unknown): never {
+  if (err instanceof InvalidCredentialsError) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "invalid_credentials",
+    });
+  }
+  if (err instanceof EmailAlreadyRegisteredError) {
+    throw new TRPCError({ code: "CONFLICT", message: "email_in_use" });
+  }
+  throw err;
+}
+
+/**
+ * Credential rules (ADR 0043): a real address, and a length-bounded password
+ * with **no composition rules**, per NIST SP 800-63B.
+ */
+const credentialsSchema = z.object({
+  // Normalize *before* validating: `z.email().trim()` would check the format
+  // first and reject a padded address instead of trimming it.
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+  password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
+});
 
 export interface AuthRouterOptions {
   authService: AuthService;
@@ -48,6 +83,42 @@ export function createAuthRouter({
       });
       return { url };
     }),
+
+    /** Create a password account and sign in (ADR 0043). */
+    register: publicProcedure
+      .input(
+        credentialsSchema.extend({
+          name: z.string().trim().min(1).max(100).nullable().default(null),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const session = await authService.register(input);
+          ctx.res.cookie(SESSION_COOKIE, session.id, {
+            ...baseCookie,
+            expires: session.expiresAt,
+          });
+          return { ok: true };
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+      }),
+
+    /** Sign in with email and password (ADR 0043). */
+    login: publicProcedure
+      .input(credentialsSchema)
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const session = await authService.loginWithPassword(input);
+          ctx.res.cookie(SESSION_COOKIE, session.id, {
+            ...baseCookie,
+            expires: session.expiresAt,
+          });
+          return { ok: true };
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+      }),
 
     me: protectedProcedure.query(({ ctx }) => {
       const user = ctx.user;

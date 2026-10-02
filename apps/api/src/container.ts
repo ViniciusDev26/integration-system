@@ -1,4 +1,5 @@
 import { createGitHubOAuthClient } from "./modules/auth/oauth/github-oauth.client.http.js";
+import { createArgon2PasswordHasher } from "./modules/auth/password/password-hasher.argon2.js";
 import { createAuthService } from "./modules/auth/service/auth.service.js";
 import type { AuthService } from "./modules/auth/service/auth.service.types.js";
 import { createPostgresInviteRepository } from "./modules/invite/repository/invite.repository.postgres.js";
@@ -76,6 +77,7 @@ export function createContainer(): Container {
     githubClient,
     userRepository,
     sessionService,
+    passwordHasher: createArgon2PasswordHasher(),
   });
 
   const objectStorage = createR2ObjectStorage({

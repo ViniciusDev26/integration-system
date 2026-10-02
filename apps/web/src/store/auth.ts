@@ -17,6 +17,18 @@ interface AuthState {
   fetchMe: () => Promise<void>;
   /** Begin GitHub login: flips to `authenticating` then redirects the browser. */
   login: () => Promise<void>;
+  /**
+   * Sign in with email and password (api ADR 0043). Unlike GitHub login there
+   * is no redirect — the session cookie is set by the mutation, so the store
+   * only has to resolve who that is.
+   */
+  loginWithPassword: (email: string, password: string) => Promise<void>;
+  /** Create a password account and sign in (api ADR 0043). */
+  register: (
+    email: string,
+    password: string,
+    name: string | null,
+  ) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -45,6 +57,29 @@ export const useAuthStore = create<AuthState>((set) => ({
       window.location.href = url;
     } catch {
       set({ status: "anonymous" });
+    }
+  },
+
+  async loginWithPassword(email, password) {
+    set({ status: "authenticating" });
+    try {
+      await apiClient.auth.login.mutate({ email, password });
+      await useAuthStore.getState().fetchMe();
+    } catch (error) {
+      // Back to anonymous so the form is usable again; the page shows why.
+      set({ status: "anonymous" });
+      throw error;
+    }
+  },
+
+  async register(email, password, name) {
+    set({ status: "authenticating" });
+    try {
+      await apiClient.auth.register.mutate({ email, password, name });
+      await useAuthStore.getState().fetchMe();
+    } catch (error) {
+      set({ status: "anonymous" });
+      throw error;
     }
   },
 

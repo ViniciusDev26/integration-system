@@ -90,3 +90,105 @@ describe("UserRepository", () => {
     expect(rows).toHaveLength(1);
   });
 });
+
+describe("UserRepository — password credentials (ADR 0043)", () => {
+  let testDb: TestDatabase;
+  let db: Database;
+  let repository: UserRepository;
+
+  beforeAll(async () => {
+    testDb = await startTestDatabase();
+    db = testDb.db;
+  });
+
+  afterAll(async () => {
+    await testDb.stop();
+  });
+
+  beforeEach(async () => {
+    await db.execute(sql`truncate table users restart identity cascade`);
+    repository = createPostgresUserRepository(db);
+  });
+
+  it("creates a password account with no github id", async () => {
+    const user = await repository.createWithPassword({
+      email: "grace@example.com",
+      name: "Grace",
+      passwordHash: "argon2-hash",
+    });
+
+    expect(user.id).toMatch(UUID_V7);
+    expect(user.githubId).toBeNull();
+    expect(user.passwordHash).toBe("argon2-hash");
+  });
+
+  it("finds an account by email, and returns null otherwise", async () => {
+    await repository.createWithPassword({
+      email: "grace@example.com",
+      name: "Grace",
+      passwordHash: "argon2-hash",
+    });
+
+    expect((await repository.findByEmail("grace@example.com"))?.name).toBe(
+      "Grace",
+    );
+    expect(await repository.findByEmail("nobody@example.com")).toBeNull();
+  });
+
+  it("refuses a second account with the same email", async () => {
+    await repository.createWithPassword({
+      email: "grace@example.com",
+      name: "Grace",
+      passwordHash: "hash-1",
+    });
+
+    await expect(
+      repository.createWithPassword({
+        email: "grace@example.com",
+        name: "Impostor",
+        passwordHash: "hash-2",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("links a GitHub identity onto a password account", async () => {
+    const created = await repository.createWithPassword({
+      email: "grace@example.com",
+      name: "Grace",
+      passwordHash: "argon2-hash",
+    });
+
+    const linked = await repository.linkGithub({
+      userId: created.id,
+      githubId: "gh-grace",
+      name: "Grace From GitHub",
+      imageUrl: "https://avatars.example/grace.png",
+    });
+
+    expect(linked.githubId).toBe("gh-grace");
+    // The password still works — linking adds a credential, it does not replace.
+    expect(linked.passwordHash).toBe("argon2-hash");
+    // A name chosen at registration is not overwritten by the GitHub one.
+    expect(linked.name).toBe("Grace");
+    // A field the account lacked does get filled in.
+    expect(linked.imageUrl).toBe("https://avatars.example/grace.png");
+  });
+
+  it("rejects an account with neither credential, via the check constraint", async () => {
+    await expect(
+      db.execute(sql`insert into users (email) values ('nobody@example.com')`),
+    ).rejects.toThrow();
+  });
+
+  it("allows an account with only a github id", async () => {
+    const user = await repository.upsertByGithubId({
+      githubId: "gh-only",
+      name: "OAuth Only",
+      email: "oauth@example.com",
+      imageUrl: null,
+    });
+
+    expect(user.passwordHash).toBeNull();
+    expect(user.githubId).toBe("gh-only");
+  });
+});
