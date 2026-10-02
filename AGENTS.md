@@ -77,6 +77,7 @@ repo-wide ADRs and the working memory stay at the root:
 | `apps/<app>/docs/adrs/`         | App-specific decisions (e.g. the API's 0001–00NN)           | Immutable once accepted |
 | `docs/adrs/` (root)             | Repo-wide decisions (monorepo, tooling)                     | Immutable once accepted |
 | `memory.md` (root)              | Evolving working memory: state, discoveries, open questions | Volatile  |
+| `roadmap.md` (root)             | Delivery-level epics: what was promised, what comes next     | Evolving  |
 | `AGENTS.md` per app             | App-specific operating notes (this file is repo-wide)       | Stable    |
 
 Rules:

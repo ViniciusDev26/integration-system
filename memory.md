@@ -25,7 +25,8 @@ remove it from this file. Keep it pruned. See root `AGENTS.md` §5 for the rules
 
 ---
 
-Pending work is tracked in [`tasks.md`](tasks.md).
+Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
+[`roadmap.md`](roadmap.md).
 
 ## Current state
 
@@ -71,7 +72,8 @@ pragmatic feature-modular/layered architecture (ADR 0018) while the domain is
 CRUD-ish; when **playlists** gain real invariants (shared/collaborative), revisit
 and migrate toward **hexagonal + DDD** per module (repository ports already make
 this seam cheap) and supersede ADR 0018 with a new architecture ADR. Tracked in
-`tasks.md` → "Later".
+`tasks.md` → "Later"; the trigger is the AV3 epic in [`roadmap.md`](roadmap.md)
+(shared playlists and rooms).
 
 ## Important discoveries (still operationally relevant)
 
@@ -105,6 +107,14 @@ this seam cheap) and supersede ADR 0018 with a new architecture ADR. Tracked in
   while logged in is recommended before considering the redesign fully done.
 - Sidebar has **no responsive/mobile layout** — fixed `w-60`, no collapse below
   narrow viewports (ADR 0013 notes this as deliberately out of scope for now).
+- **Realtime transport decided (ADR 0039)** — tRPC subscriptions over WebSocket;
+  `ws` + `@types/ws` land when implementation starts. Rationale, and why
+  Socket.IO and SSE were rejected, are in the ADR; the epic and its risks are in
+  [`roadmap.md`](roadmap.md). Operationally relevant leftover: `wsLink`
+  multiplexes every subscription over **one socket per tab**, whereas
+  `httpSubscriptionLink` opens one `EventSource` **per subscription** (verified
+  in the installed 11.18.0 source) — worth remembering before anyone proposes
+  SSE again.
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - Validate the GitHub callback `iss` param (RFC 9207) instead of stripping it.
 - Docker **container build not re-validated** after the monorepo change — a
