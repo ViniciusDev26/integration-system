@@ -5,6 +5,7 @@ import type { AuthService } from "./modules/auth/service/auth.service.types.js";
 import { createPostgresInviteRepository } from "./modules/invite/repository/invite.repository.postgres.js";
 import { createInviteService } from "./modules/invite/service/invite.service.js";
 import type { InviteService } from "./modules/invite/service/invite.service.types.js";
+import type { MusicRepository } from "./modules/music/repository/music.repository.js";
 import { createPostgresMusicRepository } from "./modules/music/repository/music.repository.postgres.js";
 import { createMusicService } from "./modules/music/service/music.service.js";
 import type { MusicService } from "./modules/music/service/music.service.types.js";
@@ -41,6 +42,8 @@ export interface Container {
   authService: AuthService;
   sessionService: SessionService;
   objectStorage: ObjectStorage;
+  /** Needed by the media controller to resolve a track's object keys (ADR 0045). */
+  musicRepository: MusicRepository;
   musicService: MusicService;
   playlistService: PlaylistService;
   inviteService: InviteService;
@@ -139,6 +142,7 @@ export function createContainer(): Container {
     authService,
     sessionService,
     objectStorage,
+    musicRepository,
     musicService,
     playlistService,
     inviteService,

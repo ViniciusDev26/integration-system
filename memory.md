@@ -78,6 +78,17 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   with **one lazily-opened socket shared** by the React and standalone clients
   (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
   Verified: typecheck, lint, 123 tests, build all green.
+- **Media is served by redirect, not presigned URLs (2026-10-02, ADR 0045)** —
+  `GET /media/musics/:id` and `/cover` require a session and 302 to a freshly
+  signed URL with `Cache-Control: no-store`; the three services now return those
+  **stable paths**. Signing TTL dropped 1 h → 5 min, since it only has to
+  outlive one redirect. **The API is still not a data path** (ADR 0038 holds):
+  bytes go browser↔R2, only addressing passes through. Fixed covers too, which
+  expired with the audio. Note the access gate is *a session*, not membership —
+  `musics.list` returns the whole catalogue to any signed-in user, so track
+  access was never scoped. Range-through-redirect is tested against a local
+  object server; R2's own range support is inherited from the S3 contract, not
+  measured here.
 - **Room chat with durable replay (2026-10-02, ADR 0044)** — AV3 block 3 done,
   migration **`0009`** (`room_messages`). Messages are **the data, not a
   signal**, so this is the one subscription with replay: `tracked(id, …)` plus

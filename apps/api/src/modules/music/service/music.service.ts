@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
 import {
+  mediaCoverPath,
+  mediaPlaybackPath,
+} from "../../media/media.constants.js";
+import {
   MUSIC_OBJECT_KEY_PREFIX,
   MUSIC_THUMBNAIL_KEY_PREFIX,
 } from "./music.service.constants.js";
@@ -88,11 +92,9 @@ export function createMusicService(options: MusicServiceOptions): MusicService {
           id: track.id,
           name: track.name,
           genres: track.genres,
-          playbackUrl: await objectStorage.getSignedUrl(track.objectKey),
+          playbackUrl: mediaPlaybackPath(track.id),
           thumbnailUrl:
-            track.thumbnailObjectKey === null
-              ? null
-              : await objectStorage.getSignedUrl(track.thumbnailObjectKey),
+            track.thumbnailObjectKey === null ? null : mediaCoverPath(track.id),
         })),
       );
     },

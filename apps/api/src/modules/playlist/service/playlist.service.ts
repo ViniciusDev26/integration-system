@@ -1,3 +1,7 @@
+import {
+  mediaCoverPath,
+  mediaPlaybackPath,
+} from "../../media/media.constants.js";
 import { playlistTopic } from "../playlist.events.js";
 import {
   MusicNotFoundError,
@@ -79,11 +83,9 @@ export function createPlaylistService(
           id: track.id,
           name: track.name,
           genres: track.genres,
-          playbackUrl: await objectStorage.getSignedUrl(track.objectKey),
+          playbackUrl: mediaPlaybackPath(track.id),
           thumbnailUrl:
-            track.thumbnailObjectKey === null
-              ? null
-              : await objectStorage.getSignedUrl(track.thumbnailObjectKey),
+            track.thumbnailObjectKey === null ? null : mediaCoverPath(track.id),
         })),
       );
 

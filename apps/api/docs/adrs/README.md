@@ -60,6 +60,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0042](./0042-superjson-transformer-for-trpc.md) | superjson as the tRPC data transformer | Accepted |
 | [0043](./0043-email-password-authentication-with-argon2id.md) | Email/password authentication, hashed with argon2id | Accepted |
 | [0044](./0044-room-chat-with-durable-replay.md) | Room chat, with durable replay | Accepted |
+| [0045](./0045-media-redirect-endpoint-for-playback-urls.md) | A media redirect endpoint, instead of presigned URLs that expire | Accepted |
 
 ## Conventions
 

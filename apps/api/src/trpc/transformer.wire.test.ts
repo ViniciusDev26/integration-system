@@ -5,6 +5,7 @@ import { createApp } from "../app.js";
 import { createTestContainer } from "../container-test.js";
 import { SESSION_COOKIE } from "../modules/auth/http/auth.controller.constants.js";
 import { createAuthController } from "../modules/auth/http/auth.controller.js";
+import { createMediaController } from "../modules/media/media.controller.js";
 import type { User } from "../shared/db/schema/users.js";
 import { createContextFactory } from "./context.js";
 import { createAppRouter } from "./router.js";
@@ -40,6 +41,11 @@ function setup(): Harness {
     authController: createAuthController({
       authService: container.authService,
       secureCookies: false,
+    }),
+    mediaController: createMediaController({
+      authService: container.authService,
+      musicRepository: container.musicRepository,
+      objectStorage: container.objectStorage,
     }),
     trpcRouter,
     createContext: createContextFactory(container.authService),

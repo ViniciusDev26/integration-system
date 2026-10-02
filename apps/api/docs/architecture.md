@@ -44,7 +44,7 @@ A sample music service (Spotify-like) with authenticated users:
   `auth.me`; `auth.logout`). Only the **OAuth callback** stays REST
   (`GET /auth/github/callback`) — it's a browser redirect from GitHub and can't be
   tRPC.
-- **Music** — list all tracks (presigned playback/thumbnail URLs) and a two-step
+- **Music** — list all tracks (stable `/media/...` paths, ADR 0045) and a two-step
   create: `musics.prepareUpload` returns presigned **PUT** URLs, the browser
   uploads audio (+ optional cover) straight to R2, then `musics.create` persists
   the row from the returned keys (ADR 0038).
@@ -114,6 +114,7 @@ UUIDv7 (ADR 0025) unless noted.
 | Object storage | Cloudflare R2 (S3-compatible) | [0007](./adrs/0007-r2-object-storage-for-audio-files.md) |
 | Storage client/port | AWS S3 v3 SDK behind an `ObjectStorage` port | [0031](./adrs/0031-aws-s3-sdk-object-storage-port.md) |
 | **File upload** | **Presigned direct-to-R2** (PUT) | [0038](./adrs/0038-presigned-direct-r2-upload.md) |
+| **Media reads** | `/media/...` redirect to a short-lived signed URL | [0045](./adrs/0045-media-redirect-endpoint-for-playback-urls.md) |
 | Database / ORM | PostgreSQL / Drizzle + Drizzle Kit | [0008](./adrs/0008-postgresql-relational-database.md), [0013](./adrs/0013-drizzle-orm-data-access.md) |
 | DB driver | postgres.js | [0024](./adrs/0024-postgres-driver-and-migrations.md) |
 | Primary keys | UUIDv7 (`uuidv7()`, PG18) | [0025](./adrs/0025-uuidv7-primary-keys.md) |
@@ -158,7 +159,8 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
 
 - `src/app.ts` — `createApp({ authController, trpcRouter, createContext }): Express`:
   middleware (`express.json`, `urlencoded`, `cookie-parser`), `/health`, the tRPC
-  middleware at **`/trpc`**, the OAuth routes at **`/auth`**, and (guarded) static
+  middleware at **`/trpc`**, the OAuth routes at **`/auth`**, the media
+  redirects at **`/media`** (ADR 0045), and (guarded) static
   serving of the SPA build (`apps/web/dist`) with an SPA fallback.
 - `src/server.ts` — entry point: `createContainer()` → build the OAuth controller,
   the tRPC `AppRouter` (`createAppRouter`), and `createContext`

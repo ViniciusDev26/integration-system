@@ -90,7 +90,7 @@ describe("MusicService.register", () => {
 });
 
 describe("MusicService.listAll", () => {
-  it("returns every track (newest first) with a presigned playback URL", async () => {
+  it("returns every track (newest first) with a stable playback path", async () => {
     let n = 0;
     const { service } = setup({
       generateObjectKey: () => {
@@ -115,8 +115,11 @@ describe("MusicService.listAll", () => {
     const all = await service.listAll();
 
     expect(all.map((m) => m.name)).toEqual(["Second", "First"]);
-    expect(all[0]?.playbackUrl).toContain("musics/key-2.mp3");
-    expect(all[1]?.playbackUrl).toContain("musics/key-1.mp3");
+    // A path on our own origin, not a signed URL — it never expires, and the
+    // object key is not leaked to the client (ADR 0045).
+    expect(all[0]?.playbackUrl).toBe(`/media/musics/${all[0]?.id}`);
+    expect(all[0]?.playbackUrl).not.toContain("key-2.mp3");
+    expect(all[1]?.playbackUrl).toBe(`/media/musics/${all[1]?.id}`);
     expect(all[0]).not.toHaveProperty("objectKey");
   });
 
@@ -142,7 +145,9 @@ describe("MusicService.listAll", () => {
 
     const [noThumb, withThumb] = await service.listAll();
     expect(noThumb?.thumbnailUrl).toBeNull();
-    expect(withThumb?.thumbnailUrl).toContain("musics/thumbnails/a.png");
+    expect(withThumb?.thumbnailUrl).toBe(
+      `/media/musics/${withThumb?.id}/cover`,
+    );
   });
 
   it("returns an empty array when there are no tracks", async () => {

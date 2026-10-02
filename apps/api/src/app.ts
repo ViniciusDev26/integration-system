@@ -8,6 +8,9 @@ import cookieParser from "cookie-parser";
 import express, { type Express, type Request, type Response } from "express";
 import type { AuthController } from "./modules/auth/http/auth.controller.types.js";
 import { createAuthRoutes } from "./modules/auth/http/auth.routes.js";
+import { MEDIA_ENDPOINT } from "./modules/media/media.constants.js";
+import type { MediaController } from "./modules/media/media.controller.types.js";
+import { createMediaRoutes } from "./modules/media/media.routes.js";
 import type { Context } from "./trpc/context.js";
 import type { AppRouter } from "./trpc/router.js";
 import { TRPC_ENDPOINT } from "./trpc/trpc.constants.js";
@@ -15,6 +18,8 @@ import { TRPC_ENDPOINT } from "./trpc/trpc.constants.js";
 export interface AppOptions {
   /** GitHub OAuth redirect flow (the only non-tRPC HTTP). */
   authController: AuthController;
+  /** Redirects to short-lived signed media URLs (ADR 0045). */
+  mediaController: MediaController;
   /** The root tRPC router (ADR 0037), mounted at `/trpc`. */
   trpcRouter: AppRouter;
   /** Per-request tRPC context factory (resolves the current user). */
@@ -55,6 +60,7 @@ export function createApp(options: AppOptions): Express {
   );
 
   app.use("/auth", createAuthRoutes(options.authController));
+  app.use(MEDIA_ENDPOINT, createMediaRoutes(options.mediaController));
 
   mountWebClient(app);
 
@@ -77,7 +83,8 @@ function mountWebClient(app: Express): void {
     if (
       req.method !== "GET" ||
       req.path.startsWith(TRPC_ENDPOINT) ||
-      req.path.startsWith("/auth")
+      req.path.startsWith("/auth") ||
+      req.path.startsWith(MEDIA_ENDPOINT)
     ) {
       next();
       return;

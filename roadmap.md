@@ -66,9 +66,10 @@ tracked).
 
 ### Known gaps carried into AV3
 
-- [ ] Presigned playback URLs expire after ~1 h with no refresh path — a
-      `musics.playbackUrl` procedure is still missing. **This becomes sharper in
-      AV3:** a shared listening session can easily outlive one hour.
+- [x] **Expiring playback URLs — solved** (ADR 0045). Rather than a
+      `musics.playbackUrl` refresh, media is served from our own origin as a
+      redirect (`/media/musics/:id`), so the URL the client holds never expires.
+      Covers were affected too and are fixed by the same change.
 - [ ] No rate limiting on any route, including presign issuance.
 - [ ] No session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - [ ] The GitHub callback's `iss` parameter (RFC 9207) is stripped, not validated.
@@ -205,8 +206,7 @@ elsewhere, and its accepted cost is structure duplicated from playlists.
       the bottom bar while in a room and you leave the room's position until the
       next command re-anchors you. The room page's controls are the correct ones;
       making the shared player aware of room mode is the real fix.
-- [ ] A room outliving a presigned URL (~1 h) is now a real failure, not a
-      papercut: `musics.playbackUrl` is the missing piece.
+- [x] **A room outliving its URLs — solved** by the media redirect (ADR 0045).
 - [ ] Nothing stops a room from advancing to the next track when one ends —
       playback simply stops at the end of a track.
 

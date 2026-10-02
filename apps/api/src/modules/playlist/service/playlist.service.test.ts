@@ -106,7 +106,7 @@ describe("PlaylistService.addMusic", () => {
       requesterId: "u1",
     });
     expect(musics.map((m) => m.name)).toEqual(["A"]);
-    expect(musics[0]?.playbackUrl).toContain("musics/A.mp3");
+    expect(musics[0]?.playbackUrl).toBe(`/media/musics/${musics[0]?.id}`);
   });
 
   it("rejects a non-member with PlaylistForbiddenError", async () => {

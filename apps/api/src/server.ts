@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { createContainer } from "./container.js";
 import { createAuthController } from "./modules/auth/http/auth.controller.js";
+import { createMediaController } from "./modules/media/media.controller.js";
 import { env } from "./shared/env.js";
 import {
   createContextFactory,
@@ -18,11 +19,21 @@ const {
   playlistService,
   inviteService,
   roomService,
+  musicRepository,
+  objectStorage,
 } = createContainer();
 
 const secureCookies = env.NODE_ENV === "production";
 
 const authController = createAuthController({ authService, secureCookies });
+
+// Media is served from our own origin as a redirect, so the URL the client
+// holds never expires (ADR 0045).
+const mediaController = createMediaController({
+  authService,
+  musicRepository,
+  objectStorage,
+});
 
 const trpcRouter = createAppRouter({
   authService,
@@ -35,7 +46,12 @@ const trpcRouter = createAppRouter({
 });
 const createContext = createContextFactory(authService);
 
-const app = createApp({ authController, trpcRouter, createContext });
+const app = createApp({
+  authController,
+  mediaController,
+  trpcRouter,
+  createContext,
+});
 
 // An explicit http.Server (rather than app.listen) so the WebSocket server can
 // share the port: one origin, one port, both transports (ADR 0039).

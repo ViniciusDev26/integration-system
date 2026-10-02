@@ -1,4 +1,8 @@
 import type { Room } from "../../../shared/db/schema/rooms.js";
+import {
+  mediaCoverPath,
+  mediaPlaybackPath,
+} from "../../media/media.constants.js";
 import type { RoomMessageSummary } from "../repository/room-message.repository.js";
 import type { RoomEvent } from "../room.events.js";
 import { roomChatTopic, roomTopic } from "../room.events.js";
@@ -72,11 +76,9 @@ export function createRoomService(options: RoomServiceOptions): RoomService {
           id: track.id,
           name: track.name,
           genres: track.genres,
-          playbackUrl: await objectStorage.getSignedUrl(track.objectKey),
+          playbackUrl: mediaPlaybackPath(track.id),
           thumbnailUrl:
-            track.thumbnailObjectKey === null
-              ? null
-              : await objectStorage.getSignedUrl(track.thumbnailObjectKey),
+            track.thumbnailObjectKey === null ? null : mediaCoverPath(track.id),
         })),
       );
 
