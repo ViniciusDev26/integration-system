@@ -43,6 +43,13 @@
       "when": 1788665557911,
       "tag": "0005_zippy_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790923084837,
+      "tag": "0006_brave_nehzno",
+      "breakpoints": true
     }
   ]
 }

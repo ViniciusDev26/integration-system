@@ -55,6 +55,7 @@ Keep this table in sync when adding or superseding an ADR.
 | [0037](./0037-trpc-api-and-end-to-end-types.md) | tRPC as the API transport, with end-to-end types | Accepted |
 | [0038](./0038-presigned-direct-r2-upload.md) | Presigned direct-to-R2 uploads (no server multipart) | Accepted |
 | [0039](./0039-realtime-via-trpc-subscriptions-over-websocket.md) | Realtime via tRPC subscriptions over WebSocket | Accepted |
+| [0040](./0040-resource-agnostic-invite-links.md) | Resource-agnostic invite links | Accepted |
 
 ## Conventions
 
