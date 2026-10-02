@@ -62,6 +62,22 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   existing tRPC/Zustand data flow (no logic changes). Verified: `typecheck`,
   `lint`, `build` all pass; `/login` visually confirmed dark-themed via a headless
   Chromium screenshot (no console errors beyond the expected anonymous 401).
+- **Realtime foundation built (2026-10-02, ADR 0039)** — transport only, no
+  feature yet. `ws` 8.22.0 + `@types/ws` added. API: `attachTRPCWebSocketServer`
+  (`src/trpc/ws-server.ts`) puts a `WebSocketServer` on the **same port and path**
+  as HTTP (`/trpc`); upgrades are told apart by the `Upgrade` header.
+  `createWSContextFactory` parses the handshake's raw `Cookie` (cookie-parser
+  never runs on an upgrade — `parseCookieHeader` in `shared/http/cookies.ts`) and
+  resolves the session via the same `AuthService.getCurrentUser`, so
+  `protectedProcedure` works identically on both transports. Writing a cookie
+  over ws **throws** rather than silently dropping it. Primitives in
+  `src/shared/realtime/`: `EventBus` (topic fan-out, per-subscriber queues) and
+  `RoomRegistry` (presence, refcounted per user so multiple tabs = one member).
+  The registry is in the container; a bus is **not** — each feature will own one
+  typed to its own events. Web: `splitLink` routes subscriptions to `wsLink`,
+  with **one lazily-opened socket shared** by the React and standalone clients
+  (`apps/web/src/api/links.ts`); Vite dev proxy forwards the upgrade (`ws: true`).
+  Verified: typecheck, lint, 123 tests, build all green.
 - **User's DB state:** compose Postgres is migrated through `0004`; **`0005`
   (playlists) still needs applying** before playlists work against a live DB.
 
@@ -107,8 +123,15 @@ this seam cheap) and supersede ADR 0018 with a new architecture ADR. Tracked in
   while logged in is recommended before considering the redesign fully done.
 - Sidebar has **no responsive/mobile layout** — fixed `w-60`, no collapse below
   narrow viewports (ADR 0013 notes this as deliberately out of scope for now).
-- **Realtime transport decided (ADR 0039)** — tRPC subscriptions over WebSocket;
-  `ws` + `@types/ws` land when implementation starts. Rationale, and why
+- **WebSocket upgrades not verified against a real deploy** — the transport is
+  wired and tested locally, but nothing has confirmed that whatever terminates
+  TLS in the deployment target passes an `Upgrade` through. Last open item of
+  the realtime foundation (ADR 0039).
+- **Replay is per-subscription work.** The transport resumes and hands the
+  resolver a `lastEventId`, but each subscription must emit via `tracked()` and
+  backfill from that id or a reconnect still drops events — see the dated
+  correction at the end of ADR 0039. Matters most for chat.
+- **Realtime transport decided (ADR 0039)** — tRPC subscriptions over WebSocket. Rationale, and why
   Socket.IO and SSE were rejected, are in the ADR; the epic and its risks are in
   [`roadmap.md`](roadmap.md). Operationally relevant leftover: `wsLink`
   multiplexes every subscription over **one socket per tab**, whereas

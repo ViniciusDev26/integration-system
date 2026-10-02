@@ -114,3 +114,29 @@ Harder, and accepted deliberately:
   with exactly the dependency failure modes the project's integration analysis
   already documents for GitHub and R2. Worth revisiting if room state outgrows a
   single instance.
+
+---
+
+## Correction (2026-10-02)
+
+The Consequences section above claims **"No replay on reconnect"**. That is
+wrong, and it is recorded here rather than edited away, since an accepted ADR is
+immutable (`AGENTS.md` §4). The decision is unchanged — only this consequence.
+
+tRPC resumes subscriptions over WebSocket, in the installed 11.18.0:
+
+- `tracked(id, data)` wraps an emitted event with an id. Its own doc: *"track an
+  event so that it can be resumed from a given id if the connection is lost"*.
+- The client records the id of every event it receives
+  (`request.message.params.lastEventId = message.result.id`) and keeps the
+  subscription in `pendingRequests`, re-sending it on reconnect.
+- The server reads `lastEventId` off the message and merges it **into the
+  procedure's input**, so the resolver can backfill from it.
+
+The resolver has to do that backfill — which is a feature here, not a gap: the
+replay is served from PostgreSQL, so it survives a server restart and has no
+time window. Socket.IO's `connectionStateRecovery` buffers missed packets in
+server memory for a default of two minutes and is lost on restart.
+
+This strengthens the decision for chat, where losing messages across a
+reconnect is the failure that matters most.

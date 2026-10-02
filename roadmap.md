@@ -79,7 +79,7 @@ tracked).
 
 ## Epic AV3 — Realtime: shared playlists, rooms, and chat
 
-**Status: planned** · not started
+**Status: in progress** · foundation (block 0) delivered 2026-10-02; no feature built yet
 
 ### Goal
 
@@ -96,26 +96,42 @@ types flow from `AppRouter` and their inputs are validated by Zod like every
 other call; all subscriptions multiplex over **one socket per browser tab**; and
 authentication reuses the same cookie-based `createContext`.
 
-What it costs, accepted deliberately: **no rooms primitive** (Socket.IO's one
-decisive advantage, given up on purpose) and **no replay on reconnect**.
+What it costs, accepted deliberately: **no rooms primitive** — Socket.IO's one
+decisive advantage, given up on purpose.
+
+The ADR also claimed there was no replay on reconnect. That was wrong, and its
+dated correction records why: `tracked(id, data)` plus `lastEventId` resume a
+subscription over WebSocket, with the backfill served from PostgreSQL — so it
+survives a restart and has no time window, unlike Socket.IO's two-minute
+in-memory buffer.
 
 ### 0. Realtime foundation — do first
 
 Nothing below ships without this.
 
-- [ ] **Wire the WebSocket server** — `ws` + `@trpc/server/adapters/ws`
-      alongside the existing HTTP handler; `createContext` resolving the session
-      cookie so protected subscriptions authenticate identically to protected
-      queries.
-- [ ] **Client transport** — `splitLink` routing `subscription` operations to
-      `wsLink` while queries and mutations stay on the current HTTP link.
-- [ ] **Event bus** — an in-process emitter feeding the async generators behind
-      each subscription.
-- [ ] **Room registry** — `room → subscribers`, replacing what Socket.IO's rooms
-      would have provided. In-process, which ties a room to a single instance
-      (see risks).
+- [x] **WebSocket server wired** — `ws` 8.22.0 + `@trpc/server/adapters/ws`
+      sharing the HTTP server's port, via `attachTRPCWebSocketServer`
+      (`src/trpc/ws-server.ts`). `createWSContextFactory` parses the handshake's
+      raw `Cookie` header — `cookie-parser` never runs on an upgrade — and
+      resolves the session through the same `AuthService.getCurrentUser` the HTTP
+      transport uses, so `protectedProcedure` behaves identically on both.
+      Heartbeat on; shutdown asks clients to reconnect before closing.
+- [x] **Client transport** — `splitLink` sends `subscription` operations to
+      `wsLink` and keeps queries/mutations on the HTTP link
+      (`apps/web/src/api/links.ts`). One lazily-opened socket is shared by the
+      React and standalone clients, so a tab holds one connection, not two. The
+      Vite dev proxy forwards the upgrade (`ws: true`).
+- [x] **Event bus** — `EventBus` port + in-memory adapter
+      (`src/shared/realtime/`), per-subscriber queues so nothing is lost between
+      iterations, released on abort. Not wired into the container: each feature
+      will own one typed to its own events rather than a single bus carrying a
+      union of everything.
+- [x] **Room registry** — `RoomRegistry` port + in-memory adapter, replacing
+      Socket.IO's rooms. Membership is reference-counted per user, so one person
+      with three tabs is one member who stays present until the last tab closes.
+      Wired into the container as a singleton.
 - [ ] **Confirm WebSocket upgrades pass** through whatever terminates TLS in the
-      deployment target.
+      deployment target. Still open — it cannot be verified from here.
 
 ### 1. Shared playlists
 
@@ -146,9 +162,10 @@ latency. ADR 0039 explicitly leaves it out of scope.
 
 ### Risks and open questions
 
-- **No replay on reconnect.** Events emitted while a socket was down are lost
-  unless tracked and resent. SSE's `Last-Event-ID` would have given this for
-  free; WebSocket does not.
+- **Replay has to be implemented per subscription.** The transport resumes and
+  hands the resolver a `lastEventId`, but each subscription must emit through
+  `tracked()` and backfill from that id, or a reconnect still loses events.
+  This matters most for chat.
 - **Room state lives in process memory.** Scaling beyond one instance needs
   sticky routing or external pub/sub. Acceptable now, not forever.
 - **Expiring playback URLs** (carried from AV2) directly threaten a synchronized

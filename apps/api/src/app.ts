@@ -10,6 +10,7 @@ import type { AuthController } from "./modules/auth/http/auth.controller.types.j
 import { createAuthRoutes } from "./modules/auth/http/auth.routes.js";
 import type { Context } from "./trpc/context.js";
 import type { AppRouter } from "./trpc/router.js";
+import { TRPC_ENDPOINT } from "./trpc/trpc.constants.js";
 
 export interface AppOptions {
   /** GitHub OAuth redirect flow (the only non-tRPC HTTP). */
@@ -46,7 +47,7 @@ export function createApp(options: AppOptions): Express {
   });
 
   app.use(
-    "/trpc",
+    TRPC_ENDPOINT,
     createExpressMiddleware({
       router: options.trpcRouter,
       createContext: options.createContext,
@@ -75,7 +76,7 @@ function mountWebClient(app: Express): void {
   app.use((req: Request, res: Response, next) => {
     if (
       req.method !== "GET" ||
-      req.path.startsWith("/trpc") ||
+      req.path.startsWith(TRPC_ENDPOINT) ||
       req.path.startsWith("/auth")
     ) {
       next();

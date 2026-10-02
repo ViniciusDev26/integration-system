@@ -3,7 +3,7 @@ import type { CookieOptions } from "express";
 import { SESSION_COOKIE } from "../modules/auth/http/auth.controller.constants.js";
 import type { AuthService } from "../modules/auth/service/auth.service.types.js";
 import type { User } from "../shared/db/schema/users.js";
-import { readCookie } from "../shared/http/cookies.js";
+import { parseCookieHeader, readCookie } from "../shared/http/cookies.js";
 
 /**
  * Per-request tRPC context (ADR 0037): the current user resolved from the
@@ -34,3 +34,54 @@ export function createContextFactory(
     return { req, res, user };
   };
 }
+
+/**
+ * The slice of a WebSocket upgrade request this needs. A real
+ * `CreateWSSContextFnOptions` from `@trpc/server/adapters/ws` is assignable to
+ * it; narrowing keeps the factory trivially constructible in tests, like
+ * {@link Context} itself.
+ */
+export interface WSUpgradeOptions {
+  req: { headers: { cookie?: string | undefined } };
+}
+
+/**
+ * Builds `createContext` for the **WebSocket** adapter (ADR 0039).
+ *
+ * The upgrade request never passes through Express, so `cookie-parser` has not
+ * run: the raw `Cookie` header is parsed here, and the session is then resolved
+ * through the very same {@link AuthService.getCurrentUser} the HTTP transport
+ * uses. That is what makes `protectedProcedure` behave identically on a
+ * subscription and on a query.
+ */
+export function createWSContextFactory(
+  authService: Pick<AuthService, "getCurrentUser">,
+): (opts: WSUpgradeOptions) => Promise<Context> {
+  return async ({ req }) => {
+    const cookies = parseCookieHeader(req.headers.cookie);
+    const sessionId = readCookie({ cookies }, SESSION_COOKIE);
+    const user =
+      sessionId.length > 0 ? await authService.getCurrentUser(sessionId) : null;
+
+    return { req: { cookies }, res: WS_COOKIE_JAR, user };
+  };
+}
+
+/**
+ * A WebSocket connection has no response to carry `Set-Cookie`. Only the auth
+ * mutations touch cookies and `splitLink` keeps those on HTTP, so reaching here
+ * means a procedure was routed to the wrong transport — fail loudly rather than
+ * drop the cookie silently.
+ */
+const WS_COOKIE_JAR: Context["res"] = {
+  cookie: (name) => {
+    throw new Error(
+      `Cannot set cookie "${name}" over a WebSocket: no response to carry it.`,
+    );
+  },
+  clearCookie: (name) => {
+    throw new Error(
+      `Cannot clear cookie "${name}" over a WebSocket: no response to carry it.`,
+    );
+  },
+};

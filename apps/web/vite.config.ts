@@ -16,7 +16,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/trpc": { target: API_TARGET, changeOrigin: true },
+      // `ws: true` proxies the WebSocket upgrade too, so subscriptions work in
+      // dev exactly as they do same-origin in production (api ADR 0039).
+      "/trpc": { target: API_TARGET, changeOrigin: true, ws: true },
       "/auth": { target: API_TARGET, changeOrigin: true },
     },
   },

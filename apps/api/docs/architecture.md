@@ -18,6 +18,8 @@ reflects what is true and decided.
 
 A **tRPC API** (ADR 0037) consumed by a Vite React SPA (`apps/web`) served
 **same-origin** (ADR 0036); auth is a server-side session in an httpOnly cookie.
+The router is served over **two transports on one port** (ADR 0039): HTTP for
+queries and mutations, and **WebSocket for subscriptions**.
 Metadata lives in PostgreSQL (Drizzle); audio/images live in Cloudflare R2, with
 **browsers uploading directly via presigned URLs** (ADR 0038) — the API never
 proxies the bytes. It is **feature-modular** (`src/modules/*`), ports/adapters
@@ -64,6 +66,7 @@ UUIDv7 (ADR 0025) unless noted.
 | Runtime / Language | Node.js 24 / TypeScript | [0001](./adrs/0001-nodejs-24-and-typescript.md) |
 | HTTP framework | Express (adapter host for tRPC + OAuth) | [0002](./adrs/0002-express-http-framework.md) |
 | **API transport** | **tRPC** (end-to-end types, no codegen) | [0037](./adrs/0037-trpc-api-and-end-to-end-types.md) |
+| **Realtime transport** | **WebSocket** (`ws`) carrying tRPC subscriptions | [0039](./adrs/0039-realtime-via-trpc-subscriptions-over-websocket.md) |
 | Runtime validation | Zod (tRPC `.input`, boundaries) | [0011](./adrs/0011-zod-runtime-validation.md) |
 | OAuth callback validation | `express-zod-safe` (that one REST route) | [0012](./adrs/0012-express-zod-safe-validation-middleware.md) |
 | Object storage | Cloudflare R2 (S3-compatible) | [0007](./adrs/0007-r2-object-storage-for-audio-files.md) |
@@ -117,14 +120,25 @@ from the repo root via Turbo or scoped with `-w @integration-system/api`.
   serving of the SPA build (`apps/web/dist`) with an SPA fallback.
 - `src/server.ts` — entry point: `createContainer()` → build the OAuth controller,
   the tRPC `AppRouter` (`createAppRouter`), and `createContext`
-  (`createContextFactory`); `createApp(...)`; `listen`.
+  (`createContextFactory`); `createApp(...)`; then an explicit `http.Server`
+  (not `app.listen`) so `attachTRPCWebSocketServer` can share the port, and
+  `listen`. `SIGTERM`/`SIGINT` close the socket server, which first asks
+  clients to reconnect.
 - `src/container.ts` — composition root: wires Postgres repos + R2 `ObjectStorage`
   into `authService`, `sessionService`, `musicService`, `playlistService`.
 - `src/container-test.ts` — test composition root: in-memory fakes + Testcontainers
   bootstrap (`startTestDatabase`).
 - `src/trpc/` — `trpc.ts` (init, `router`, `publicProcedure`, `protectedProcedure`,
-  `createCallerFactory`), `context.ts` (`Context` + `createContextFactory`),
-  `router.ts` (`createAppRouter` + the exported `AppRouter` type).
+  `createCallerFactory`), `context.ts` (`Context`, `createContextFactory` for
+  HTTP and `createWSContextFactory` for the socket handshake), `router.ts`
+  (`createAppRouter` + the exported `AppRouter` type), `ws-server.ts`
+  (`attachTRPCWebSocketServer`), `trpc.constants.ts` (the shared `/trpc`
+  endpoint + heartbeat timings).
+- `src/shared/realtime/` — the primitives subscriptions are built from
+  (ADR 0039): an `EventBus` port for topic fan-out (topics are `room:<id>`)
+  and a `RoomRegistry` port for presence, each with an in-memory adapter.
+  The registry is a container singleton; an `EventBus` is created per
+  feature, typed to that feature's events.
 - Modules are split into **responsibility sub-modules** (ADR 0018): a module with
   more than one concern groups its files under `oauth/`, `service/`,
   `repository/`, `http/` rather than leaving them flat.
