@@ -1,5 +1,13 @@
 import type { ResourceMembership } from "../invite/resource-membership.js";
+import type { PlaylistEventBus } from "./playlist.events.js";
+import { playlistTopic } from "./playlist.events.js";
 import type { PlaylistRepository } from "./repository/playlist.repository.js";
+
+export interface PlaylistResourceMembershipOptions {
+  playlistRepository: PlaylistRepository;
+  /** Where a new member is announced to the ones already watching. */
+  eventBus: PlaylistEventBus;
+}
 
 /**
  * Playlist adapter for the invite module's {@link ResourceMembership} port
@@ -10,8 +18,10 @@ import type { PlaylistRepository } from "./repository/playlist.repository.js";
  * roles `playlist_members` already has (ADR 0018).
  */
 export function createPlaylistResourceMembership(
-  playlistRepository: PlaylistRepository,
+  options: PlaylistResourceMembershipOptions,
 ): ResourceMembership {
+  const { playlistRepository, eventBus } = options;
+
   return {
     async exists(resourceId) {
       return (await playlistRepository.findById(resourceId)) !== null;
@@ -26,11 +36,21 @@ export function createPlaylistResourceMembership(
     async grant(resourceId, userId) {
       // Idempotent by the port's contract; `addMember` keeps an existing role,
       // so an OWNER redeeming their own link is not demoted.
-      await playlistRepository.addMember({
+      const joined = await playlistRepository.addMember({
         playlistId: resourceId,
         userId,
         type: "MEMBER",
       });
+
+      // Only a real join is announced — redeeming a link twice is normal and
+      // should not tell everyone someone arrived again.
+      if (joined) {
+        eventBus.publish(playlistTopic(resourceId), {
+          type: "MEMBER_JOINED",
+          playlistId: resourceId,
+          actorId: userId,
+        });
+      }
     },
   };
 }

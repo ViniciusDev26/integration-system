@@ -4,6 +4,7 @@ import { musics } from "../../../shared/db/schema/musics.js";
 import { playlistMembers } from "../../../shared/db/schema/playlist-members.js";
 import { playlistMusics } from "../../../shared/db/schema/playlist-musics.js";
 import { playlists } from "../../../shared/db/schema/playlists.js";
+import { users } from "../../../shared/db/schema/users.js";
 import type { PlaylistRepository } from "./playlist.repository.js";
 
 /**
@@ -78,8 +79,29 @@ export function createPostgresPlaylistRepository(
 
     async addMember(input) {
       // The composite PK makes this idempotent; `doNothing` preserves the
-      // existing role rather than overwriting it.
-      await db.insert(playlistMembers).values(input).onConflictDoNothing();
+      // existing role rather than overwriting it. `returning` is empty when the
+      // conflict skipped the insert, which is how a repeat redeem is detected.
+      const inserted = await db
+        .insert(playlistMembers)
+        .values(input)
+        .onConflictDoNothing()
+        .returning({ userId: playlistMembers.userId });
+
+      return inserted.length > 0;
+    },
+
+    async listMembers(playlistId) {
+      return db
+        .select({
+          userId: playlistMembers.userId,
+          type: playlistMembers.type,
+          name: users.name,
+          imageUrl: users.imageUrl,
+        })
+        .from(playlistMembers)
+        .innerJoin(users, eq(users.id, playlistMembers.userId))
+        .where(eq(playlistMembers.playlistId, playlistId))
+        .orderBy(asc(playlistMembers.createdAt), asc(playlistMembers.userId));
     },
 
     async addMusic(input) {

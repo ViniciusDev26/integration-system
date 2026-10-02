@@ -7,6 +7,7 @@ import type { InviteService } from "./modules/invite/service/invite.service.type
 import { createPostgresMusicRepository } from "./modules/music/repository/music.repository.postgres.js";
 import { createMusicService } from "./modules/music/service/music.service.js";
 import type { MusicService } from "./modules/music/service/music.service.types.js";
+import type { PlaylistEvent } from "./modules/playlist/playlist.events.js";
 import { createPlaylistResourceMembership } from "./modules/playlist/playlist.resource-membership.js";
 import { createPostgresPlaylistRepository } from "./modules/playlist/repository/playlist.repository.postgres.js";
 import { createPlaylistService } from "./modules/playlist/service/playlist.service.js";
@@ -17,6 +18,7 @@ import type { SessionService } from "./modules/sessions/service/session.service.
 import { createPostgresUserRepository } from "./modules/users/user.repository.postgres.js";
 import { getDb } from "./shared/db/index.js";
 import { env } from "./shared/env.js";
+import { createInMemoryEventBus } from "./shared/realtime/event-bus.in-memory.js";
 import { createInMemoryRoomRegistry } from "./shared/realtime/room-registry.in-memory.js";
 import type { RoomRegistry } from "./shared/realtime/room-registry.js";
 import type { ObjectStorage } from "./shared/storage/object-storage.js";
@@ -81,10 +83,14 @@ export function createContainer(): Container {
   const musicService = createMusicService({ musicRepository, objectStorage });
 
   const playlistRepository = createPostgresPlaylistRepository(db);
+  // One bus shared by the service and the membership adapter: a member who
+  // joins through an invite must be announced to whoever is already watching.
+  const playlistEventBus = createInMemoryEventBus<PlaylistEvent>();
   const playlistService = createPlaylistService({
     playlistRepository,
     musicRepository,
     objectStorage,
+    eventBus: playlistEventBus,
   });
 
   // One membership adapter per invitable resource type (ADR 0040). Rooms will
@@ -92,7 +98,10 @@ export function createContainer(): Container {
   const inviteService = createInviteService({
     inviteRepository: createPostgresInviteRepository(db),
     resourceMembership: {
-      PLAYLIST: createPlaylistResourceMembership(playlistRepository),
+      PLAYLIST: createPlaylistResourceMembership({
+        playlistRepository,
+        eventBus: playlistEventBus,
+      }),
     },
   });
 

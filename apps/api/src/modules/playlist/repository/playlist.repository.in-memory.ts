@@ -13,6 +13,8 @@ export interface InMemoryPlaylistRepositoryOptions {
    * Defaults to returning nothing (so `listMusics` yields `[]`).
    */
   resolveMusic?: (id: string) => Promise<Music | null | undefined>;
+  /** Resolves a user id to a display name for `listMembers`; defaults to none. */
+  resolveUserName?: (userId: string) => string | null;
 }
 
 /**
@@ -84,9 +86,21 @@ export function createInMemoryPlaylistRepository(
         (m) => m.playlistId === input.playlistId && m.userId === input.userId,
       );
       if (already) {
-        return;
+        return false;
       }
       members.push(input);
+      return true;
+    },
+
+    async listMembers(playlistId) {
+      return members
+        .filter((m) => m.playlistId === playlistId)
+        .map((m) => ({
+          userId: m.userId,
+          type: m.type,
+          name: options.resolveUserName?.(m.userId) ?? null,
+          imageUrl: null,
+        }));
     },
 
     async addMusic(input) {

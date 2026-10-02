@@ -12,6 +12,7 @@ import { createInviteService } from "./modules/invite/service/invite.service.js"
 import { createInMemoryMusicRepository } from "./modules/music/repository/music.repository.in-memory.js";
 import type { MusicRepository } from "./modules/music/repository/music.repository.js";
 import { createMusicService } from "./modules/music/service/music.service.js";
+import type { PlaylistEvent } from "./modules/playlist/playlist.events.js";
 import { createPlaylistResourceMembership } from "./modules/playlist/playlist.resource-membership.js";
 import { createInMemoryPlaylistRepository } from "./modules/playlist/repository/playlist.repository.in-memory.js";
 import type { PlaylistRepository } from "./modules/playlist/repository/playlist.repository.js";
@@ -22,6 +23,7 @@ import { createInMemoryUserRepository } from "./modules/users/user.repository.in
 import type { UserRepository } from "./modules/users/user.repository.js";
 import type { Database } from "./shared/db/database.js";
 import * as schema from "./shared/db/schema/index.js";
+import { createInMemoryEventBus } from "./shared/realtime/event-bus.in-memory.js";
 import { createInMemoryRoomRegistry } from "./shared/realtime/room-registry.in-memory.js";
 import type { InMemoryObjectStorage } from "./shared/storage/object-storage.in-memory.js";
 import { createInMemoryObjectStorage } from "./shared/storage/object-storage.in-memory.js";
@@ -76,16 +78,23 @@ export function createTestContainer(
   const playlistRepository = createInMemoryPlaylistRepository({
     resolveMusic: (id) => musicRepository.findById(id),
   });
+  // One bus shared by the service and the membership adapter: a member who
+  // joins through an invite must be announced to whoever is already watching.
+  const playlistEventBus = createInMemoryEventBus<PlaylistEvent>();
   const playlistService = createPlaylistService({
     playlistRepository,
     musicRepository,
     objectStorage,
+    eventBus: playlistEventBus,
   });
 
   const inviteService = createInviteService({
     inviteRepository: createInMemoryInviteRepository(),
     resourceMembership: {
-      PLAYLIST: createPlaylistResourceMembership(playlistRepository),
+      PLAYLIST: createPlaylistResourceMembership({
+        playlistRepository,
+        eventBus: playlistEventBus,
+      }),
     },
   });
 

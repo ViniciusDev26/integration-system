@@ -43,7 +43,10 @@ A sample music service (Spotify-like) with authenticated users:
 - **Playlists** — create (creator becomes OWNER), view with tracks, add tracks.
   **Membership is relational** (`playlist_members`, `type` OWNER|MEMBER), enforced
   in the service. Listing is **membership-scoped**, so a playlist you were
-  invited into appears beside the ones you created (ADR 0040).
+  invited into appears beside the ones you created (ADR 0040). `playlists.members`
+  lists who belongs, and `playlists.onChanged` streams a playlist's changes to
+  its members over the WebSocket (ADR 0039) — the events are *signals*, so a
+  client reacts by refetching and a missed one is harmless.
 - **Invites** — a link is an opaque token addressing a
   `(resource_type, resource_id)` pair (ADR 0040). `invites.create` (owner only)
   issues one, `invites.redeem` grants MEMBER, `invites.list`/`invites.revoke`

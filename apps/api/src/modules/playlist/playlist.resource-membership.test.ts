@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { createInMemoryEventBus } from "../../shared/realtime/event-bus.in-memory.js";
 import type { ResourceMembership } from "../invite/resource-membership.js";
+import type { PlaylistEvent } from "./playlist.events.js";
+import { playlistTopic } from "./playlist.events.js";
 import { createPlaylistResourceMembership } from "./playlist.resource-membership.js";
 import { createInMemoryPlaylistRepository } from "./repository/playlist.repository.in-memory.js";
 import type { PlaylistRepository } from "./repository/playlist.repository.js";
@@ -10,11 +13,16 @@ const GUEST_ID = "user-guest";
 describe("createPlaylistResourceMembership", () => {
   let repository: PlaylistRepository;
   let membership: ResourceMembership;
+  let eventBus: ReturnType<typeof createInMemoryEventBus<PlaylistEvent>>;
   let playlistId: string;
 
   beforeEach(async () => {
     repository = createInMemoryPlaylistRepository();
-    membership = createPlaylistResourceMembership(repository);
+    eventBus = createInMemoryEventBus<PlaylistEvent>();
+    membership = createPlaylistResourceMembership({
+      playlistRepository: repository,
+      eventBus,
+    });
     const playlist = await repository.create({
       name: "Shared",
       ownerId: OWNER_ID,
@@ -81,6 +89,34 @@ describe("createPlaylistResourceMembership", () => {
         "OWNER",
       );
       expect(await membership.canInvite(playlistId, OWNER_ID)).toBe(true);
+    });
+
+    it("announces a real join, once", async () => {
+      const seen: PlaylistEvent[] = [];
+      const controller = new AbortController();
+      const drained = (async () => {
+        for await (const event of eventBus.subscribe(
+          playlistTopic(playlistId),
+          { signal: controller.signal },
+        )) {
+          seen.push(event);
+        }
+      })();
+
+      await membership.grant(playlistId, GUEST_ID);
+      // A repeat redeem must not announce an arrival again.
+      await membership.grant(playlistId, GUEST_ID);
+      await new Promise((resolve) => setImmediate(resolve));
+      controller.abort();
+      await drained;
+
+      expect(seen).toEqual([
+        {
+          type: "MEMBER_JOINED",
+          playlistId,
+          actorId: GUEST_ID,
+        },
+      ]);
     });
   });
 });

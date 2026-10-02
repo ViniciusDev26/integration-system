@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc/trpc.js";
+import type { PlaylistEvent } from "./playlist.events.js";
 import {
   MusicNotFoundError,
   PlaylistForbiddenError,
@@ -51,6 +52,49 @@ export function createPlaylistRouter(playlistService: PlaylistService) {
           });
         } catch (err) {
           rethrowAsTRPC(err);
+        }
+      }),
+
+    members: protectedProcedure
+      .input(z.object({ playlistId: z.string().min(1) }))
+      .query(async ({ ctx, input }) => {
+        try {
+          return await playlistService.listMembers({
+            playlistId: input.playlistId,
+            requesterId: ctx.user.id,
+          });
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+      }),
+
+    /**
+     * Live changes to a playlist, for its members (ADR 0039). The events are
+     * signals rather than state: a client reacts by refetching, which is what
+     * makes a missed event harmless and replay unnecessary here.
+     *
+     * Membership is checked before anything is yielded — but note a generator
+     * resolver only runs once the stream is first pulled, so an outsider's
+     * `FORBIDDEN` reaches them as a subscription error, not a failed call.
+     */
+    onChanged: protectedProcedure
+      .input(z.object({ playlistId: z.string().min(1) }))
+      .subscription(async function* ({ ctx, input, signal }) {
+        let stream: AsyncIterable<PlaylistEvent>;
+        try {
+          // Checked up front so an outsider is rejected rather than handed a
+          // subscription that silently never yields.
+          stream = await playlistService.watch({
+            playlistId: input.playlistId,
+            requesterId: ctx.user.id,
+            signal,
+          });
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+
+        for await (const event of stream) {
+          yield event;
         }
       }),
 

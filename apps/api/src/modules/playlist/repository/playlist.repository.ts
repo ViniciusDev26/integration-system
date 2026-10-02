@@ -14,6 +14,14 @@ export interface AddMusicInput {
   musicId: string;
 }
 
+/** A member of a playlist, as shown to other members. */
+export interface PlaylistMemberSummary {
+  userId: string;
+  type: PlaylistMemberType;
+  name: string | null;
+  imageUrl: string | null;
+}
+
 /** Data to add a membership row. */
 export interface AddMemberInput {
   playlistId: string;
@@ -40,8 +48,13 @@ export interface PlaylistRepository {
   /**
    * Adds a membership row. A no-op if the user already belongs, which keeps an
    * OWNER from being demoted when they redeem their own invite link.
+   *
+   * Resolves `true` only when a row was actually inserted, so callers can tell a
+   * real join from a repeated redeem and avoid announcing the latter.
    */
-  addMember(input: AddMemberInput): Promise<void>;
+  addMember(input: AddMemberInput): Promise<boolean>;
+  /** Everyone in the playlist with their role, in join order. */
+  listMembers(playlistId: string): Promise<PlaylistMemberSummary[]>;
   /** The user's role in the playlist, or `null` if they are not a member. */
   getMemberType(
     playlistId: string,

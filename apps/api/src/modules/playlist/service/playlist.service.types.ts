@@ -2,7 +2,11 @@ import type { Playlist } from "../../../shared/db/schema/playlists.js";
 import type { ObjectStorage } from "../../../shared/storage/object-storage.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import type { MusicListItem } from "../../music/service/music.service.types.js";
-import type { PlaylistRepository } from "../repository/playlist.repository.js";
+import type { PlaylistEvent, PlaylistEventBus } from "../playlist.events.js";
+import type {
+  PlaylistMemberSummary,
+  PlaylistRepository,
+} from "../repository/playlist.repository.js";
 
 export interface CreatePlaylistForUserInput {
   name: string;
@@ -29,12 +33,28 @@ export interface PlaylistWithMusics {
   musics: MusicListItem[];
 }
 
+export interface WatchPlaylistInput {
+  playlistId: string;
+  /** `users.id` of the watcher (must be a member). */
+  requesterId: string;
+  /** Ends the stream when aborted — tRPC passes the subscription's signal. */
+  signal?: AbortSignal;
+}
+
+export interface ListPlaylistMembersInput {
+  playlistId: string;
+  /** `users.id` of the requester (must be a member). */
+  requesterId: string;
+}
+
 export interface PlaylistServiceOptions {
   playlistRepository: PlaylistRepository;
   /** Used to validate a music exists before linking it. */
   musicRepository: MusicRepository;
   /** Used to presign playback/thumbnail URLs when reading a playlist. */
   objectStorage: ObjectStorage;
+  /** Where playlist changes are announced to members (ADR 0039). */
+  eventBus: PlaylistEventBus;
 }
 
 /**
@@ -52,4 +72,14 @@ export interface PlaylistService {
    */
   listForUser(userId: string): Promise<Playlist[]>;
   getWithMusics(input: GetPlaylistInput): Promise<PlaylistWithMusics>;
+  /** Everyone in the playlist; members only. */
+  listMembers(
+    input: ListPlaylistMembersInput,
+  ): Promise<PlaylistMemberSummary[]>;
+  /**
+   * A live stream of the playlist's changes, for members only. Membership is
+   * checked **before** the stream opens, so an outsider is rejected rather than
+   * handed an empty subscription.
+   */
+  watch(input: WatchPlaylistInput): Promise<AsyncIterable<PlaylistEvent>>;
 }

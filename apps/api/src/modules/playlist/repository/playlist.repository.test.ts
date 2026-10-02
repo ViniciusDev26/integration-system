@@ -120,6 +120,47 @@ describe("PlaylistRepository", () => {
     expect(await repository.listForMember(ownerId)).toEqual([]);
   });
 
+  it("reports whether the membership row was actually inserted", async () => {
+    const playlist = await repository.create({ name: "Mine", ownerId });
+
+    expect(
+      await repository.addMember({
+        playlistId: playlist.id,
+        userId: otherId,
+        type: "MEMBER",
+      }),
+    ).toBe(true);
+    expect(
+      await repository.addMember({
+        playlistId: playlist.id,
+        userId: otherId,
+        type: "MEMBER",
+      }),
+    ).toBe(false);
+  });
+
+  it("lists members with their role and profile, in join order", async () => {
+    const playlist = await repository.create({ name: "Shared", ownerId });
+    await repository.addMember({
+      playlistId: playlist.id,
+      userId: otherId,
+      type: "MEMBER",
+    });
+
+    const listed = await repository.listMembers(playlist.id);
+
+    expect(listed).toEqual([
+      { userId: ownerId, type: "OWNER", name: "Owner", imageUrl: null },
+      { userId: otherId, type: "MEMBER", name: "Other", imageUrl: null },
+    ]);
+  });
+
+  it("lists no members for an unknown playlist", async () => {
+    expect(
+      await repository.listMembers("0192f1a0-0000-7000-8000-00000000cafe"),
+    ).toEqual([]);
+  });
+
   it("adding an existing member is a no-op that keeps the original role", async () => {
     const playlist = await repository.create({ name: "Mine", ownerId });
 

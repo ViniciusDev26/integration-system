@@ -1,3 +1,4 @@
+import { playlistTopic } from "../playlist.events.js";
 import {
   MusicNotFoundError,
   PlaylistForbiddenError,
@@ -11,7 +12,8 @@ import type {
 export function createPlaylistService(
   options: PlaylistServiceOptions,
 ): PlaylistService {
-  const { playlistRepository, musicRepository, objectStorage } = options;
+  const { playlistRepository, musicRepository, objectStorage, eventBus } =
+    options;
 
   /** Loads a playlist the requester may access, or throws NotFound/Forbidden. */
   async function requireMembership(playlistId: string, requesterId: string) {
@@ -47,6 +49,25 @@ export function createPlaylistService(
       }
 
       await playlistRepository.addMusic({ playlistId, musicId });
+
+      // Announced only after the write lands, so a member never hears about a
+      // change that did not happen.
+      eventBus.publish(playlistTopic(playlistId), {
+        type: "MUSIC_ADDED",
+        playlistId,
+        musicId,
+        actorId: requesterId,
+      });
+    },
+
+    async listMembers({ playlistId, requesterId }) {
+      await requireMembership(playlistId, requesterId);
+      return playlistRepository.listMembers(playlistId);
+    },
+
+    async watch({ playlistId, requesterId, signal }) {
+      await requireMembership(playlistId, requesterId);
+      return eventBus.subscribe(playlistTopic(playlistId), { signal });
     },
 
     async getWithMusics({ playlistId, requesterId }) {

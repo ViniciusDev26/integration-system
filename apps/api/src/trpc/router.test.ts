@@ -305,3 +305,120 @@ describe("trpc invites", () => {
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });
+
+describe("trpc playlists.onChanged", () => {
+  async function sharedPlaylist(container: TestContainer) {
+    const owner = await seedUser(container, "owner");
+    const guest = await seedUser(container, "guest");
+    const playlist = await container.playlistService.createForUser({
+      name: "Shared",
+      ownerId: owner.id,
+    });
+    const { token } = await callerFor(container, owner).invites.create({
+      resourceType: "PLAYLIST",
+      resourceId: playlist.id,
+    });
+    return { owner, guest, playlist, token };
+  }
+
+  it("delivers another member's track addition to a watcher", async () => {
+    const container = createTestContainer();
+    const { owner, guest, playlist, token } = await sharedPlaylist(container);
+    const guestCaller = callerFor(container, guest);
+    await guestCaller.invites.redeem({ token });
+
+    const stream = await guestCaller.playlists.onChanged({
+      playlistId: playlist.id,
+    });
+    const firstEvent = (async () => {
+      for await (const event of stream) {
+        return event;
+      }
+      return null;
+    })();
+
+    const music = await container.musicRepository.create({
+      name: "Track",
+      genres: ["rock"],
+      objectKey: "musics/x.mp3",
+      thumbnailObjectKey: null,
+      uploadedBy: owner.id,
+    });
+    await callerFor(container, owner).playlists.addMusic({
+      playlistId: playlist.id,
+      musicId: music.id,
+    });
+
+    expect(await firstEvent).toEqual({
+      type: "MUSIC_ADDED",
+      playlistId: playlist.id,
+      musicId: music.id,
+      actorId: owner.id,
+    });
+  });
+
+  it("tells watchers when someone joins through a link", async () => {
+    const container = createTestContainer();
+    const { owner, guest, playlist, token } = await sharedPlaylist(container);
+
+    const stream = await callerFor(container, owner).playlists.onChanged({
+      playlistId: playlist.id,
+    });
+    const firstEvent = (async () => {
+      for await (const event of stream) {
+        return event;
+      }
+      return null;
+    })();
+
+    await callerFor(container, guest).invites.redeem({ token });
+
+    expect(await firstEvent).toEqual({
+      type: "MEMBER_JOINED",
+      playlistId: playlist.id,
+      actorId: guest.id,
+    });
+  });
+
+  it("refuses to stream to a non-member", async () => {
+    const container = createTestContainer();
+    const { playlist } = await sharedPlaylist(container);
+    const stranger = await seedUser(container, "stranger");
+
+    // A subscription resolver does not run until the stream is first pulled,
+    // so the rejection surfaces on iteration rather than on the call.
+    const stream = await callerFor(container, stranger).playlists.onChanged({
+      playlistId: playlist.id,
+    });
+
+    await expect(
+      (async () => {
+        for await (const event of stream) {
+          return event;
+        }
+        return null;
+      })(),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lists members to a member, and refuses an outsider", async () => {
+    const container = createTestContainer();
+    const { owner, guest, playlist, token } = await sharedPlaylist(container);
+    const stranger = await seedUser(container, "stranger");
+    await callerFor(container, guest).invites.redeem({ token });
+
+    const members = await callerFor(container, guest).playlists.members({
+      playlistId: playlist.id,
+    });
+
+    expect(members.map((m) => [m.userId, m.type])).toEqual([
+      [owner.id, "OWNER"],
+      [guest.id, "MEMBER"],
+    ]);
+    await expect(
+      callerFor(container, stranger).playlists.members({
+        playlistId: playlist.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
