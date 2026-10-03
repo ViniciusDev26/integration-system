@@ -62,6 +62,50 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   existing tRPC/Zustand data flow (no logic changes). Verified: `typecheck`,
   `lint`, `build` all pass; `/login` visually confirmed dark-themed via a headless
   Chromium screenshot (no console errors beyond the expected anonymous 401).
+- **Room sync fixed where it was actually broken: the browser (2026-10-02,
+  web ADR 0017).** Reported as "the room does not stay in sync". **The server
+  was not at fault** — a probe with two WebSocket subscribers confirmed both
+  receive every `PLAYBACK_CHANGED`, so do not start there next time. Three
+  distinct client bugs, each reproduced with two real browsers over CDP:
+  1. **The player bar did not command the room.** Its transport drove the local
+     `<audio>` only, and it is the biggest control on the screen. Fixed with an
+     intent seam in the player store: `requestToggle/Next/Previous/Seek/PlayAt`
+     go to a registered `PlaybackRemote`; `play`/`pause`/`seekTo`/`playQueue`
+     stay local and are what *follows* an anchor. **Keeping those two sets apart
+     is load-bearing** — one set for both and the room commands itself in a loop.
+  2. **Following lived in the room page's lifetime**, but the audio lives in the
+     shell. Browse to `/musics` and you stopped following while still hearing
+     the track. Fixed by moving the room to global state (`useRoomSessionStore`)
+     with a shell-level `RoomSession` owning the query, the subscription and the
+     sync. Presence rides along and now means "listening", not "looking at the
+     page". Leaving is explicit, from the bar.
+  3. **A listener who had not clicked anything could not be started remotely:**
+     `audio.play()` rejects with `NotAllowedError` and `Player` swallowed it, so
+     the UI showed a playing room over silence. Now recorded and the bar offers
+     "Tap to listen".
+  4. **A constant 1.17s offset between two listeners**, caught only because the
+     user said the two browsers looked out of step — my own earlier numbers
+     showed it and I had checked only play/pause/track, not position. Cause:
+     `seekTo` writes `audio.currentTime` once, possibly before the media has
+     loaded, so it lands late against a position the room has left; the gap is
+     that client's load time and the 2s corrector never closed it. Fixed with a
+     `canPlay` flag in the player store (set on the element's `canplay`, cleared
+     on a new source) that the sync effect depends on — it re-anchors when the
+     element can actually seek — plus the corrector at **0.5s every 1s**. Floor
+     is ~0.5s because `currentTime` arrives via `timeupdate` (~4 Hz) and a
+     tighter window seeks on noise. Measured after: 8ms steady, 42ms across a
+     track change.
+  **Measuring sync needs one browser per listener.** Two tabs in one headless
+  Chromium leaves the background tab's media at `readyState 0` — it never
+  plays, it is just dragged by the corrector in 5s steps — which looks exactly
+  like a sync bug and is not one. Launch a second instance on another port.
+  Also: the player bar is now a **flex item** in the shell column, not `fixed`,
+  so content is sized around it instead of cleared with a `pb-*` guess.
+  **New limitation I introduced on purpose:** a room no longer auto-advances at
+  the end of a track — every client would race to pick the next. Closing it
+  means the server advancing the queue, which is an API change and its own ADR.
+  **Decision reconsidered and kept:** any member may drive playback (ADR 0041).
+  The complaint that "everyone can pause" was a symptom of 1 and 2.
 - **Every screen works on a phone (2026-10-02, web ADR 0016)** — the follow-up
   ADR 0013 deferred. The `w-60` sidebar becomes `hidden md:flex`; below `md` a
   slim top bar's menu button opens a **Radix `Dialog` drawer** (already a
@@ -162,8 +206,7 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   (`@integration-system/api/playback`, a second package export) so client and
   server cannot disagree; the player store gained `seekTo`/`pendingSeek`, since
   only the `<audio>` element can seek and the command comes from outside it.
-  **Known gap:** the global player's own transport buttons still act locally, so
-  using them inside a room desyncs you until the next command re-anchors.
+  **That known gap is closed** — see the room-session entry below.
 - **Shared playlists are live (2026-10-02)** — AV3 block 1 done. The playlist
   module owns an `EventBus<PlaylistEvent>`; `playlists.onChanged` streams
   `MUSIC_ADDED`/`MEMBER_JOINED` to members, `playlists.members` lists who
@@ -269,6 +312,11 @@ code is which.
   under the fixed player. Screenshots cannot see any of that.
 - **`apps/web` has no test framework**, so every front-end change is verified by
   build + screenshot and nothing is repeatable in CI. Adding one needs an ADR.
+  This is biting: the room-sync bugs (ADR 0017) were all client-side and all
+  invisible to the 323 API tests.
+- **A room stops at the end of a track** (web ADR 0017) — nobody auto-advances,
+  because every listener would race. The fix is the server owning queue
+  advancement; needs an API ADR.
 - **WebSocket upgrades not verified against a real deploy** — the transport is
   wired and tested locally, but nothing has confirmed that whatever terminates
   TLS in the deployment target passes an `Upgrade` through. Last open item of

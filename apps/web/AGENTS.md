@@ -38,6 +38,12 @@ sidebar-driven visual identity (see below).
   `PUT` to the URL → `musics.create`.
 - **Player (0011):** one hidden `<audio>` in the app shell + `usePlayerStore`
   (Zustand); playback happens **only** through it — no inline `<audio>` on pages.
+- **Rooms (0017):** `useRoomSessionStore` + `RoomSession` live in the **shell**,
+  not the room page, so a listener keeps following the room (and stays present)
+  wherever they navigate. The bar's transport calls `request*` actions, which go
+  to the registered `PlaybackRemote`; `play`/`pause`/`seekTo`/`playQueue` stay
+  local and are what *follows* an anchor. **Never make a follow path call a
+  `request*` action** — the room would command itself in a loop.
 - **Theme & shell:** a single always-dark palette via Tailwind v4 tokens in
   `index.css` (0012, no light mode); a persistent left `Sidebar` (nav + user
   menu) replaces the old top-nav header as the app's navigation convention

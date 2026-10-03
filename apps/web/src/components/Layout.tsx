@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import { MobileNav } from "./MobileNav";
 import { Player } from "./player/Player";
+import { RoomSession } from "./room/RoomSession";
 import { Sidebar } from "./Sidebar";
 import { Spinner } from "./ui/spinner";
 
@@ -35,14 +36,16 @@ export function Layout() {
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileNav />
-          {/* The bottom padding clears the fixed player, which is two rows tall
-              below `sm` (ADR 0016) and one above it. */}
-          <main className="flex-1 overflow-y-auto px-4 py-5 pb-40 sm:px-6 sm:py-6 sm:pb-32">
+          <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
             <Outlet />
           </main>
         </div>
       </div>
       <Player />
+      {/* Renders nothing; it keeps the browser in step with the room it is
+          listening to, for as long as the audio lasts rather than as long as
+          the room page is open (ADR 0017). */}
+      <RoomSession />
     </div>
   );
 }

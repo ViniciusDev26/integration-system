@@ -11,6 +11,26 @@ export interface PlayerTrack {
 
 export type RepeatMode = "off" | "all" | "one";
 
+/**
+ * Something that owns playback on this browser's behalf — a listening room
+ * (web ADR 0017). While one is registered, the transport buttons stop driving
+ * the local `<audio>` and ask it instead, so pressing play in the bar does what
+ * it looks like it does: it plays for everyone.
+ *
+ * The player knows nothing about rooms; it renders `label` and offers `leave`.
+ */
+export interface PlaybackRemote {
+  /** Named in the bar, so a listener can see their controls are not local. */
+  label: string;
+  leave: () => void;
+  toggle: () => void;
+  next: () => void;
+  previous: () => void;
+  seek: (seconds: number) => void;
+  /** Pick the queue item at `at` for everyone. */
+  selectAt: (at: number) => void;
+}
+
 interface PlayerState {
   queue: PlayerTrack[];
   index: number; // -1 when the queue is empty
@@ -26,6 +46,20 @@ interface PlayerState {
    */
   pendingSeek: { toSeconds: number; nonce: number } | null;
   repeat: RepeatMode;
+  /** Set while something else owns playback; see {@link PlaybackRemote}. */
+  remote: PlaybackRemote | null;
+  /**
+   * True once the browser has refused to start audio for want of a user
+   * gesture. The store would otherwise claim to be playing while silent.
+   */
+  autoplayBlocked: boolean;
+  /**
+   * Whether the element can actually act on a seek yet. Writing `currentTime`
+   * before the media has loaded is honoured late, against a position the room
+   * has already moved past — which is how a listener ends up permanently
+   * behind. Anything following a shared anchor must re-anchor when this flips.
+   */
+  canPlay: boolean;
 
   /** Play a single track (queue of one). */
   playTrack: (track: PlayerTrack) => void;
@@ -39,6 +73,29 @@ interface PlayerState {
   next: () => void;
   /** Manual previous: go back, wrapping to the end at the start. */
   previous: () => void;
+
+  /**
+   * What a **transport button** does, as opposed to what following an anchor
+   * does. These go to the `remote` when one is registered and act locally
+   * otherwise. Everything that merely *follows* a remote — `play`, `pause`,
+   * `seekTo`, `playQueue` — must keep calling the plain actions above, or a
+   * room would command itself in a loop.
+   */
+  requestToggle: () => void;
+  requestNext: () => void;
+  requestPrevious: () => void;
+  requestSeek: (seconds: number) => void;
+  requestPlayAt: (at: number) => void;
+
+  setRemote: (remote: PlaybackRemote | null) => void;
+  /** The browser refused to start audio without a gesture. */
+  autoplayRefused: () => void;
+  /** Audio is running again, so any refusal no longer stands. */
+  autoplayAllowed: () => void;
+  /** The element has enough data to play and to honour a seek. */
+  mediaReady: () => void;
+  /** A new source is loading; seeks will not land until it is ready. */
+  mediaLoading: () => void;
   /** Append a track to the queue (starts it if the queue was empty). */
   addToQueue: (track: PlayerTrack) => void;
   /** Remove the queue item at `at`, adjusting the current index. */
@@ -71,6 +128,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   pendingSeek: null,
   repeat: "off",
+  remote: null,
+  autoplayBlocked: false,
+  canPlay: false,
 
   playTrack(track) {
     set({ queue: [track], index: 0, isPlaying: true, currentTime: 0 });
@@ -176,6 +236,69 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     } else {
       set({ isPlaying: false });
     }
+  },
+
+  requestToggle() {
+    const { remote } = get();
+    if (remote !== null) {
+      remote.toggle();
+      return;
+    }
+    get().toggle();
+  },
+
+  requestNext() {
+    const { remote } = get();
+    if (remote !== null) {
+      remote.next();
+      return;
+    }
+    get().next();
+  },
+
+  requestPrevious() {
+    const { remote } = get();
+    if (remote !== null) {
+      remote.previous();
+      return;
+    }
+    get().previous();
+  },
+
+  requestSeek(seconds) {
+    const { remote } = get();
+    if (remote !== null) {
+      remote.seek(seconds);
+      return;
+    }
+    get().seekTo(seconds);
+  },
+
+  requestPlayAt(at) {
+    const { remote } = get();
+    if (remote !== null) {
+      remote.selectAt(at);
+      return;
+    }
+    get().playAt(at);
+  },
+
+  setRemote(remote) {
+    set({ remote });
+  },
+
+  autoplayRefused() {
+    set({ autoplayBlocked: true });
+  },
+  autoplayAllowed() {
+    set((state) => (state.autoplayBlocked ? { autoplayBlocked: false } : {}));
+  },
+
+  mediaReady() {
+    set((state) => (state.canPlay ? {} : { canPlay: true }));
+  },
+  mediaLoading() {
+    set((state) => (state.canPlay ? { canPlay: false } : {}));
   },
 
   setVolume(volume) {

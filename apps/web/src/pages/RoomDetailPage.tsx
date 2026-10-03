@@ -3,17 +3,19 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../api/trpc";
 import { RoomChat } from "../components/room/RoomChat";
-import {
-  type RoomAnchorLike,
-  useRoomPlaybackSync,
-} from "../components/room/useRoomPlaybackSync";
 import { SharePanel } from "../components/share/SharePanel";
 import { Button } from "../components/ui/button";
+import { useRoomSessionStore } from "../store/room-session";
 
 /**
  * A listening room (api ADR 0041). Transport controls here issue **server**
  * commands rather than driving this browser's player — the room's anchor is the
  * single source of truth, and every listener follows it.
+ *
+ * This page does not follow the room itself (web ADR 0017): opening it puts the
+ * browser *in* the room, and `RoomSession` in the app shell does the following,
+ * so a listener who navigates away keeps hearing what everyone else hears.
+ * Here we only render what that session already knows.
  */
 export function RoomDetailPage() {
   const { id } = useParams();
@@ -25,54 +27,23 @@ export function RoomDetailPage() {
   const members = trpc.rooms.members.useQuery({ roomId }, { enabled });
   const allMusics = trpc.musics.list.useQuery();
 
-  // Playback and presence arrive as state on their events, so they are held
-  // locally and seeded from the snapshot rather than refetched on every change.
-  const [anchor, setAnchor] = useState<RoomAnchorLike>();
-  const [serverNow, setServerNow] = useState<Date>();
-  const [present, setPresent] = useState<readonly string[]>([]);
+  const enter = useRoomSessionStore((s) => s.enter);
+  const anchor = useRoomSessionStore((s) => s.anchor);
+  const present = useRoomSessionStore((s) => s.present);
 
+  // Opening the page joins the room. Leaving the page deliberately does not
+  // leave it — that is what the player bar's "Leave" is for.
   useEffect(() => {
-    if (room.data !== undefined) {
-      setAnchor(room.data.room);
-      setServerNow(room.data.serverNow);
-      setPresent(room.data.present);
+    if (enabled) {
+      enter(roomId);
     }
-  }, [room.data]);
-
-  trpc.rooms.onChanged.useSubscription(
-    { roomId },
-    {
-      enabled,
-      onData: (event) => {
-        if (event.type === "PLAYBACK_CHANGED") {
-          setAnchor(event.anchor);
-          setServerNow(event.serverNow);
-        }
-        if (event.type === "PRESENCE_CHANGED") {
-          setPresent(event.present);
-        }
-        if (event.type === "MUSIC_QUEUED") {
-          utils.rooms.get.invalidate({ roomId });
-        }
-        if (event.type === "MEMBER_JOINED") {
-          utils.rooms.members.invalidate({ roomId });
-        }
-      },
-    },
-  );
+  }, [enabled, roomId, enter]);
 
   const command = trpc.rooms.commandPlayback.useMutation();
   const queueMusic = trpc.rooms.queueMusic.useMutation({
     onSuccess: () => utils.rooms.get.invalidate({ roomId }),
   });
   const [selected, setSelected] = useState("");
-
-  useRoomPlaybackSync({
-    anchor,
-    musics: room.data?.musics ?? [],
-    serverNow,
-    enabled: enabled && room.data !== undefined,
-  });
 
   if (room.isLoading) {
     return <p className="text-muted-foreground">Loading…</p>;
@@ -164,10 +135,12 @@ export function RoomDetailPage() {
                 )}
               </div>
               <Button
-                variant="secondary"
-                className="shrink-0"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 rounded-full"
                 disabled={command.isPending}
                 aria-label={`Play ${track.name} for everyone`}
+                title="Play for everyone"
                 onClick={() =>
                   command.mutate({
                     roomId,
@@ -176,7 +149,6 @@ export function RoomDetailPage() {
                 }
               >
                 <Play className="h-4 w-4" fill="currentColor" />
-                <span className="hidden sm:inline">Play for all</span>
               </Button>
             </li>
           ))}

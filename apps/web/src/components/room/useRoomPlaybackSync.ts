@@ -1,24 +1,20 @@
 import { livePositionMs } from "@integration-system/api/playback";
 import { useCallback, useEffect, useRef } from "react";
 import { type PlayerTrack, usePlayerStore } from "../../store/player";
-
-/** How far out of step before we yank a listener back, in seconds. */
-const DRIFT_TOLERANCE_SECONDS = 2;
-
-/** How often to check for drift between anchors. */
-const DRIFT_CHECK_MS = 5_000;
+import type { RoomAnchorLike } from "../../store/room-session";
 
 /**
- * The room's playback anchor as it arrives over the wire. `playbackUpdatedAt`
- * really is a `Date` here — the superjson transformer (api ADR 0042) makes the
- * inferred type true, so no re-parsing is needed.
+ * How far out of step before we yank a listener back, in seconds.
+ *
+ * Two people in one room at half a second apart already sound like an echo, so
+ * this is deliberately tight. It cannot go much tighter: `currentTime` reaches
+ * the store through `timeupdate`, which fires roughly four times a second, so a
+ * reading is up to ~0.25s stale and a smaller window would seek on noise.
  */
-export interface RoomAnchorLike {
-  currentMusicId: string | null;
-  positionMs: number;
-  isPlaying: boolean;
-  playbackUpdatedAt: Date;
-}
+const DRIFT_TOLERANCE_SECONDS = 0.5;
+
+/** How often to check for drift between anchors. */
+const DRIFT_CHECK_MS = 1_000;
 
 export interface UseRoomPlaybackSyncOptions {
   anchor: RoomAnchorLike | undefined;
@@ -50,6 +46,11 @@ export function useRoomPlaybackSync({
   const seekTo = usePlayerStore((s) => s.seekTo);
   const play = usePlayerStore((s) => s.play);
   const pause = usePlayerStore((s) => s.pause);
+  // A seek written before the media is ready is honoured late, against a
+  // position the room has already left. Re-anchoring when this flips is what
+  // stops a listener from being permanently behind by however long they took
+  // to load.
+  const canPlay = usePlayerStore((s) => s.canPlay);
 
   /** How far ahead this browser's clock runs, in ms. */
   const skewRef = useRef(0);
@@ -99,13 +100,18 @@ export function useRoomPlaybackSync({
     if (playing?.id !== anchor.currentMusicId) {
       playQueue(queue, index);
     }
-    seekTo(target);
+    // Only seek once the element can act on it; this effect runs again on
+    // `canPlay`, and `targetSeconds` is recomputed then, so the position used
+    // is the room's at the moment the seek actually lands.
+    if (canPlay) {
+      seekTo(target);
+    }
     if (anchor.isPlaying) {
       play();
     } else {
       pause();
     }
-  }, [anchor, enabled, targetSeconds, playQueue, seekTo, play, pause]);
+  }, [anchor, enabled, canPlay, targetSeconds, playQueue, seekTo, play, pause]);
 
   // Between anchors everyone free-runs, so a little divergence accumulates —
   // a tab throttled in the background is the usual cause. Nudge it back.
