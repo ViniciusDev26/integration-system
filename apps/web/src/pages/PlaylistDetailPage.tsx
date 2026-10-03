@@ -69,13 +69,15 @@ export function PlaylistDetailPage() {
           <ChevronLeft className="h-4 w-4" />
           Your playlists
         </Link>
-        <div className="flex items-center gap-6 pt-3">
-          <div className="grid h-32 w-32 shrink-0 place-items-center rounded bg-gradient-to-br from-secondary to-muted">
+        <div className="flex flex-col gap-4 pt-3 sm:flex-row sm:items-center sm:gap-6">
+          <div className="grid h-24 w-24 shrink-0 place-items-center rounded bg-gradient-to-br from-secondary to-muted sm:h-32 sm:w-32">
             <ListMusic className="h-12 w-12 text-muted-foreground" />
           </div>
-          <div className="flex flex-1 items-center justify-between">
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">{details.name}</h1>
+              <h1 className="truncate text-2xl font-bold sm:text-3xl">
+                {details.name}
+              </h1>
               <p className="text-sm text-muted-foreground">
                 {musics.length} track(s)
               </p>
@@ -105,10 +107,17 @@ export function PlaylistDetailPage() {
               <span className="w-6 text-right text-sm text-muted-foreground">
                 {i + 1}
               </span>
-              <div className="min-w-0 flex-1 font-semibold">{track.name}</div>
-              <Button variant="secondary" onClick={() => playQueue(musics, i)}>
+              <div className="min-w-0 flex-1 truncate font-semibold">
+                {track.name}
+              </div>
+              <Button
+                variant="secondary"
+                className="shrink-0"
+                onClick={() => playQueue(musics, i)}
+                aria-label={`Play ${track.name}`}
+              >
                 <Play className="h-4 w-4" fill="currentColor" />
-                Play
+                <span className="hidden sm:inline">Play</span>
               </Button>
             </li>
           ))}
@@ -122,7 +131,7 @@ export function PlaylistDetailPage() {
       />
 
       <form
-        className="flex items-end gap-2"
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           if (selected.length > 0) {

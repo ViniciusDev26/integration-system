@@ -62,6 +62,26 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   existing tRPC/Zustand data flow (no logic changes). Verified: `typecheck`,
   `lint`, `build` all pass; `/login` visually confirmed dark-themed via a headless
   Chromium screenshot (no console errors beyond the expected anonymous 401).
+- **Every screen works on a phone (2026-10-02, web ADR 0016)** — the follow-up
+  ADR 0013 deferred. The `w-60` sidebar becomes `hidden md:flex`; below `md` a
+  slim top bar's menu button opens a **Radix `Dialog` drawer** (already a
+  dependency, so focus trap/escape/scroll-lock come free — no `shadcn add`). Not
+  a bottom tab bar: **the player already owns the bottom edge**. `NAV_ITEMS` +
+  `navLinkClass` live in one module (`components/nav-items.ts`) so the sidebar
+  and the drawer cannot drift; `UserMenu` is likewise shared.
+  **The player bar wraps into two rows below `sm`** — three columns on one 390px
+  row crushed the track title to `L…`. Volume is hidden on a phone (the device
+  has one); transport, seek and queue stay. `sm:flex-nowrap` keeps desktop
+  identical. Detail headers stack, covers shrink, `items-end` forms go
+  column-first, and track-row buttons keep their labels in `hidden sm:inline`
+  with an `aria-label` taking over.
+  **Verified by driving headless Chromium over CDP against the running app with
+  a real session** (not by reading breakpoints): all 9 routes at 390/360/1280px
+  plus the drawer open and the player loaded, asserting
+  `scrollWidth - clientWidth === 0` per route. Scripts are throwaway, in the
+  session scratchpad. *Gotcha for next time:* `Runtime.evaluate` returns
+  `{result: {result: {value}}}` — reading `.result.value` printed `undefined` for
+  a whole run and silently looked like "no overflow".
 - **Realtime foundation built (2026-10-02, ADR 0039)** — transport only, no
   feature yet. `ws` 8.22.0 + `@types/ws` added. API: `attachTRPCWebSocketServer`
   (`src/trpc/ws-server.ts`) puts a `WebSocketServer` on the **same port and path**
@@ -239,13 +259,16 @@ code is which.
 
 ## Open questions / follow-ups
 
-- **Redesign not manually verified against a real authenticated session** — the
-  headless-browser check only covered `/login` (no GitHub OAuth credentials
-  available in this environment to reach the sidebar/authenticated pages). A
-  human pass through `/`, `/musics`, `/playlists/:id`, and the player controls
-  while logged in is recommended before considering the redesign fully done.
-- Sidebar has **no responsive/mobile layout** — fixed `w-60`, no collapse below
-  narrow viewports (ADR 0013 notes this as deliberately out of scope for now).
+- **The authenticated screens are now reachable headlessly**, which they were
+  not when the redesign landed: email/password registration (ADR 0043) means a
+  throwaway account can be created over `/trpc` and its session cookie set with
+  `Network.setCookie`, so no GitHub credentials are needed. That closed the old
+  "redesign only verified at `/login`" gap during the mobile pass (ADR 0016).
+  Still unverified by a human on a real device: **touch** behaviour — tap
+  targets, the drawer's swipe, and iOS Safari's dynamic viewport/safe area
+  under the fixed player. Screenshots cannot see any of that.
+- **`apps/web` has no test framework**, so every front-end change is verified by
+  build + screenshot and nothing is repeatable in CI. Adding one needs an ADR.
 - **WebSocket upgrades not verified against a real deploy** — the transport is
   wired and tested locally, but nothing has confirmed that whatever terminates
   TLS in the deployment target passes an `Upgrade` through. Last open item of
@@ -261,6 +284,11 @@ code is which.
   `httpSubscriptionLink` opens one `EventSource` **per subscription** (verified
   in the installed 11.18.0 source) — worth remembering before anyone proposes
   SSE again.
+- **Two `noUnusedVariables` lint warnings are real dead code**, left by the
+  media-redirect change (ADR 0045): `objectStorage` is still destructured in
+  `room/application/room.service.ts` and `playlist/service/playlist.service.ts`
+  but nothing signs URLs there any more. Removing it also means dropping it from
+  both `*.service.types.ts` and the two composition roots.
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - Validate the GitHub callback `iss` param (RFC 9207) instead of stripping it.
 - Biome 2.5.12 `extends` is non-recursive and won't resolve package subpaths — the

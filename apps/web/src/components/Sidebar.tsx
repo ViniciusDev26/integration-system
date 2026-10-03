@@ -1,28 +1,17 @@
-import { Home, ListMusic, LogOut, Music, Radio } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useAuthStore } from "../store/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { NAV_ITEMS, navLinkClass } from "./nav-items";
+import { UserMenu } from "./UserMenu";
 
-const NAV_ITEMS = [
-  { to: "/", label: "Home", icon: Home, end: true },
-  { to: "/musics", label: "Tracks", icon: Music, end: false },
-  { to: "/playlists", label: "Playlists", icon: ListMusic, end: false },
-  { to: "/rooms", label: "Rooms", icon: Radio, end: false },
-] as const;
-
-/** Persistent left navigation (ADR 0013) — brand, primary nav, user menu. */
+/**
+ * Persistent left navigation (ADR 0013) — brand, primary navigation, account.
+ *
+ * Hidden below `md`, where the same destinations are reached through the
+ * drawer instead (ADR 0016): at 240px wide this would take two thirds of a
+ * phone screen before any content was drawn.
+ */
 export function Sidebar() {
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
       <div className="px-6 py-5">
         <NavLink to="/" className="text-lg font-bold">
           🎧 Spotifake
@@ -34,13 +23,7 @@ export function Sidebar() {
             key={to}
             to={to}
             end={end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition ${
-                isActive
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`
-            }
+            className={({ isActive }) => navLinkClass(isActive)}
           >
             <Icon className="h-5 w-5" />
             {label}
@@ -48,25 +31,7 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="border-t border-border p-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-secondary">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.imageUrl ?? undefined} alt="" />
-              <AvatarFallback>
-                {(user?.name ?? user?.email ?? "?").charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="truncate text-sm text-foreground">
-              {user?.name ?? user?.email}
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="top">
-            <DropdownMenuItem onSelect={() => logout()}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserMenu side="top" />
       </div>
     </aside>
   );

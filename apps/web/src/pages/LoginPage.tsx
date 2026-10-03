@@ -66,8 +66,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background px-6">
-      <div className="w-full max-w-sm space-y-6 rounded-xl bg-card p-8">
+    <div className="grid min-h-screen place-items-center bg-background px-4 sm:px-6">
+      <div className="w-full max-w-sm space-y-6 rounded-xl bg-card p-6 sm:p-8">
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold">🎧 Spotifake</h1>
           <p className="text-sm text-muted-foreground">

@@ -147,7 +147,7 @@ export function Player() {
       />
 
       {showQueue && (
-        <div className="mx-auto max-h-64 max-w-5xl overflow-auto border-b border-border px-6 py-2">
+        <div className="mx-auto max-h-64 max-w-5xl overflow-auto border-b border-border px-4 py-2 sm:px-6">
           <div className="mb-1 text-xs font-semibold text-muted-foreground uppercase">
             Queue ({queue.length})
           </div>
@@ -185,8 +185,12 @@ export function Player() {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      {/* Below `sm` the bar wraps into two rows: the track and the queue toggle
+          share the first, and the transport + seek take a full-width second one
+          (ADR 0016). Three columns on one 390px row left the title as an
+          ellipsis. From `sm` up, `flex-nowrap` restores the single row. */}
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3 sm:flex-nowrap sm:gap-4 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <Avatar className="h-12 w-12 rounded" size="lg">
             <AvatarImage
               src={current.thumbnailUrl ?? undefined}
@@ -199,13 +203,13 @@ export function Player() {
           </Avatar>
           <div className="min-w-0">
             <div className="truncate font-semibold">{current.name}</div>
-            <div className="truncate text-xs text-muted-foreground uppercase">
+            <div className="hidden truncate text-xs text-muted-foreground uppercase sm:block">
               {current.genres.join(" · ")}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-[2] flex-col items-center gap-1">
+        <div className="order-last flex w-full flex-col items-center gap-1 sm:order-none sm:w-auto sm:flex-[2]">
           <div className="flex items-center gap-5">
             <button
               type="button"
@@ -264,7 +268,7 @@ export function Player() {
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:flex-1 sm:gap-3">
           <button
             type="button"
             onClick={() => setShowQueue((v) => !v)}
@@ -277,12 +281,14 @@ export function Player() {
           >
             <ListMusic className="h-4 w-4" />
           </button>
+          {/* Hidden on a phone: the device has a volume control, and the bar
+              already holds transport and a seek (ADR 0016). */}
           <VolumeIcon
-            className="h-4 w-4 text-muted-foreground"
+            className="hidden h-4 w-4 text-muted-foreground sm:block"
             aria-hidden="true"
           />
           <Slider
-            className="w-24"
+            className="hidden w-24 sm:block"
             min={0}
             max={1}
             step={0.05}

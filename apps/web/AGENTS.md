@@ -42,6 +42,13 @@ sidebar-driven visual identity (see below).
   `index.css` (0012, no light mode); a persistent left `Sidebar` (nav + user
   menu) replaces the old top-nav header as the app's navigation convention
   (0013).
+- **Mobile (0016):** the sidebar is `hidden md:flex`; below `md` a top bar's
+  menu button opens a Radix `Dialog` drawer (`MobileNav`). Destinations live in
+  `components/nav-items.ts` and the avatar/logout in `components/UserMenu.tsx`,
+  shared by both — **add a destination in one place, not two**. The player bar
+  wraps to two rows below `sm`. The rule for new screens: *the page body never
+  scrolls horizontally* — wide content wraps, stacks, or scrolls in its own
+  container.
 
 Structure: `src/api/` (tRPC client + Providers), `src/pages/` (routed screens),
 `src/components/` (`Layout`, `Sidebar`, `player/`, `ui/`), `src/store/`

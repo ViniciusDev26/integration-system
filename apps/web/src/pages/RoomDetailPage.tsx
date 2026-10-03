@@ -98,13 +98,15 @@ export function RoomDetailPage() {
           <ChevronLeft className="h-4 w-4" />
           Rooms
         </Link>
-        <div className="flex items-center gap-6 pt-3">
-          <div className="grid h-32 w-32 shrink-0 place-items-center rounded bg-gradient-to-br from-secondary to-muted">
+        <div className="flex flex-col gap-4 pt-3 sm:flex-row sm:items-center sm:gap-6">
+          <div className="grid h-24 w-24 shrink-0 place-items-center rounded bg-gradient-to-br from-secondary to-muted sm:h-32 sm:w-32">
             <Radio className="h-12 w-12 text-muted-foreground" />
           </div>
-          <div className="flex flex-1 items-center justify-between">
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">{details.name}</h1>
+              <h1 className="truncate text-2xl font-bold sm:text-3xl">
+                {details.name}
+              </h1>
               <p className="text-sm text-muted-foreground">
                 {musics.length} track(s) · {present.length} listening
               </p>
@@ -153,7 +155,7 @@ export function RoomDetailPage() {
               <span className="w-6 text-right text-sm text-muted-foreground">
                 {i + 1}
               </span>
-              <div className="min-w-0 flex-1 font-semibold">
+              <div className="min-w-0 flex-1 truncate font-semibold">
                 {track.name}
                 {track.id === currentId && (
                   <span className="pl-2 text-xs font-normal text-primary">
@@ -163,7 +165,9 @@ export function RoomDetailPage() {
               </div>
               <Button
                 variant="secondary"
+                className="shrink-0"
                 disabled={command.isPending}
+                aria-label={`Play ${track.name} for everyone`}
                 onClick={() =>
                   command.mutate({
                     roomId,
@@ -172,7 +176,7 @@ export function RoomDetailPage() {
                 }
               >
                 <Play className="h-4 w-4" fill="currentColor" />
-                Play for all
+                <span className="hidden sm:inline">Play for all</span>
               </Button>
             </li>
           ))}
@@ -189,7 +193,7 @@ export function RoomDetailPage() {
       />
 
       <form
-        className="flex items-end gap-2"
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           if (selected.length > 0) {

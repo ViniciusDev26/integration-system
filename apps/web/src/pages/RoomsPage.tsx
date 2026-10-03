@@ -20,7 +20,7 @@ export function RoomsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Rooms</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Rooms</h1>
         <p className="text-sm text-muted-foreground">
           Listen together — everyone in a room hears the same moment of the same
           track.
@@ -28,7 +28,7 @@ export function RoomsPage() {
       </div>
 
       <form
-        className="flex items-end gap-2"
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           if (name.trim().length > 0) {

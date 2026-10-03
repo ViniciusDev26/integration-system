@@ -60,7 +60,7 @@ export function MusicsPage() {
                   </span>
                 </button>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold">{track.name}</div>
+                  <div className="truncate font-semibold">{track.name}</div>
                   <div className="flex flex-wrap gap-1 pt-1">
                     {track.genres.map((genre) => (
                       <Badge key={genre} variant="outline">
@@ -69,7 +69,7 @@ export function MusicsPage() {
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <Button
                     variant="secondary"
                     onClick={() => addToQueue(track)}
@@ -77,11 +77,18 @@ export function MusicsPage() {
                     aria-label={`Add ${track.name} to queue`}
                   >
                     <ListPlus className="h-4 w-4" />
-                    {queued ? "In queue" : "Queue"}
+                    {/* Label hidden on a phone; the icon and aria-label carry
+                        it, and the track name needs the room (ADR 0016). */}
+                    <span className="hidden sm:inline">
+                      {queued ? "In queue" : "Queue"}
+                    </span>
                   </Button>
-                  <Button onClick={() => playTrack(track)}>
+                  <Button
+                    onClick={() => playTrack(track)}
+                    aria-label={`Play ${track.name}`}
+                  >
                     <Play className="h-4 w-4" fill="currentColor" />
-                    Play
+                    <span className="hidden sm:inline">Play</span>
                   </Button>
                 </div>
               </li>
