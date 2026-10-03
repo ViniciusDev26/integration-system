@@ -44,6 +44,7 @@ function ActiveRoom({ roomId }: { roomId: string }) {
   // request rather than fetching the room twice.
   const room = trpc.rooms.get.useQuery({ roomId });
   const command = trpc.rooms.commandPlayback.useMutation();
+  const trackEnded = trpc.rooms.trackEnded.useMutation();
 
   useEffect(() => {
     if (room.data !== undefined) {
@@ -122,13 +123,25 @@ function ActiveRoom({ roomId }: { roomId: string }) {
       next: () => step(1),
       previous: () => step(-1),
       selectAt,
+      // Losing this race is the normal outcome for all but one listener, and
+      // the server says so with `advanced: false`; there is nothing to handle.
+      trackEnded: (musicId: string) => trackEnded.mutate({ roomId, musicId }),
       seek: (seconds: number) =>
         command.mutate({
           roomId,
           command: { type: "SEEK", positionMs: Math.round(seconds * 1000) },
         }),
     };
-  }, [roomId, name, anchor, musics, command.mutate, leave, pause]);
+  }, [
+    roomId,
+    name,
+    anchor,
+    musics,
+    command.mutate,
+    trackEnded.mutate,
+    leave,
+    pause,
+  ]);
 
   useEffect(() => {
     setRemote(remote);

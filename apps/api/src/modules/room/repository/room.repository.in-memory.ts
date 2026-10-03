@@ -123,5 +123,17 @@ export function createInMemoryRoomRepository(
       roomsById.set(roomId, updated);
       return updated;
     },
+
+    async advancePlayback(roomId, fromMusicId, anchor) {
+      // Mirrors the Postgres adapter's compare-and-swap: a report naming a
+      // track the room has already left changes nothing.
+      const room = roomsById.get(roomId);
+      if (room === undefined || room.currentMusicId !== fromMusicId) {
+        return null;
+      }
+      const updated: Room = { ...room, ...anchor, updatedAt: new Date() };
+      roomsById.set(roomId, updated);
+      return updated;
+    },
   };
 }

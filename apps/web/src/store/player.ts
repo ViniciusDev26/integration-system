@@ -29,6 +29,12 @@ export interface PlaybackRemote {
   seek: (seconds: number) => void;
   /** Pick the queue item at `at` for everyone. */
   selectAt: (at: number) => void;
+  /**
+   * Report that `musicId` finished here. Every listener reports; the room
+   * advances once. Nobody advances on their own, which is what stops N
+   * clients racing to pick the next track.
+   */
+  trackEnded: (musicId: string) => void;
 }
 
 interface PlayerState {

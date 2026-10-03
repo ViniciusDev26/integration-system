@@ -92,7 +92,6 @@ export function createTestContainer(
   const playlistService = createPlaylistService({
     playlistRepository,
     musicRepository,
-    objectStorage,
     eventBus: playlistEventBus,
   });
 
@@ -107,7 +106,6 @@ export function createTestContainer(
     roomRepository,
     roomMessageRepository: createInMemoryRoomMessageRepository(),
     musicRepository,
-    objectStorage,
     eventBus: roomEventBus,
     chatEventBus: roomChatEventBus,
     roomRegistry,

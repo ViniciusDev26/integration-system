@@ -27,7 +27,9 @@ function rethrowAsTRPC(err: unknown): never {
 
 const roomIdSchema = z.object({ roomId: z.string().min(1) });
 
-/** The four things that move the playback anchor (ADR 0041). */
+/** The four things a *person* can ask of the anchor (ADR 0041). The end of a
+ * track moves it too, but that is reported rather than commanded — see
+ * `trackEnded` below. */
 const playbackCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("PLAY") }),
   z.object({ type: z.literal("PAUSE") }),
@@ -104,6 +106,28 @@ export function createRoomRouter(roomService: RoomService) {
             requesterId: ctx.user.id,
             command: input.command,
           });
+        } catch (err) {
+          rethrowAsTRPC(err);
+        }
+      }),
+
+    /**
+     * Reports that a listener's track finished, so the room moves to the next
+     * one. Not a command: it is a statement of fact that every listener makes
+     * at roughly the same moment, and `musicId` is what lets the room advance
+     * exactly once. Losing that race returns `{ advanced: false }`, which is
+     * the ordinary outcome, not an error.
+     */
+    trackEnded: protectedProcedure
+      .input(roomIdSchema.extend({ musicId: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const updated = await roomService.reportTrackEnded({
+            roomId: input.roomId,
+            requesterId: ctx.user.id,
+            musicId: input.musicId,
+          });
+          return { advanced: updated !== null };
         } catch (err) {
           rethrowAsTRPC(err);
         }

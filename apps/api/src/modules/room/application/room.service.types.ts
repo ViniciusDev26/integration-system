@@ -1,7 +1,6 @@
 import type { Music } from "../../../shared/db/schema/musics.js";
 import type { Room } from "../../../shared/db/schema/rooms.js";
 import type { RoomRegistry } from "../../../shared/realtime/room-registry.js";
-import type { ObjectStorage } from "../../../shared/storage/object-storage.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import type { MusicListItem } from "../../music/service/music.service.types.js";
 import type { PlaybackCommand } from "../domain/room.playback.js";
@@ -37,6 +36,14 @@ export interface QueueMusicInput extends RoomScopedInput {
 
 export interface CommandPlaybackInput extends RoomScopedInput {
   command: PlaybackCommand;
+}
+
+export interface ReportTrackEndedInput extends RoomScopedInput {
+  /**
+   * The track that finished. Only a report naming the track the room is
+   * actually on can move it, so simultaneous reports advance it exactly once.
+   */
+  musicId: string;
 }
 
 export interface WatchRoomInput extends RoomScopedInput {
@@ -82,8 +89,6 @@ export interface RoomServiceOptions {
   roomMessageRepository: RoomMessageRepository;
   /** Used to validate a track exists before queueing it. */
   musicRepository: MusicRepository;
-  /** Used to presign playback/thumbnail URLs. */
-  objectStorage: ObjectStorage;
   /** Where room changes are announced (ADR 0039). */
   eventBus: RoomEventBus;
   /** Where chat messages are announced — a separate topic (ADR 0044). */
@@ -108,6 +113,16 @@ export interface RoomService {
   queueMusic(input: QueueMusicInput): Promise<void>;
   /** Applies a playback command and announces the resulting anchor. */
   commandPlayback(input: CommandPlaybackInput): Promise<Room>;
+  /**
+   * Records that a listener's track finished, advancing the room to the next
+   * queued one — or stopping it if the queue is spent.
+   *
+   * Resolves `null` when the report is stale, which is the normal case for
+   * every listener but the first: the server cannot know a track's length
+   * (it never sees the bytes, ADR 0038/0045), so everyone reports and the
+   * room arbitrates.
+   */
+  reportTrackEnded(input: ReportTrackEndedInput): Promise<Room | null>;
   /**
    * A live stream of the room's events. Opening it marks the requester
    * **present**; ending it (or aborting) removes them. Presence changes are

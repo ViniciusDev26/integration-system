@@ -118,5 +118,18 @@ export function createPostgresRoomRepository(db: Database): RoomRepository {
 
       return updated ?? null;
     },
+
+    async advancePlayback(roomId, fromMusicId, anchor) {
+      // The `currentMusicId` predicate makes this a compare-and-swap: a second
+      // listener reporting the same track's end matches no row, so the room
+      // advances exactly once however many reports arrive together.
+      const [updated] = await db
+        .update(rooms)
+        .set(anchor)
+        .where(and(eq(rooms.id, roomId), eq(rooms.currentMusicId, fromMusicId)))
+        .returning();
+
+      return updated ?? null;
+    },
   };
 }

@@ -62,6 +62,28 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   existing tRPC/Zustand data flow (no logic changes). Verified: `typecheck`,
   `lint`, `build` all pass; `/login` visually confirmed dark-themed via a headless
   Chromium screenshot (no console errors beyond the expected anonymous 401).
+- **A room plays through its queue (2026-10-03, ADR 0048)** — closes the gap
+  web ADR 0017 opened by refusing to let clients auto-advance. **The server
+  cannot time this itself:** it has no track durations, because uploads go
+  straight to R2 (ADR 0038) and playback is a redirect (ADR 0045), so nothing
+  server-side ever decoded the audio. So **every listener reports the end** via
+  `rooms.trackEnded({roomId, musicId})` and the room advances exactly once.
+  The `musicId` is the guard, checked twice: `anchorAfterTrackEnd` in the
+  domain (paused / other track / not queued → `stale`) and then
+  `advancePlayback` writing `WHERE id = ? AND current_music_id = ?` — the same
+  compare-and-swap trick as `InviteRepository.revoke`, and the one that
+  actually holds under concurrency. Losing the race answers
+  `{advanced: false}`, which is the normal outcome for all but one listener,
+  not an error. The queue **does not wrap**: running out stops the room on its
+  last track at position 0 (rooms have no repeat mode).
+  Consequence worth knowing: **a room with no listeners never advances**, since
+  nothing reports. Harmless, but it is why a room can look stuck after everyone
+  leaves. Verified with two browsers seeking to 4s before the end: advanced
+  together with 0.000s drift, and stopped at the end of the queue.
+- **The two `objectStorage` lint warnings are gone (2026-10-03)** — dead since
+  ADR 0045 moved signing into the media controller. Removed from both services,
+  their `*.service.types.ts`, both composition roots and two tests. `npm run
+  lint` is now clean with zero warnings; keep it that way.
 - **Room sync fixed where it was actually broken: the browser (2026-10-02,
   web ADR 0017).** Reported as "the room does not stay in sync". **The server
   was not at fault** — a probe with two WebSocket subscribers confirmed both
@@ -101,9 +123,7 @@ Pending work is tracked in [`tasks.md`](tasks.md); delivery-level epics in
   like a sync bug and is not one. Launch a second instance on another port.
   Also: the player bar is now a **flex item** in the shell column, not `fixed`,
   so content is sized around it instead of cleared with a `pb-*` guess.
-  **New limitation I introduced on purpose:** a room no longer auto-advances at
-  the end of a track — every client would race to pick the next. Closing it
-  means the server advancing the queue, which is an API change and its own ADR.
+  **The end-of-track gap this opened is now closed** — see the entry below.
   **Decision reconsidered and kept:** any member may drive playback (ADR 0041).
   The complaint that "everyone can pause" was a symptom of 1 and 2.
 - **Every screen works on a phone (2026-10-02, web ADR 0016)** — the follow-up
@@ -314,9 +334,9 @@ code is which.
   build + screenshot and nothing is repeatable in CI. Adding one needs an ADR.
   This is biting: the room-sync bugs (ADR 0017) were all client-side and all
   invisible to the 323 API tests.
-- **A room stops at the end of a track** (web ADR 0017) — nobody auto-advances,
-  because every listener would race. The fix is the server owning queue
-  advancement; needs an API ADR.
+- **A room with no listeners does not advance** (ADR 0048) — advancing is
+  driven by listener reports, and an empty room has nobody to report. Fixing it
+  properly needs track durations, which the server does not have.
 - **WebSocket upgrades not verified against a real deploy** — the transport is
   wired and tested locally, but nothing has confirmed that whatever terminates
   TLS in the deployment target passes an `Upgrade` through. Last open item of
@@ -332,11 +352,6 @@ code is which.
   `httpSubscriptionLink` opens one `EventSource` **per subscription** (verified
   in the installed 11.18.0 source) — worth remembering before anyone proposes
   SSE again.
-- **Two `noUnusedVariables` lint warnings are real dead code**, left by the
-  media-redirect change (ADR 0045): `objectStorage` is still destructured in
-  `room/application/room.service.ts` and `playlist/service/playlist.service.ts`
-  but nothing signs URLs there any more. Removing it also means dropping it from
-  both `*.service.types.ts` and the two composition roots.
 - Session cleanup/expiry strategy for the `sessions` table (ADR 0019).
 - Validate the GitHub callback `iss` param (RFC 9207) instead of stripping it.
 - Biome 2.5.12 `extends` is non-recursive and won't resolve package subpaths — the

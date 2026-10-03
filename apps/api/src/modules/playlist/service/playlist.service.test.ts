@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryEventBus } from "../../../shared/realtime/event-bus.in-memory.js";
-import { createInMemoryObjectStorage } from "../../../shared/storage/object-storage.in-memory.js";
 import { createInMemoryMusicRepository } from "../../music/repository/music.repository.in-memory.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import type { PlaylistEvent } from "../playlist.events.js";
@@ -18,12 +17,10 @@ function setup() {
   const playlistRepository = createInMemoryPlaylistRepository({
     resolveMusic: (id) => musicRepository.findById(id),
   });
-  const objectStorage = createInMemoryObjectStorage();
   const eventBus = createInMemoryEventBus<PlaylistEvent>();
   const service = createPlaylistService({
     playlistRepository,
     musicRepository,
-    objectStorage,
     eventBus,
   });
   return { service, playlistRepository, musicRepository, eventBus };

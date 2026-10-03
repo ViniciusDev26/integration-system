@@ -186,6 +186,64 @@ describe("RoomRepository", () => {
     ).toBeNull();
   });
 
+  it("advances the anchor only when the room is still on the named track", async () => {
+    const room = await repository.create({ name: "Friday", ownerId });
+    const first = await seedMusic("first");
+    const second = await seedMusic("second");
+    await repository.setPlayback(room.id, {
+      currentMusicId: first,
+      positionMs: 0,
+      isPlaying: true,
+      playbackUpdatedAt: new Date("2026-10-03T12:00:00.000Z"),
+    });
+
+    const at = new Date("2026-10-03T12:03:26.000Z");
+    const advanced = await repository.advancePlayback(room.id, first, {
+      currentMusicId: second,
+      positionMs: 0,
+      isPlaying: true,
+      playbackUpdatedAt: at,
+    });
+
+    expect(advanced?.currentMusicId).toBe(second);
+    expect(advanced?.playbackUpdatedAt.getTime()).toBe(at.getTime());
+  });
+
+  it("refuses to advance a room that has already moved on", async () => {
+    // Every listener reports the end at once. The row is the arbiter: the
+    // second report matches no room and must not restart the next track.
+    const room = await repository.create({ name: "Friday", ownerId });
+    const first = await seedMusic("first");
+    const second = await seedMusic("second");
+    const third = await seedMusic("third");
+    await repository.setPlayback(room.id, {
+      currentMusicId: first,
+      positionMs: 0,
+      isPlaying: true,
+      playbackUpdatedAt: new Date("2026-10-03T12:00:00.000Z"),
+    });
+
+    const moved = new Date("2026-10-03T12:03:26.000Z");
+    await repository.advancePlayback(room.id, first, {
+      currentMusicId: second,
+      positionMs: 0,
+      isPlaying: true,
+      playbackUpdatedAt: moved,
+    });
+
+    const late = await repository.advancePlayback(room.id, first, {
+      currentMusicId: third,
+      positionMs: 0,
+      isPlaying: true,
+      playbackUpdatedAt: new Date("2026-10-03T12:03:26.400Z"),
+    });
+
+    expect(late).toBeNull();
+    const after = await repository.findById(room.id);
+    expect(after?.currentMusicId).toBe(second);
+    expect(after?.playbackUpdatedAt.getTime()).toBe(moved.getTime());
+  });
+
   it("rejects a negative position, via the check constraint", async () => {
     const room = await repository.create({ name: "Friday", ownerId });
 

@@ -65,6 +65,14 @@ A sample music service (Spotify-like) with authenticated users:
   member may command playback. **Presence is the lifetime of the
   `rooms.onChanged` subscription** — the resolver joins the `RoomRegistry` and
   leaves in `finally`, so a dropped socket cleans itself up.
+  The end of a track is the one thing that moves the anchor without anyone
+  asking (ADR 0048). The server cannot time it — it has no track durations,
+  since bytes go browser↔R2 and never through the API — so **every listener
+  reports it** with `rooms.trackEnded({roomId, musicId})`. The `musicId` makes
+  simultaneous reports safe: the domain refuses one that names a track the room
+  has left, and `advancePlayback` writes `WHERE current_music_id = ?` so the
+  row itself settles the race. Running out of queue stops the room rather than
+  wrapping.
 - **Chat** — messages inside a room (ADR 0044), persisted in `room_messages`.
   Unlike every other subscription here, this one has **durable replay**: a
   message is the data, not a signal, so `rooms.onMessage` wraps each in

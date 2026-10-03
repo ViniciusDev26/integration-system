@@ -126,9 +126,12 @@ export function Player() {
 
   function handleEnded() {
     if (remote !== null) {
-      // In a room nobody advances on their own: every listener would reach the
-      // end at roughly the same moment and race to pick the next track. The
-      // room waits for someone to choose. See ADR 0017.
+      // Nobody advances on their own — every listener reaches the end at
+      // roughly the same moment and would race. They all report it instead,
+      // and the room advances exactly once (api ADR 0048).
+      if (current !== undefined) {
+        remote.trackEnded(current.id);
+      }
       return;
     }
     const audio = audioRef.current;

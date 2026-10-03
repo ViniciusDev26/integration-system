@@ -64,4 +64,18 @@ export interface RoomRepository {
    * someone plays, pauses, seeks or changes track — never on a timer.
    */
   setPlayback(roomId: string, anchor: SetPlaybackInput): Promise<Room | null>;
+  /**
+   * Writes the anchor **only if** the room is still on `fromMusicId`, and
+   * resolves `null` when it is not.
+   *
+   * That condition is the whole point. Every listener reports the end of a
+   * track at roughly the same moment, so the write has to be a
+   * compare-and-swap: the first report advances the room, and the rest match
+   * no row instead of restarting the next track under everyone.
+   */
+  advancePlayback(
+    roomId: string,
+    fromMusicId: string,
+    anchor: SetPlaybackInput,
+  ): Promise<Room | null>;
 }

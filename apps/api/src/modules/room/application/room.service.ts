@@ -4,7 +4,10 @@ import {
   mediaPlaybackPath,
 } from "../../media/media.constants.js";
 import { applyPlaybackCommand } from "../domain/room.playback.js";
-import { validateCommandAgainstQueue } from "../domain/room.queue.js";
+import {
+  anchorAfterTrackEnd,
+  validateCommandAgainstQueue,
+} from "../domain/room.queue.js";
 import type { RoomMessageSummary } from "../repository/room-message.repository.js";
 import type { RoomEvent } from "../room.events.js";
 import { roomChatTopic, roomTopic } from "../room.events.js";
@@ -24,7 +27,6 @@ export function createRoomService(options: RoomServiceOptions): RoomService {
     roomRepository,
     roomMessageRepository,
     musicRepository,
-    objectStorage,
     eventBus,
     chatEventBus,
     roomRegistry,
@@ -141,6 +143,45 @@ export function createRoomService(options: RoomServiceOptions): RoomService {
         roomId,
         actorId: requesterId,
         anchor,
+        serverNow: at,
+      });
+
+      return updated;
+    },
+
+    async reportTrackEnded({ roomId, requesterId, musicId }) {
+      const room = await requireMembership(roomId, requesterId);
+      const queued = await roomRepository.listMusics(roomId);
+
+      const at = now();
+      const outcome = anchorAfterTrackEnd(
+        room,
+        queued.map((track) => track.id),
+        musicId,
+        at,
+      );
+      if (outcome.type === "stale") {
+        return null;
+      }
+
+      // The domain judged a room we read a moment ago; this write judges the
+      // row itself, so two reports that both got past the check above still
+      // advance it once. A lost race is a `null`, not an error — the listener
+      // was simply not the first to notice.
+      const updated = await roomRepository.advancePlayback(
+        roomId,
+        musicId,
+        outcome.anchor,
+      );
+      if (updated === null) {
+        return null;
+      }
+
+      eventBus.publish(roomTopic(roomId), {
+        type: "PLAYBACK_CHANGED",
+        roomId,
+        actorId: requesterId,
+        anchor: outcome.anchor,
         serverNow: at,
       });
 

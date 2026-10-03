@@ -43,7 +43,9 @@ sidebar-driven visual identity (see below).
   wherever they navigate. The bar's transport calls `request*` actions, which go
   to the registered `PlaybackRemote`; `play`/`pause`/`seekTo`/`playQueue` stay
   local and are what *follows* an anchor. **Never make a follow path call a
-  `request*` action** — the room would command itself in a loop.
+  `request*` action** — the room would command itself in a loop. At the end of
+  a track the player does not advance: it calls `remote.trackEnded(musicId)`
+  and the server picks the next one (api ADR 0048).
 - **Theme & shell:** a single always-dark palette via Tailwind v4 tokens in
   `index.css` (0012, no light mode); a persistent left `Sidebar` (nav + user
   menu) replaces the old top-nav header as the app's navigation convention

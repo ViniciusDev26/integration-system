@@ -1,5 +1,4 @@
 import type { Playlist } from "../../../shared/db/schema/playlists.js";
-import type { ObjectStorage } from "../../../shared/storage/object-storage.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import type { MusicListItem } from "../../music/service/music.service.types.js";
 import type { PlaylistEvent, PlaylistEventBus } from "../playlist.events.js";
@@ -51,8 +50,6 @@ export interface PlaylistServiceOptions {
   playlistRepository: PlaylistRepository;
   /** Used to validate a music exists before linking it. */
   musicRepository: MusicRepository;
-  /** Used to presign playback/thumbnail URLs when reading a playlist. */
-  objectStorage: ObjectStorage;
   /** Where playlist changes are announced to members (ADR 0039). */
   eventBus: PlaylistEventBus;
 }

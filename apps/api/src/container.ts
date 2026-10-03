@@ -102,7 +102,6 @@ export function createContainer(): Container {
   const playlistService = createPlaylistService({
     playlistRepository,
     musicRepository,
-    objectStorage,
     eventBus: playlistEventBus,
   });
 
@@ -117,7 +116,6 @@ export function createContainer(): Container {
     roomRepository,
     roomMessageRepository: createPostgresRoomMessageRepository(db),
     musicRepository,
-    objectStorage,
     eventBus: roomEventBus,
     chatEventBus: roomChatEventBus,
     roomRegistry,

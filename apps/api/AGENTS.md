@@ -37,6 +37,12 @@ wired in a manual composition root (`src/container.ts`); the tRPC layer is in
   row ↔ entity, and the router returns a DTO. A **rule** returns an outcome; a
   **constructor** throws, because invalid data means corruption. Done:
   `invite/` (entity, `InviteToken`, mapper, DTOs).
+- **A room advances through its queue on listener reports, not a timer**
+  (ADR 0048): the server has no track durations, so `rooms.trackEnded` carries
+  the `musicId` and `advancePlayback` writes
+  `WHERE current_music_id = ?`. That compare-and-swap is what makes N
+  simultaneous reports advance the room once — the domain check alone does not
+  survive concurrency.
 - Decisions: [`docs/adrs/`](./docs/adrs/) (0001–00NN). Architecture:
   [`docs/architecture.md`](./docs/architecture.md).
 - DB migrations: `drizzle/` (schema in `src/shared/db/schema/`).

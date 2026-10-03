@@ -56,13 +56,14 @@ Keep this table in sync when adding or superseding an ADR.
 | [0038](./0038-presigned-direct-r2-upload.md) | Presigned direct-to-R2 uploads (no server multipart) | Accepted |
 | [0039](./0039-realtime-via-trpc-subscriptions-over-websocket.md) | Realtime via tRPC subscriptions over WebSocket | Accepted |
 | [0040](./0040-resource-agnostic-invite-links.md) | Resource-agnostic invite links | Accepted |
-| [0041](./0041-rooms-as-independent-resources-with-server-authoritative-playback.md) | Rooms as independent resources, with server-authoritative playback | Accepted |
+| [0041](./0041-rooms-as-independent-resources-with-server-authoritative-playback.md) | Rooms as independent resources, with server-authoritative playback | Accepted, extended by [0048](./0048-listeners-report-the-end-of-a-track.md) |
 | [0042](./0042-superjson-transformer-for-trpc.md) | superjson as the tRPC data transformer | Accepted |
 | [0043](./0043-email-password-authentication-with-argon2id.md) | Email/password authentication, hashed with argon2id | Accepted |
 | [0044](./0044-room-chat-with-durable-replay.md) | Room chat, with durable replay | Accepted |
 | [0045](./0045-media-redirect-endpoint-for-playback-urls.md) | A media redirect endpoint, instead of presigned URLs that expire | Accepted |
 | [0046](./0046-domain-and-application-layers-inside-a-module.md) | Domain and application layers inside a module | Accepted |
 | [0047](./0047-domain-model-separate-from-persistence.md) | A domain model separate from persistence, with value objects | Accepted |
+| [0048](./0048-listeners-report-the-end-of-a-track.md) | Listeners report the end of a track; the room advances once | Accepted |
 
 ## Conventions
 

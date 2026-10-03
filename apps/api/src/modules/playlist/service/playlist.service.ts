@@ -16,8 +16,7 @@ import type {
 export function createPlaylistService(
   options: PlaylistServiceOptions,
 ): PlaylistService {
-  const { playlistRepository, musicRepository, objectStorage, eventBus } =
-    options;
+  const { playlistRepository, musicRepository, eventBus } = options;
 
   /** Loads a playlist the requester may access, or throws NotFound/Forbidden. */
   async function requireMembership(playlistId: string, requesterId: string) {

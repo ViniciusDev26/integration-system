@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createInMemoryEventBus } from "../../../shared/realtime/event-bus.in-memory.js";
 import { createInMemoryRoomRegistry } from "../../../shared/realtime/room-registry.in-memory.js";
-import { createInMemoryObjectStorage } from "../../../shared/storage/object-storage.in-memory.js";
 import { createInMemoryMusicRepository } from "../../music/repository/music.repository.in-memory.js";
 import type { MusicRepository } from "../../music/repository/music.repository.js";
 import { createInMemoryRoomRepository } from "../repository/room.repository.in-memory.js";
@@ -50,7 +49,6 @@ function setup() {
     roomRepository,
     roomMessageRepository,
     musicRepository,
-    objectStorage: createInMemoryObjectStorage(),
     eventBus,
     chatEventBus,
     roomRegistry,
@@ -276,6 +274,134 @@ describe("RoomService", () => {
           command: { type: "SELECT_TRACK", musicId },
         }),
       ).resolves.toMatchObject({ isPlaying: true });
+    });
+  });
+
+  describe("reportTrackEnded", () => {
+    async function playingRoom(trackNames: string[]) {
+      const room = await ownedRoom();
+      const ids: string[] = [];
+      for (const name of trackNames) {
+        const musicId = await seedMusic(ctx.musicRepository, name);
+        await service.queueMusic({
+          roomId: room.id,
+          musicId,
+          requesterId: OWNER,
+        });
+        ids.push(musicId);
+      }
+      const first = ids[0] ?? "";
+      await service.commandPlayback({
+        roomId: room.id,
+        requesterId: OWNER,
+        command: { type: "SELECT_TRACK", musicId: first },
+      });
+      return { room, ids };
+    }
+
+    it("advances to the next queued track and announces it", async () => {
+      const { room, ids } = await playingRoom(["one", "two"]);
+      const events = takeEvents(ctx.eventBus, room.id, 1);
+      ctx.advance(206_000);
+
+      const updated = await service.reportTrackEnded({
+        roomId: room.id,
+        requesterId: OWNER,
+        musicId: ids[0] ?? "",
+      });
+
+      expect(updated?.currentMusicId).toBe(ids[1]);
+      expect(updated?.isPlaying).toBe(true);
+      expect(updated?.positionMs).toBe(0);
+      const [event] = await events;
+      expect(event).toMatchObject({
+        type: "PLAYBACK_CHANGED",
+        actorId: OWNER,
+        anchor: { currentMusicId: ids[1], isPlaying: true },
+      });
+    });
+
+    it("advances exactly once when every listener reports together", async () => {
+      // This is the race the feature exists to resolve: N listeners reach the
+      // end at the same moment and all report it.
+      const { room, ids } = await playingRoom(["one", "two", "three"]);
+      await ctx.roomRepository.addMember({
+        roomId: room.id,
+        userId: GUEST,
+        type: "MEMBER",
+      });
+
+      const reports = await Promise.all([
+        service.reportTrackEnded({
+          roomId: room.id,
+          requesterId: OWNER,
+          musicId: ids[0] ?? "",
+        }),
+        service.reportTrackEnded({
+          roomId: room.id,
+          requesterId: GUEST,
+          musicId: ids[0] ?? "",
+        }),
+      ]);
+
+      expect(reports.filter((r) => r !== null)).toHaveLength(1);
+      const room_ = await ctx.roomRepository.findById(room.id);
+      expect(room_?.currentMusicId).toBe(ids[1]);
+    });
+
+    it("stops at the end of the queue instead of wrapping", async () => {
+      const { room, ids } = await playingRoom(["only"]);
+
+      const updated = await service.reportTrackEnded({
+        roomId: room.id,
+        requesterId: OWNER,
+        musicId: ids[0] ?? "",
+      });
+
+      expect(updated?.isPlaying).toBe(false);
+      expect(updated?.currentMusicId).toBe(ids[0]);
+    });
+
+    it("ignores a report for a track the room has already left", async () => {
+      const { room, ids } = await playingRoom(["one", "two"]);
+      await service.commandPlayback({
+        roomId: room.id,
+        requesterId: OWNER,
+        command: { type: "SELECT_TRACK", musicId: ids[1] ?? "" },
+      });
+      const events = takeEvents(ctx.eventBus, room.id, 1);
+
+      const updated = await service.reportTrackEnded({
+        roomId: room.id,
+        requesterId: OWNER,
+        musicId: ids[0] ?? "",
+      });
+      expect(updated).toBeNull();
+
+      // Nothing was published: the next event on the topic is the one this
+      // test puts there deliberately, not an advance from the stale report.
+      await service.commandPlayback({
+        roomId: room.id,
+        requesterId: OWNER,
+        command: { type: "PAUSE" },
+      });
+      const [event] = await events;
+      expect(event).toMatchObject({
+        type: "PLAYBACK_CHANGED",
+        anchor: { isPlaying: false },
+      });
+    });
+
+    it("refuses a report from someone who is not in the room", async () => {
+      const { room, ids } = await playingRoom(["one", "two"]);
+
+      await expect(
+        service.reportTrackEnded({
+          roomId: room.id,
+          requesterId: GUEST,
+          musicId: ids[0] ?? "",
+        }),
+      ).rejects.toBeInstanceOf(RoomForbiddenError);
     });
   });
 
